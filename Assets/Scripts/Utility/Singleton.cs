@@ -1,3 +1,4 @@
+using System;
 using Fusion;
 using UnityEngine;
 #pragma warning disable CS0618 
@@ -8,6 +9,11 @@ namespace Utility
 	{
 		private static T _I;
 		private static readonly object _lock = new object();
+
+		public void Awake()
+		{
+			DontDestroyOnLoad(gameObject);
+		}
 
 		public static T I
 		{
@@ -111,7 +117,10 @@ namespace Utility
 	{
 		private static T _I;
 		private static readonly object _lock = new();
-
+		public void Awake()
+		{
+			DontDestroyOnLoad(gameObject);
+		}
 		public static T I
 		{
 			get
@@ -214,7 +223,10 @@ namespace Utility
 	{
 		private static T _I;
 		private static readonly object _lock = new();
-
+		public void Awake()
+		{
+			DontDestroyOnLoad(gameObject);
+		}
 		public static T I
 		{
 			get

@@ -1,43 +1,40 @@
-using System;
-using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using Fusion;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Utility;
 
+
 public class App : SimulationSingleton<App>
 {
-    [SerializeField]private Scene[] _scenes;
-    private NetworkRunner _runner;
-    private NetworkEvents _event;
-    private void Awake()
+    private new void Awake()
     {
-        DontDestroyOnLoad(gameObject);
-        _runner = gameObject.GetComponent<NetworkRunner>();
-        _event = gameObject.GetComponent<NetworkEvents>();
+        base.Awake();
     }
 
     public async void GameStart(GameMode gameMode)
     {
-        // 연결끊김 이벤트 추가
-        _event.OnShutdown.AddListener((runner,response)=>{});
+        var runner = gameObject.GetComponent<NetworkRunner>();
+        var runnerEvent = gameObject.GetComponent<NetworkEvents>();
+        
+        // 연결끊김 이벤트 
+        runnerEvent.OnShutdown.AddListener((r,response)=>{});
 
         var sceneInfo = new NetworkSceneInfo();
-        SceneManager.GetSceneByPath("Scenes/1.RoomScene").buildIndex.Log();
         sceneInfo.AddSceneRef(SceneRef.FromIndex(1));
         var startArguments = new StartGameArgs()
         {
             GameMode = gameMode,
-            SessionName = "RoomName",
             PlayerCount = 2,
+            SessionName = "RoomName",
+            SessionNameGenerator = null,
             // SessionProperties = new Dictionary<string, SessionProperty> {["GameMode"] = GameModeIdentifier},
             Scene = sceneInfo,
         };
 
 
-        var startTask = _runner.StartGame(startArguments);
+        var startTask = runner.StartGame(startArguments);
         await startTask;
-
         if (startTask.Result.Ok)
         {
             
