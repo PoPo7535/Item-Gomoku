@@ -12,7 +12,10 @@ namespace Utility
 
 		public void Awake()
 		{
-			DontDestroyOnLoad(gameObject);
+			if (_I == null)
+				DontDestroyOnLoad(gameObject);
+			else
+				Destroy(gameObject);
 		}
 
 		public static T I
@@ -119,7 +122,10 @@ namespace Utility
 		private static readonly object _lock = new();
 		public void Awake()
 		{
-			DontDestroyOnLoad(gameObject);
+			if (_I == null)
+				DontDestroyOnLoad(gameObject);
+			else
+				Destroy(gameObject);
 		}
 		public static T I
 		{
@@ -225,7 +231,10 @@ namespace Utility
 		private static readonly object _lock = new();
 		public void Awake()
 		{
-			DontDestroyOnLoad(gameObject);
+			if (_I == null)
+				DontDestroyOnLoad(gameObject);
+			else
+				Destroy(gameObject);
 		}
 		public static T I
 		{

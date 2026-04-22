@@ -14,9 +14,12 @@ public class PopUp : Singleton<PopUp>
     [SerializeField] private TMP_Text buttonText2;
     [SerializeField] private Button button3;
     [SerializeField] private TMP_Text buttonText3;
-
+    private new void Awake()
+    {
+        base.Awake();
+    }
     public void Open(string msg, 
-        Action action1, string text1, 
+        Action action1 = null, string text1 = null, 
         Action action2 = null, string text2 = null, 
         Action action3 = null, string text3 = null)
     {
@@ -28,6 +31,12 @@ public class PopUp : Singleton<PopUp>
 
         void SetButton(Button button, Action action,TMP_Text text, string msg)
         {
+            if (action == null)
+            {
+                button.gameObject.SetActive(false);
+                return;
+            }
+            button.gameObject.SetActive(true);
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() =>
             {
@@ -37,9 +46,10 @@ public class PopUp : Singleton<PopUp>
             text.text = msg;
         }
     }
-    private new void Awake()
+
+    public void Close()
     {
-        base.Awake();
+        cg.ActiveCG(false);
     }
     
     

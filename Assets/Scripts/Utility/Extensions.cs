@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using DG.Tweening;
 using UnityEngine;
 using ColorUtility = UnityEngine.ColorUtility;
@@ -45,7 +47,25 @@ public static class Extensions
                 _complete?.Invoke();
             });
     }
+    public static string GenerateBase36(int length)
+    {
+        const string chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        var result = new StringBuilder(length);
 
+        using (var rng = RandomNumberGenerator.Create())
+        {
+            byte[] buffer = new byte[4];
+
+            for (int i = 0; i < length; i++)
+            {
+                rng.GetBytes(buffer);
+                uint num = BitConverter.ToUInt32(buffer, 0);
+                result.Append(chars[(int)(num % chars.Length)]);
+            }
+        }
+
+        return result.ToString();
+    }
     public static T Next<T>(this T value) where T : struct, Enum
     {
         var values = (T[])Enum.GetValues(typeof(T));
