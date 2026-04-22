@@ -30,7 +30,7 @@ public class App : SimulationSingleton<App>
         {
             GameMode = gameMode,
             PlayerCount = 2,
-            SessionName = Extensions.GenerateBase36(6),
+            SessionName = "TestRoom", // Extensions.GenerateBase36(6),
             SessionNameGenerator = null,
             // SessionProperties = new Dictionary<string, SessionProperty> {["GameMode"] = GameModeIdentifier},
             Scene = sceneInfo,

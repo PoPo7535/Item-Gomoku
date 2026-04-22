@@ -15,7 +15,7 @@ public class MainPanel : MonoBehaviour
         });
         _button2.onClick.AddListener(() =>
         {
-            App.I.GameStart(GameMode.Host);
+            App.I.GameStart(GameMode.AutoHostOrClient);
         });
     }
 }
