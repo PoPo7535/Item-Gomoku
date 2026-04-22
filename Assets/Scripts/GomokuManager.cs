@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 
 public class GomokuManager : MonoBehaviour
@@ -25,7 +26,7 @@ public class GomokuManager : MonoBehaviour
     private OmokuLogic _logic; //돌 데이터 
     private bool _isBlackTurn = true; // 턴 확인
     public Camera boardCamera; 
-
+    public RawImage GameViewImage;
     void Awake()
     {
         Reset();
@@ -42,64 +43,78 @@ public class GomokuManager : MonoBehaviour
     /// <summary>
     /// 마우스 클릭 위치를 바둑판 좌표로 변환하여 돌을 착수하고 승리를 판정
     /// </summary>
-    void PlaceStone()
+void PlaceStone()
+{
+    // 1. RawImage 상의 마우스 클릭 위치를 0~1 비율(Normalized)로 변환
+    RectTransformUtility.ScreenPointToLocalPointInRectangle(
+        GameViewImage.rectTransform, 
+        Input.mousePosition, 
+        null, 
+        out Vector2 localPoint
+    );
+
+    Rect r = GameViewImage.rectTransform.rect;
+    float normalizedX = (localPoint.x - r.x) / r.width;
+    float normalizedY = (localPoint.y - r.y) / r.height;
+
+    // 2. 렌더 텍스처 전용 카메라에서 레이 발사
+    Ray ray = boardCamera.ViewportPointToRay(new Vector3(normalizedX, normalizedY, 0));
+    Debug.DrawRay(ray.origin, ray.direction * 100f, Color.red, 5f);
+
+    if (Physics.Raycast(ray, out RaycastHit hit, 1000f))
     {
-        Ray ray = boardCamera.ScreenPointToRay(Input.mousePosition);
+        // 3. 인덱스 계산을 위해 클릭 지점을 'Cube'의 로컬 좌표로 변환
+        // hit.collider는 현재 레이가 맞은 Cube입니다.
+        Vector3 localHitPos = hit.collider.transform.InverseTransformPoint(hit.point);
 
-        Debug.DrawRay(ray.origin, ray.direction * 100f, Color.red, 5f);
-        if (Physics.Raycast(ray, out RaycastHit hit, 1000f))
+        float interval = BoardPhysicalSize / (LineCount - 1);
+
+        // 로컬 좌표를 interval로 나누어 오프셋 계산
+        int xIdxOffset = Mathf.RoundToInt(localHitPos.x / interval);
+        int zIdxOffset = Mathf.RoundToInt(localHitPos.z / interval);
+
+        int halfCount = (LineCount - 1) / 2;
+        int displayX = Mathf.Clamp(xIdxOffset + halfCount, 0, LineCount - 1);
+        int displayZ = Mathf.Clamp(zIdxOffset + halfCount, 0, LineCount - 1);
+
+        StoneColor currentColor = _isBlackTurn ? StoneColor.Black : StoneColor.White;
+
+        // 4. 오목 로직 체크 (중복 착수 등)
+        if (_logic.PlaceStone(displayX, displayZ, currentColor))
         {
-            // 1. 간격 및 좌표 계산
-            float interval = BoardPhysicalSize / (LineCount - 1);
+            // 5. 실제 돌이 배치될 위치 계산 (그리드 스냅)
+            // 로컬 좌표로 먼저 잡고, 다시 월드 좌표로 변환하여 정확한 위치에 소환
+            Vector3 spawnLocalPos = new Vector3(xIdxOffset * interval, 0.1f, zIdxOffset * interval);
+            Vector3 finalPos = hit.collider.transform.TransformPoint(spawnLocalPos);
 
+            // 6. 돌 생성 및 데이터 저장
+            GameObject prefab = _isBlackTurn ? BlackStonePrefab : WhiteStonePrefab;
+            GameObject stone = Instantiate(prefab, finalPos, Quaternion.identity);
+            
+         
+            stone.transform.SetParent(hit.collider.transform);
+            
+            _stoneObjects[displayX, displayZ] = stone;
 
-            Vector3 relativeHitPoint = hit.point - boardCamera.transform.parent.position; 
+            // 7. 정보 업데이트 및 승리 판정
+            UpdateAndShowLastPlace(displayX, displayZ); 
+            
+            string posText = $"{displayX},{displayZ}";
+            if (_isBlackTurn) _blackHistory.Add(posText);
+            else _whiteHistory.Add(posText);
 
+            Debug.Log($"<color=cyan>[{currentColor}] ({displayX}, {displayZ}) 착수 성공!</color>");
 
-            int xIdxOffset = Mathf.RoundToInt(hit.point.x / interval);
-            int zIdxOffset = Mathf.RoundToInt(hit.point.z / interval);
-
-            int halfCount = (LineCount - 1) / 2;
-            int displayX = Mathf.Clamp(xIdxOffset + halfCount, 0, LineCount - 1);
-            int displayZ = Mathf.Clamp(zIdxOffset + halfCount, 0, LineCount - 1);
-
-            StoneColor currentColor = _isBlackTurn ? StoneColor.Black : StoneColor.White;
-
-            // 2. 로직 체크 (금수, 중복 착수 등)
-            if (_logic.PlaceStone(displayX, displayZ, currentColor))
-            {
-                // 3. 실제 돌이 배치될 월드 좌표 (스냅)
-                float finalX = xIdxOffset * interval;
-                float finalZ = zIdxOffset * interval;
-                
-        
-                Vector3 finalPos = new Vector3(finalX, hit.point.y + 0.1f, finalZ);
-
-                // 4. 정보 업데이트 및 히스토리 기록
-                UpdateAndShowLastPlace(displayX, displayZ); 
-                string posText = $"{displayX},{displayZ}";
-                if (_isBlackTurn) _blackHistory.Add(posText);
-                else _whiteHistory.Add(posText);
-
-                // 5. 돌 생성 및 저장
-                GameObject prefab = _isBlackTurn ? BlackStonePrefab : WhiteStonePrefab;
-                GameObject stone = Instantiate(prefab, finalPos, Quaternion.identity);
-                _stoneObjects[displayX, displayZ] = stone;
-
-                Debug.Log($"<color=cyan>[{currentColor}] ({displayX}, {displayZ}) 착수 성공!</color>");
-
-                // 6. 승리 판정
-                if (_logic.CheckWin(displayX, displayZ, currentColor))
-                {   
-                    Debug.Log($"<color=yellow>★ 승리! {currentColor} ★</color>");
-                    return;
-                }
-
-                // 7. 턴 변경
-                ChangeTurn();
+            if (_logic.CheckWin(displayX, displayZ, currentColor))
+            {   
+                Debug.Log($"<color=yellow>★ 승리! {currentColor} ★</color>");
+                return;
             }
+
+            ChangeTurn();
         }
     }
+}
 
     /// <summary>
     /// 게임 초기화
