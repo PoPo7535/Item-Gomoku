@@ -24,6 +24,7 @@ public class GomokuManager : MonoBehaviour
     private GameObject[,] _stoneObjects; //돌 오브젝트 담을곳
     private OmokuLogic _logic; //돌 데이터 
     private bool _isBlackTurn = true; // 턴 확인
+    public Camera boardCamera; 
 
     void Awake()
     {
@@ -42,53 +43,64 @@ public class GomokuManager : MonoBehaviour
     /// 마우스 클릭 위치를 바둑판 좌표로 변환하여 돌을 착수하고 승리를 판정
     /// </summary>
     void PlaceStone()
+{
+    // [수정] 메인 카메라가 아닌, 바둑판 전용 카메라에서 마우스 위치로 레이 발사
+    Ray ray = boardCamera.ScreenPointToRay(Input.mousePosition);
+
+
+    if (Physics.Raycast(ray, out RaycastHit hit, 1000f))
     {
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        if (Physics.Raycast(ray, out RaycastHit hit))
+        // 1. 간격 및 좌표 계산
+        float interval = BoardPhysicalSize / (LineCount - 1);
+
+        // [중요] 바둑판의 위치를 고려한 상대 좌표 계산 (바둑판이 0,0,0이 아닐 경우 대비)
+        Vector3 relativeHitPoint = hit.point - boardCamera.transform.parent.position; 
+
+
+        int xIdxOffset = Mathf.RoundToInt(hit.point.x / interval);
+        int zIdxOffset = Mathf.RoundToInt(hit.point.z / interval);
+
+        int halfCount = (LineCount - 1) / 2;
+        int displayX = Mathf.Clamp(xIdxOffset + halfCount, 0, LineCount - 1);
+        int displayZ = Mathf.Clamp(zIdxOffset + halfCount, 0, LineCount - 1);
+
+        StoneColor currentColor = _isBlackTurn ? StoneColor.Black : StoneColor.White;
+
+        // 2. 로직 체크 (금수, 중복 착수 등)
+        if (_logic.PlaceStone(displayX, displayZ, currentColor))
         {
-            float interval = BoardPhysicalSize / (LineCount - 1);
+            // 3. 실제 돌이 배치될 월드 좌표 (스냅)
+            float finalX = xIdxOffset * interval;
+            float finalZ = zIdxOffset * interval;
+            
+            // 높이(Y)는 맞은 지점에서 살짝 위로
+            Vector3 finalPos = new Vector3(finalX, hit.point.y + 0.1f, finalZ);
 
-            int xIdxOffset = Mathf.RoundToInt(hit.point.x / interval);
-            int zIdxOffset = Mathf.RoundToInt(hit.point.z / interval);
+            // 4. 정보 업데이트 및 히스토리 기록
+            UpdateAndShowLastPlace(displayX, displayZ); 
+            string posText = $"{displayX},{displayZ}";
+            if (_isBlackTurn) _blackHistory.Add(posText);
+            else _whiteHistory.Add(posText);
 
-            int halfCount = (LineCount - 1) / 2;
-            int displayX = Mathf.Clamp(xIdxOffset + halfCount, 0, LineCount - 1);
-            int displayZ = Mathf.Clamp(zIdxOffset + halfCount, 0, LineCount - 1);
+            // 5. 돌 생성 및 저장
+            GameObject prefab = _isBlackTurn ? BlackStonePrefab : WhiteStonePrefab;
+            GameObject stone = Instantiate(prefab, finalPos, Quaternion.identity);
+            _stoneObjects[displayX, displayZ] = stone;
 
-            StoneColor currentColor = _isBlackTurn ? StoneColor.Black : StoneColor.White;
+            Debug.Log($"<color=cyan>[{currentColor}] ({displayX}, {displayZ}) 착수 성공!</color>");
 
-            if (_logic.PlaceStone(displayX, displayZ, currentColor)) // 금수 체크와 위치에 돌 데이터 저장
-            {
-                float finalX = xIdxOffset * interval;
-                float finalZ = zIdxOffset * interval;
-                Vector3 finalPos = new Vector3(finalX, hit.point.y + 0.1f, finalZ);
-
-                //상대 최근 좌표 알려주기
-                UpdateAndShowLastPlace(displayX, displayZ); 
-
-                //좌표 전체 기록
-                string posText = $"{displayX},{displayZ}";
-                if (_isBlackTurn) _blackHistory.Add(posText);
-                else _whiteHistory.Add(posText);
-
-                GameObject prefab = _isBlackTurn ? BlackStonePrefab : WhiteStonePrefab;
-                GameObject stone = Instantiate(prefab, finalPos, Quaternion.identity);
-                _stoneObjects[displayX, displayZ] = stone; // 실제 돌 오브젝트 저장
-
-                Debug.Log($"[{currentColor}] ({displayX}, {displayZ}) 착수 성공.");
-
-                if (_logic.CheckWin(displayX, displayZ, currentColor))
-                {   
-                    //승리 로직추가해야함
-                    Debug.Log($"<color=cyan>★ 승리! {currentColor} ★</color>");
-                    return;
-                }
-                // 턴변경
-                ChangeTurn();
-           
+            // 6. 승리 판정
+            if (_logic.CheckWin(displayX, displayZ, currentColor))
+            {   
+                Debug.Log($"<color=yellow>★ 승리! {currentColor} ★</color>");
+                return;
             }
+
+            // 7. 턴 변경
+            ChangeTurn();
         }
     }
+}
 
     /// <summary>
     /// 게임 초기화
