@@ -45,7 +45,7 @@ public class GomokuManager : MonoBehaviour
     /// </summary>
 void PlaceStone()
 {
-    // 1. RawImage 상의 마우스 클릭 위치를 0~1 비율(Normalized)로 변환
+
     RectTransformUtility.ScreenPointToLocalPointInRectangle(
         GameViewImage.rectTransform, 
         Input.mousePosition, 
@@ -57,14 +57,13 @@ void PlaceStone()
     float normalizedX = (localPoint.x - r.x) / r.width;
     float normalizedY = (localPoint.y - r.y) / r.height;
 
-    // 2. 렌더 텍스처 전용 카메라에서 레이 발사
+
     Ray ray = boardCamera.ViewportPointToRay(new Vector3(normalizedX, normalizedY, 0));
     Debug.DrawRay(ray.origin, ray.direction * 100f, Color.red, 5f);
 
     if (Physics.Raycast(ray, out RaycastHit hit, 1000f))
     {
-        // 3. 인덱스 계산을 위해 클릭 지점을 'Cube'의 로컬 좌표로 변환
-        // hit.collider는 현재 레이가 맞은 Cube입니다.
+        // 인덱스 계산을 위해 클릭 지점을 'Cube'의 로컬 좌표로 변환
         Vector3 localHitPos = hit.collider.transform.InverseTransformPoint(hit.point);
 
         float interval = BoardPhysicalSize / (LineCount - 1);
@@ -79,15 +78,14 @@ void PlaceStone()
 
         StoneColor currentColor = _isBlackTurn ? StoneColor.Black : StoneColor.White;
 
-        // 4. 오목 로직 체크 (중복 착수 등)
+        // 오목 로직 체크 (중복 착수 등)
         if (_logic.PlaceStone(displayX, displayZ, currentColor))
         {
-            // 5. 실제 돌이 배치될 위치 계산 (그리드 스냅)
-            // 로컬 좌표로 먼저 잡고, 다시 월드 좌표로 변환하여 정확한 위치에 소환
+            // 실제 돌이 배치될 위치 계산 (그리드 스냅)
             Vector3 spawnLocalPos = new Vector3(xIdxOffset * interval, 0.1f, zIdxOffset * interval);
             Vector3 finalPos = hit.collider.transform.TransformPoint(spawnLocalPos);
 
-            // 6. 돌 생성 및 데이터 저장
+            // 돌 생성 및 데이터 저장
             GameObject prefab = _isBlackTurn ? BlackStonePrefab : WhiteStonePrefab;
             GameObject stone = Instantiate(prefab, finalPos, Quaternion.identity);
             
@@ -96,7 +94,7 @@ void PlaceStone()
             
             _stoneObjects[displayX, displayZ] = stone;
 
-            // 7. 정보 업데이트 및 승리 판정
+            // 정보 업데이트 및 승리 판정
             UpdateAndShowLastPlace(displayX, displayZ); 
             
             string posText = $"{displayX},{displayZ}";
