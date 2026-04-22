@@ -233,8 +233,8 @@ namespace Utility
 		{
 			if (_I == null)
 				DontDestroyOnLoad(gameObject);
-			else
-				Destroy(gameObject);
+			// else
+			// 	Destroy(gameObject);
 		}
 		public static T I
 		{

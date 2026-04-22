@@ -17,6 +17,7 @@ public class App : SimulationSingleton<App>
         
         PopUp.I.Open("Hosting...");
         // 연결끊김 이벤트 
+        runnerEvent.OnShutdown.RemoveAllListeners();
         runnerEvent.OnShutdown.AddListener((r, response) =>
         {
             SceneManager.LoadScene(0);

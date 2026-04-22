@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Fusion;
 using TMPro;
+using Unity.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -13,22 +14,20 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
     [SerializeField] private TMP_Text playerText1;
     [SerializeField] private TMP_Text playerText2;
     private bool _ready = false;
+    
     public override void Spawned()
     {
         shutdownButton.onClick.AddListener(() => App.I.GameQuit());
         readyButton.onClick.AddListener(() =>
         {
             if (Object.HasStateAuthority)
-            {
                 RPC_GameStart();
-            }
             else
-            {
                 RPC_Ready(false == _ready);
-            }
         });
         readyText.text = Object.HasStateAuthority ? "Start" : "Ready";
         readyButton.interactable = false == Object.HasStateAuthority;
+        UpdatePlayers();
     }
 
     [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
@@ -44,22 +43,27 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
             return;
         readyButton.interactable = _ready;
     }
-    
+
+    private void UpdatePlayers()
+    {
+        foreach (var playerRef in App.I.Runner.ActivePlayers) 
+        {
+            var isLocalPlayer = playerRef == App.I.Runner.LocalPlayer;
+            var hostClient = Object.HasStateAuthority == isLocalPlayer;
+            var targetText = hostClient ? playerText1 : playerText2;
+            targetText.text = playerRef.ToString();
+        }
+    }
     public void PlayerJoined(PlayerRef player)
     {
-        Object.HasStateAuthority.Log();
-        if (Object.HasStateAuthority)
-            playerText1.text = player.ToString();
-        else
-        {
-            playerText2.text = player.ToString();
-            _ready = false;
-        }
+        UpdatePlayers();
     }
 
     public void PlayerLeft(PlayerRef player)
     {
-        if (Object.HasStateAuthority)
+        if (false == Object.HasStateAuthority)
+            return;
+        if (player == App.I.Runner.LocalPlayer)
             playerText1.text = string.Empty;
         else
         {
