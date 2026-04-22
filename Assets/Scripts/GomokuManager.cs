@@ -43,8 +43,7 @@ public class GomokuManager : MonoBehaviour
     /// 마우스 클릭 위치를 바둑판 좌표로 변환하여 돌을 착수하고 승리를 판정
     /// </summary>
     void PlaceStone()
-{
-    // [수정] 메인 카메라가 아닌, 바둑판 전용 카메라에서 마우스 위치로 레이 발사
+    {
     Ray ray = boardCamera.ScreenPointToRay(Input.mousePosition);
 
 
@@ -53,7 +52,7 @@ public class GomokuManager : MonoBehaviour
         // 1. 간격 및 좌표 계산
         float interval = BoardPhysicalSize / (LineCount - 1);
 
-        // [중요] 바둑판의 위치를 고려한 상대 좌표 계산 (바둑판이 0,0,0이 아닐 경우 대비)
+
         Vector3 relativeHitPoint = hit.point - boardCamera.transform.parent.position; 
 
 
@@ -73,7 +72,7 @@ public class GomokuManager : MonoBehaviour
             float finalX = xIdxOffset * interval;
             float finalZ = zIdxOffset * interval;
             
-            // 높이(Y)는 맞은 지점에서 살짝 위로
+       
             Vector3 finalPos = new Vector3(finalX, hit.point.y + 0.1f, finalZ);
 
             // 4. 정보 업데이트 및 히스토리 기록
