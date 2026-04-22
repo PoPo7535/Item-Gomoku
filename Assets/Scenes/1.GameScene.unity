@@ -300,8 +300,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 233d7816bc218ae4486cbd0b52842f22, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GomokuManager
-  BlackStonePrefab: {fileID: 0}
-  WhiteStonePrefab: {fileID: 0}
+  BlackStonePrefab: {fileID: 8563980502022114723, guid: bda5f4f9aec8c2249ba6a37b13d9df88, type: 3}
+  WhiteStonePrefab: {fileID: 8563980502022114723, guid: 1fc85cf5313778543bf1d5457391476e, type: 3}
   BoardPhysicalSize: 5
   LineCount: 15
 --- !u!1 &980233450
