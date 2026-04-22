@@ -44,62 +44,62 @@ public class GomokuManager : MonoBehaviour
     /// </summary>
     void PlaceStone()
     {
-    Ray ray = boardCamera.ScreenPointToRay(Input.mousePosition);
+        Ray ray = boardCamera.ScreenPointToRay(Input.mousePosition);
 
-
-    if (Physics.Raycast(ray, out RaycastHit hit, 1000f))
-    {
-        // 1. 간격 및 좌표 계산
-        float interval = BoardPhysicalSize / (LineCount - 1);
-
-
-        Vector3 relativeHitPoint = hit.point - boardCamera.transform.parent.position; 
-
-
-        int xIdxOffset = Mathf.RoundToInt(hit.point.x / interval);
-        int zIdxOffset = Mathf.RoundToInt(hit.point.z / interval);
-
-        int halfCount = (LineCount - 1) / 2;
-        int displayX = Mathf.Clamp(xIdxOffset + halfCount, 0, LineCount - 1);
-        int displayZ = Mathf.Clamp(zIdxOffset + halfCount, 0, LineCount - 1);
-
-        StoneColor currentColor = _isBlackTurn ? StoneColor.Black : StoneColor.White;
-
-        // 2. 로직 체크 (금수, 중복 착수 등)
-        if (_logic.PlaceStone(displayX, displayZ, currentColor))
+        Debug.DrawRay(ray.origin, ray.direction * 100f, Color.red, 5f);
+        if (Physics.Raycast(ray, out RaycastHit hit, 1000f))
         {
-            // 3. 실제 돌이 배치될 월드 좌표 (스냅)
-            float finalX = xIdxOffset * interval;
-            float finalZ = zIdxOffset * interval;
-            
-       
-            Vector3 finalPos = new Vector3(finalX, hit.point.y + 0.1f, finalZ);
+            // 1. 간격 및 좌표 계산
+            float interval = BoardPhysicalSize / (LineCount - 1);
 
-            // 4. 정보 업데이트 및 히스토리 기록
-            UpdateAndShowLastPlace(displayX, displayZ); 
-            string posText = $"{displayX},{displayZ}";
-            if (_isBlackTurn) _blackHistory.Add(posText);
-            else _whiteHistory.Add(posText);
 
-            // 5. 돌 생성 및 저장
-            GameObject prefab = _isBlackTurn ? BlackStonePrefab : WhiteStonePrefab;
-            GameObject stone = Instantiate(prefab, finalPos, Quaternion.identity);
-            _stoneObjects[displayX, displayZ] = stone;
+            Vector3 relativeHitPoint = hit.point - boardCamera.transform.parent.position; 
 
-            Debug.Log($"<color=cyan>[{currentColor}] ({displayX}, {displayZ}) 착수 성공!</color>");
 
-            // 6. 승리 판정
-            if (_logic.CheckWin(displayX, displayZ, currentColor))
-            {   
-                Debug.Log($"<color=yellow>★ 승리! {currentColor} ★</color>");
-                return;
+            int xIdxOffset = Mathf.RoundToInt(hit.point.x / interval);
+            int zIdxOffset = Mathf.RoundToInt(hit.point.z / interval);
+
+            int halfCount = (LineCount - 1) / 2;
+            int displayX = Mathf.Clamp(xIdxOffset + halfCount, 0, LineCount - 1);
+            int displayZ = Mathf.Clamp(zIdxOffset + halfCount, 0, LineCount - 1);
+
+            StoneColor currentColor = _isBlackTurn ? StoneColor.Black : StoneColor.White;
+
+            // 2. 로직 체크 (금수, 중복 착수 등)
+            if (_logic.PlaceStone(displayX, displayZ, currentColor))
+            {
+                // 3. 실제 돌이 배치될 월드 좌표 (스냅)
+                float finalX = xIdxOffset * interval;
+                float finalZ = zIdxOffset * interval;
+                
+        
+                Vector3 finalPos = new Vector3(finalX, hit.point.y + 0.1f, finalZ);
+
+                // 4. 정보 업데이트 및 히스토리 기록
+                UpdateAndShowLastPlace(displayX, displayZ); 
+                string posText = $"{displayX},{displayZ}";
+                if (_isBlackTurn) _blackHistory.Add(posText);
+                else _whiteHistory.Add(posText);
+
+                // 5. 돌 생성 및 저장
+                GameObject prefab = _isBlackTurn ? BlackStonePrefab : WhiteStonePrefab;
+                GameObject stone = Instantiate(prefab, finalPos, Quaternion.identity);
+                _stoneObjects[displayX, displayZ] = stone;
+
+                Debug.Log($"<color=cyan>[{currentColor}] ({displayX}, {displayZ}) 착수 성공!</color>");
+
+                // 6. 승리 판정
+                if (_logic.CheckWin(displayX, displayZ, currentColor))
+                {   
+                    Debug.Log($"<color=yellow>★ 승리! {currentColor} ★</color>");
+                    return;
+                }
+
+                // 7. 턴 변경
+                ChangeTurn();
             }
-
-            // 7. 턴 변경
-            ChangeTurn();
         }
     }
-}
 
     /// <summary>
     /// 게임 초기화
@@ -232,5 +232,5 @@ public class GomokuManager : MonoBehaviour
         Debug.Log("흑돌 기보: " + string.Join(" -> ", _blackHistory));
         Debug.Log("백돌 기보: " + string.Join(" -> ", _whiteHistory));
     }
-
+    
 }
