@@ -9,5 +9,6 @@ public class GameRoomPanel : MonoBehaviour
     public void Start()
     {
         shutdownButton.onClick.AddListener(() => App.I.GameQuit());
+        App.I.Runner.SessionInfo.Name.Log();
     }
 }

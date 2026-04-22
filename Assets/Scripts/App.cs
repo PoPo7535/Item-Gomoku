@@ -52,6 +52,6 @@ public class App : SimulationSingleton<App>
 
     public void GameQuit()
     {
-        Runner.Shutdown();
+        ((SimulationBehaviour)this).Runner.Shutdown();
     }
 }
