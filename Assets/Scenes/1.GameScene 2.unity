@@ -669,7 +669,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0.00021729924}
+  m_AnchoredPosition: {x: 0, y: 0.00043047065}
   m_SizeDelta: {x: 0, y: 300}
   m_Pivot: {x: 0, y: 1}
 --- !u!1 &494552728
@@ -1153,7 +1153,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GomokuManager
   BlackStonePrefab: {fileID: 7260710996652760942, guid: e3918a27c6f212a45bb00c6961101026, type: 3}
   WhiteStonePrefab: {fileID: 5117338148248406338, guid: abeb61bcbdc0db54c8c6d4c2f23bf275, type: 3}
-  BoardPhysicalSize: 5
+  BoardPhysicalSize: 8
   LineCount: 15
 --- !u!1 &691762960
 GameObject:
@@ -1843,7 +1843,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 2086762248}
   m_Direction: 2
   m_Value: 0
-  m_Size: 0.9999335
+  m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
