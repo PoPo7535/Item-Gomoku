@@ -5048,6 +5048,8 @@ MonoBehaviour:
   _blackStoneParent: {fileID: 502979631}
   _whiteStoneParent: {fileID: 2008485267}
   _ghostParent: {fileID: 923248253}
+  _maxUndoCount: 0
+  _aiDifficulty: 3
 --- !u!4 &1181881346
 Transform:
   m_ObjectHideFlags: 0

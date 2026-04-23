@@ -16,6 +16,32 @@ public sealed class GomokuManager_Test : MonoBehaviour
         Forbidden,
     }
 
+    private enum AiDifficulty
+    {
+        Easy = 1,
+        Normal = 3,
+        Hard = 5
+    }
+
+    private struct MoveRecord
+    {
+        public int XIndex;
+        public int YIndex;
+        public StoneColor StoneColor;
+        public GameObject StoneObject;
+        public bool WasBlackTurnBeforeMove;
+        public bool WasGameOverBeforeMove;
+        public int BlackStoneCountBeforeMove;
+        public int WhiteStoneCountBeforeMove;
+    }
+
+    private struct TurnRecord
+    {
+        public MoveRecord PlayerMove;
+        public bool HasAiMove;
+        public MoveRecord AiMove;
+    }
+
     [Header("프리팹 설정")]
     [SerializeField] private GameObject _blackStonePrefab;
     [SerializeField] private GameObject _whiteStonePrefab;
@@ -38,10 +64,18 @@ public sealed class GomokuManager_Test : MonoBehaviour
     [SerializeField] private Transform _whiteStoneParent;
     [SerializeField] private Transform _ghostParent;
 
+    [Header("무르기 설정")]
+    [SerializeField] private int _maxUndoCount;
+
+    [Header("AI 설정")]
+    [SerializeField] private AiDifficulty _aiDifficulty = AiDifficulty.Normal;
+
     private OmokuLogic _logic;
+    private GomokuAI _ai;
     private GameObject[,] _stoneObjects;
     private Transform[,] _cellAnchors;
     private bool _isBlackTurn = true;
+    private bool _isAiThinking;
     private bool _isGameOver;
     private bool _isReady;
     private int _blackStoneCount;
@@ -50,6 +84,8 @@ public sealed class GomokuManager_Test : MonoBehaviour
     private float _cellClickRadius;
     private GameObject _ghostStoneObject;
     private StoneColor _ghostStoneColor = StoneColor.None;
+    private Stack<TurnRecord> _turnHistory;
+    private int _remainingUndoCount;
 
     /// <summary>
     /// 테스트 게임 상태를 초기화함.
@@ -64,7 +100,18 @@ public sealed class GomokuManager_Test : MonoBehaviour
     /// </summary>
     private void Update()
     {
-        if (!_isReady || _isGameOver)
+        if (!_isReady)
+        {
+            HideGhostPreview();
+            return;
+        }
+
+        if (TryHandleUndoInput())
+        {
+            return;
+        }
+
+        if (_isGameOver || _isAiThinking || !_isBlackTurn)
         {
             HideGhostPreview();
             return;
@@ -84,15 +131,19 @@ public sealed class GomokuManager_Test : MonoBehaviour
     private void InitializeGame()
     {
         _logic = new OmokuLogic();
+        _ai = new GomokuAI(_logic, BoardSize);
         _stoneObjects = new GameObject[BoardSize, BoardSize];
         _cellAnchors = new Transform[BoardSize, BoardSize];
         _isBlackTurn = true;
+        _isAiThinking = false;
         _isGameOver = false;
         _blackStoneCount = 0;
         _whiteStoneCount = 0;
         _cellSpacing = 0f;
         _cellClickRadius = 0f;
         _ghostStoneColor = StoneColor.None;
+        _turnHistory = new Stack<TurnRecord>();
+        _remainingUndoCount = _maxUndoCount > 0 ? _maxUndoCount : 0;
         _isReady = TryCacheCellAnchors() && TryValidateCellLayout() && ValidateStoneHierarchy();
     }
 
@@ -101,12 +152,52 @@ public sealed class GomokuManager_Test : MonoBehaviour
     /// </summary>
     private void TryHandlePlacementInput()
     {
+        if (_isAiThinking || !_isBlackTurn)
+        {
+            return;
+        }
+
         if (!TryGetBoardIndex(out int xIndex, out int yIndex))
         {
             return;
         }
 
-        TryPlaceStone(xIndex, yIndex);
+        if (!TryPlaceStone(xIndex, yIndex, StoneColor.Black, out MoveRecord playerMoveRecord))
+        {
+            return;
+        }
+
+        TurnRecord turnRecord = new TurnRecord
+        {
+            PlayerMove = playerMoveRecord,
+            HasAiMove = false,
+        };
+
+        if (_isGameOver)
+        {
+            _turnHistory.Push(turnRecord);
+            HideGhostPreview();
+            return;
+        }
+
+        _isBlackTurn = false;
+        HandleAiTurn(ref turnRecord);
+        _turnHistory.Push(turnRecord);
+        RefreshGhostPreview();
+    }
+
+    /// <summary>
+    /// 무르기 단축키 입력을 감지해 최근 턴 복구를 시도함.
+    /// </summary>
+    /// <returns>이번 프레임에 무르기 입력을 처리했는지 여부.</returns>
+    private bool TryHandleUndoInput()
+    {
+        if (!Input.GetKeyDown(KeyCode.Space) || _isAiThinking)
+        {
+            return false;
+        }
+
+        return TryUndoLastTurn();
     }
 
     /// <summary>
@@ -347,39 +438,41 @@ public sealed class GomokuManager_Test : MonoBehaviour
     }
 
     /// <summary>
-    /// 현재 턴 기준으로 착수와 승패 판정을 진행함.
+    /// 지정된 색상 기준으로 착수와 승패 판정을 진행함.
     /// </summary>
     /// <param name="xIndex">착수할 X 인덱스.</param>
     /// <param name="yIndex">착수할 Y 인덱스.</param>
-    private void TryPlaceStone(int xIndex, int yIndex)
+    /// <param name="stoneColor">착수할 돌 색상.</param>
+    /// <param name="moveRecord">성공 시 저장된 착수 기록.</param>
+    /// <returns>착수 성공 여부.</returns>
+    private bool TryPlaceStone(int xIndex, int yIndex, StoneColor stoneColor, out MoveRecord moveRecord)
     {
-        StoneColor currentColor = _isBlackTurn ? StoneColor.Black : StoneColor.White;
-        GameObject stonePrefab = GetStonePrefab(currentColor);
+        GameObject stonePrefab = GetStonePrefab(stoneColor);
+        moveRecord = CreateMoveRecord(xIndex, yIndex, stoneColor);
 
         if (stonePrefab == null)
         {
-            Debug.LogWarning($"{currentColor} 돌 프리팹이 연결되지 않았습니다.");
-            return;
+            Debug.LogWarning($"{stoneColor} 돌 프리팹이 연결되지 않았습니다.");
+            return false;
         }
 
-        if (!_logic.PlaceStone(xIndex, yIndex, currentColor))
+        if (!_logic.PlaceStone(xIndex, yIndex, stoneColor))
         {
-            return;
+            return false;
         }
 
-        SpawnStone(stonePrefab, xIndex, yIndex);
-        Debug.Log($"{currentColor} 착수: ({xIndex}, {yIndex})");
+        moveRecord.StoneObject = SpawnStone(stonePrefab, xIndex, yIndex, stoneColor);
+        Debug.Log($"{stoneColor} 착수: ({xIndex}, {yIndex})");
 
-        if (_logic.CheckWin(xIndex, yIndex, currentColor))
+        // 착수 기록 저장 이후에만 승리 여부를 확정함.
+        if (_logic.CheckWin(xIndex, yIndex, stoneColor))
         {
             _isGameOver = true;
             HideGhostPreview();
-            Debug.Log($"승리: {currentColor}");
-            return;
+            Debug.Log($"승리: {stoneColor}");
         }
 
-        _isBlackTurn = !_isBlackTurn;
-        UpdateGhostPreview();
+        return true;
     }
 
     /// <summary>
@@ -388,24 +481,206 @@ public sealed class GomokuManager_Test : MonoBehaviour
     /// <param name="stonePrefab">생성할 돌 프리팹.</param>
     /// <param name="xIndex">보드 X 인덱스.</param>
     /// <param name="yIndex">보드 Y 인덱스.</param>
-    private void SpawnStone(GameObject stonePrefab, int xIndex, int yIndex)
+    /// <returns>생성된 돌 오브젝트.</returns>
+    private GameObject SpawnStone(GameObject stonePrefab, int xIndex, int yIndex, StoneColor stoneColor)
     {
         Transform cellAnchor = _cellAnchors[xIndex, yIndex];
         if (cellAnchor == null)
         {
             Debug.LogError($"셀 앵커를 찾지 못해 돌을 생성할 수 없습니다: ({xIndex}, {yIndex})");
-            return;
+            return null;
         }
 
         Vector3 worldStonePosition = cellAnchor.position + (_boardRoot.up * _stoneHeight);
         Quaternion worldStoneRotation = _boardRoot.rotation * stonePrefab.transform.rotation;
-        StoneColor currentColor = _isBlackTurn ? StoneColor.Black : StoneColor.White;
-        Transform stoneParent = GetStoneParent(currentColor);
+        Transform stoneParent = GetStoneParent(stoneColor);
         GameObject stoneObject = Instantiate(stonePrefab, worldStonePosition, worldStoneRotation, stoneParent);
         stoneObject.transform.localScale = Vector3.one * _stoneScale;
         AlignStoneToCellCenter(stoneObject.transform, worldStonePosition);
-        stoneObject.name = GetNextStoneName(currentColor);
+        stoneObject.name = GetNextStoneName(stoneColor);
         _stoneObjects[xIndex, yIndex] = stoneObject;
+        return stoneObject;
+    }
+
+    /// <summary>
+    /// 현재 착수 직전 상태를 무르기 기록으로 생성함.
+    /// </summary>
+    /// <param name="xIndex">기록할 X 인덱스.</param>
+    /// <param name="yIndex">기록할 Y 인덱스.</param>
+    /// <param name="stoneColor">현재 착수 색상.</param>
+    /// <returns>착수 전 상태가 담긴 무르기 기록.</returns>
+    private MoveRecord CreateMoveRecord(int xIndex, int yIndex, StoneColor stoneColor)
+    {
+        MoveRecord moveRecord = new MoveRecord
+        {
+            XIndex = xIndex,
+            YIndex = yIndex,
+            StoneColor = stoneColor,
+            WasBlackTurnBeforeMove = _isBlackTurn,
+            WasGameOverBeforeMove = _isGameOver,
+            BlackStoneCountBeforeMove = _blackStoneCount,
+            WhiteStoneCountBeforeMove = _whiteStoneCount,
+        };
+
+        return moveRecord;
+    }
+
+    /// <summary>
+    /// 현재 상태에서 무르기 실행이 가능한지 확인함.
+    /// </summary>
+    /// <returns>무르기 가능 여부.</returns>
+    private bool CanUndo()
+    {
+        if (_turnHistory == null || _turnHistory.Count == 0)
+        {
+            return false;
+        }
+
+        return _maxUndoCount <= 0 || _remainingUndoCount > 0;
+    }
+
+    /// <summary>
+    /// 무르기 사용 횟수를 차감함.
+    /// </summary>
+    private void ConsumeUndoUsage()
+    {
+        if (_maxUndoCount <= 0)
+        {
+            return;
+        }
+
+        _remainingUndoCount = Mathf.Max(0, _remainingUndoCount - 1);
+    }
+
+    /// <summary>
+    /// 기록된 착수 전 상태를 실제 게임 상태에 복원함.
+    /// </summary>
+    /// <param name="moveRecord">복원할 무르기 기록.</param>
+    private void RestoreMoveRecord(MoveRecord moveRecord)
+    {
+        // 착수 직전 상태를 그대로 복원해야 턴/종료 상태가 안정적으로 되돌아감.
+        _logic.Board[moveRecord.XIndex, moveRecord.YIndex] = new StoneData
+        {
+            Color = StoneColor.None,
+            IsFake = false,
+        };
+
+        if (moveRecord.StoneObject != null)
+        {
+            Destroy(moveRecord.StoneObject);
+        }
+
+        _stoneObjects[moveRecord.XIndex, moveRecord.YIndex] = null;
+        _isBlackTurn = moveRecord.WasBlackTurnBeforeMove;
+        _isGameOver = moveRecord.WasGameOverBeforeMove;
+        _blackStoneCount = moveRecord.BlackStoneCountBeforeMove;
+        _whiteStoneCount = moveRecord.WhiteStoneCountBeforeMove;
+    }
+
+    /// <summary>
+    /// AI 응수를 포함한 최근 턴 전체를 되돌림.
+    /// </summary>
+    /// <returns>최근 턴 복구 성공 여부.</returns>
+    private bool TryUndoLastTurn()
+    {
+        if (!CanUndo())
+        {
+            return false;
+        }
+
+        TurnRecord turnRecord = _turnHistory.Pop();
+        RestoreTurnRecord(turnRecord);
+        ConsumeUndoUsage();
+        RefreshGhostPreview();
+        Debug.Log($"턴 무르기 실행: {FormatTurnUndoLog(turnRecord)}");
+        return true;
+    }
+
+    /// <summary>
+    /// 기록된 턴 전체를 실제 게임 상태에 복원함.
+    /// </summary>
+    /// <param name="turnRecord">복원할 턴 기록.</param>
+    private void RestoreTurnRecord(TurnRecord turnRecord)
+    {
+        if (turnRecord.HasAiMove)
+        {
+            RestoreMoveRecord(turnRecord.AiMove);
+        }
+
+        RestoreMoveRecord(turnRecord.PlayerMove);
+        _isAiThinking = false;
+    }
+
+    /// <summary>
+    /// 턴 무르기 로그에 표시할 수순 문자열을 구성함.
+    /// </summary>
+    /// <param name="turnRecord">로그로 출력할 턴 기록.</param>
+    /// <returns>로그 출력용 수순 문자열.</returns>
+    private static string FormatTurnUndoLog(TurnRecord turnRecord)
+    {
+        string playerMoveText = $"{turnRecord.PlayerMove.StoneColor} ({turnRecord.PlayerMove.XIndex}, {turnRecord.PlayerMove.YIndex})";
+        if (!turnRecord.HasAiMove)
+        {
+            return playerMoveText;
+        }
+
+        string aiMoveText = $"{turnRecord.AiMove.StoneColor} ({turnRecord.AiMove.XIndex}, {turnRecord.AiMove.YIndex})";
+        return $"{playerMoveText} -> {aiMoveText}";
+    }
+
+    /// <summary>
+    /// AI 응수를 계산하고 현재 턴 기록에 반영함.
+    /// </summary>
+    /// <param name="turnRecord">이번 턴에 누적할 턴 기록.</param>
+    private void HandleAiTurn(ref TurnRecord turnRecord)
+    {
+        if (_ai == null || _isGameOver)
+        {
+            return;
+        }
+
+        _isAiThinking = true;
+        HideGhostPreview();
+
+        GomokuMove bestMove = _ai.FindBestMove(Mathf.Max(1, (int)_aiDifficulty));
+        if (!bestMove.IsValid)
+        {
+            Debug.LogWarning("AI가 유효한 착수 위치를 찾지 못했습니다.");
+            _isAiThinking = false;
+            _isBlackTurn = true;
+            return;
+        }
+
+        if (!TryPlaceStone(bestMove.X, bestMove.Y, StoneColor.White, out MoveRecord aiMoveRecord))
+        {
+            Debug.LogWarning($"AI 착수에 실패했습니다: ({bestMove.X}, {bestMove.Y})");
+            _isAiThinking = false;
+            _isBlackTurn = true;
+            return;
+        }
+
+        turnRecord.HasAiMove = true;
+        turnRecord.AiMove = aiMoveRecord;
+        _isAiThinking = false;
+
+        if (!_isGameOver)
+        {
+            _isBlackTurn = true;
+        }
+    }
+
+    /// <summary>
+    /// 현재 상태에 맞춰 고스트 표시 여부를 다시 계산함.
+    /// </summary>
+    private void RefreshGhostPreview()
+    {
+        if (!_isReady || _isGameOver || _isAiThinking || !_isBlackTurn)
+        {
+            HideGhostPreview();
+            return;
+        }
+
+        UpdateGhostPreview();
     }
 
     /// <summary>
@@ -492,6 +767,11 @@ public sealed class GomokuManager_Test : MonoBehaviour
         xIndex = 0;
         yIndex = 0;
         previewColor = _isBlackTurn ? StoneColor.Black : StoneColor.White;
+
+        if (_isAiThinking || _isGameOver || !_isBlackTurn)
+        {
+            return false;
+        }
 
         if (!TryGetBoardIndex(out xIndex, out yIndex))
         {
