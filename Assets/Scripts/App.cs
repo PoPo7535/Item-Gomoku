@@ -1,4 +1,5 @@
 using Fusion;
+using Fusion.Photon.Realtime;
 using UnityEngine.SceneManagement;
 using Utility;
 
@@ -35,6 +36,7 @@ public class App : SimulationSingleton<App>
             SessionNameGenerator = null,
             // SessionProperties = new Dictionary<string, SessionProperty> {["GameMode"] = GameModeIdentifier},
             Scene = sceneInfo,
+            MatchmakingMode = MatchmakingMode.FillRoom,
         };
 
         var startTask = runner.StartGame(startArguments);

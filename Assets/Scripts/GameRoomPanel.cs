@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
 using Fusion;
 using TMPro;
-using Unity.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -17,6 +14,12 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
     
     public override void Spawned()
     {
+        InspectorInit();
+        UpdatePlayers();
+    }
+
+    private void InspectorInit()
+    {
         shutdownButton.onClick.AddListener(() => App.I.GameQuit());
         readyButton.onClick.AddListener(() =>
         {
@@ -27,7 +30,6 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
         });
         readyText.text = Object.HasStateAuthority ? "Start" : "Ready";
         readyButton.interactable = false == Object.HasStateAuthority;
-        UpdatePlayers();
     }
 
     [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
@@ -46,6 +48,8 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
 
     private void UpdatePlayers()
     {
+        playerText1.text = string.Empty;
+        playerText2.text = string.Empty;
         foreach (var playerRef in App.I.Runner.ActivePlayers) 
         {
             var isLocalPlayer = playerRef == App.I.Runner.LocalPlayer;
@@ -61,14 +65,7 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
 
     public void PlayerLeft(PlayerRef player)
     {
-        if (false == Object.HasStateAuthority)
-            return;
-        if (player == App.I.Runner.LocalPlayer)
-            playerText1.text = string.Empty;
-        else
-        {
-            playerText2.text = string.Empty;
-            _ready = false;
-        }
+        UpdatePlayers();
+        _ready = false;
     }
 }
