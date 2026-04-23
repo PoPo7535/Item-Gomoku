@@ -18,6 +18,7 @@ public sealed class GomokuManager_Test : MonoBehaviour
     [SerializeField] private Transform _boardRoot;
     [SerializeField] private Camera _clickCamera;
     [SerializeField] private float _stoneHeight = 0.1f;
+    [SerializeField] private float _cellClickRadiusRatio = 0.45f;
 
     [Header("돌 정리 설정")]
     [SerializeField] private Transform _stoneRoot;
@@ -32,6 +33,8 @@ public sealed class GomokuManager_Test : MonoBehaviour
     private bool _isReady;
     private int _blackStoneCount;
     private int _whiteStoneCount;
+    private float _cellSpacing;
+    private float _cellClickRadius;
 
     /// <summary>
     /// 테스트 게임 상태를 초기화함.
@@ -69,7 +72,9 @@ public sealed class GomokuManager_Test : MonoBehaviour
         _isGameOver = false;
         _blackStoneCount = 0;
         _whiteStoneCount = 0;
-        _isReady = TryCacheCellAnchors() && ValidateStoneHierarchy();
+        _cellSpacing = 0f;
+        _cellClickRadius = 0f;
+        _isReady = TryCacheCellAnchors() && TryValidateCellLayout() && ValidateStoneHierarchy();
     }
 
     /// <summary>
@@ -303,7 +308,22 @@ public sealed class GomokuManager_Test : MonoBehaviour
             }
         }
 
-        return xIndex >= 0 && yIndex >= 0;
+        if (xIndex < 0 || yIndex < 0)
+        {
+            Debug.LogWarning("클릭 위치와 매칭되는 셀 앵커를 찾지 못했습니다.");
+            return false;
+        }
+
+        // 셀 반경보다 먼 클릭은 가장자리 셀로 흡수하지 않음.
+        if (closestDistanceSqr > (_cellClickRadius * _cellClickRadius))
+        {
+            Debug.Log($"클릭이 유효 셀 반경을 벗어나 착수를 무시함. Distance={Mathf.Sqrt(closestDistanceSqr):0.###}, Radius={_cellClickRadius:0.###}");
+            xIndex = -1;
+            yIndex = -1;
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -395,6 +415,134 @@ public sealed class GomokuManager_Test : MonoBehaviour
     }
 
     /// <summary>
+    /// 셀 앵커 배치와 클릭 기준 보드가 일치하는지 검증함.
+    /// </summary>
+    /// <returns>셀 배치 검증 성공 여부.</returns>
+    private bool TryValidateCellLayout()
+    {
+        if (!TryCalculateCellSpacing(out float minCellSpacing))
+        {
+            Debug.LogError("셀 간격을 계산하지 못해 클릭 검증을 초기화할 수 없습니다.");
+            return false;
+        }
+
+        _cellSpacing = minCellSpacing;
+        _cellClickRadius = _cellSpacing * Mathf.Clamp(_cellClickRadiusRatio, 0.1f, 0.5f);
+
+        ValidateAnchorBoundsAgainstBoard();
+        return true;
+    }
+
+    /// <summary>
+    /// 셀 앵커 배치에서 최소 인접 간격을 계산함.
+    /// </summary>
+    /// <param name="minCellSpacing">계산된 최소 셀 간격.</param>
+    /// <returns>셀 간격 계산 성공 여부.</returns>
+    private bool TryCalculateCellSpacing(out float minCellSpacing)
+    {
+        minCellSpacing = float.MaxValue;
+
+        for (int xIndex = 0; xIndex < BoardSize; xIndex++)
+        {
+            for (int yIndex = 0; yIndex < BoardSize; yIndex++)
+            {
+                Transform currentAnchor = _cellAnchors[xIndex, yIndex];
+                if (currentAnchor == null)
+                {
+                    continue;
+                }
+
+                if (xIndex + 1 < BoardSize && _cellAnchors[xIndex + 1, yIndex] != null)
+                {
+                    minCellSpacing = Mathf.Min(minCellSpacing, GetPlanarDistance(currentAnchor.position, _cellAnchors[xIndex + 1, yIndex].position));
+                }
+
+                if (yIndex + 1 < BoardSize && _cellAnchors[xIndex, yIndex + 1] != null)
+                {
+                    minCellSpacing = Mathf.Min(minCellSpacing, GetPlanarDistance(currentAnchor.position, _cellAnchors[xIndex, yIndex + 1].position));
+                }
+            }
+        }
+
+        return minCellSpacing > 0f && !float.IsInfinity(minCellSpacing);
+    }
+
+    /// <summary>
+    /// 셀 앵커 범위와 보드 Collider 범위를 비교해 정합성을 확인함.
+    /// </summary>
+    private void ValidateAnchorBoundsAgainstBoard()
+    {
+        if (_boardRoot == null)
+        {
+            return;
+        }
+
+        BoxCollider boardCollider = _boardRoot.GetComponent<BoxCollider>();
+        if (boardCollider == null)
+        {
+            Debug.LogWarning("BoardRoot가 BoxCollider가 아니어서 셀 배치 정합성 검증이 제한됩니다.");
+            return;
+        }
+
+        if (!TryGetAnchorLocalBounds(out Vector2 minAnchorBounds, out Vector2 maxAnchorBounds))
+        {
+            Debug.LogWarning("셀 앵커 로컬 범위를 계산하지 못했습니다.");
+            return;
+        }
+
+        float colliderMinX = boardCollider.center.x - (boardCollider.size.x * 0.5f);
+        float colliderMaxX = boardCollider.center.x + (boardCollider.size.x * 0.5f);
+        float colliderMinZ = boardCollider.center.z - (boardCollider.size.z * 0.5f);
+        float colliderMaxZ = boardCollider.center.z + (boardCollider.size.z * 0.5f);
+        float warningTolerance = _cellSpacing * 0.25f;
+
+        bool isMisaligned =
+            Mathf.Abs(minAnchorBounds.x - colliderMinX) > warningTolerance ||
+            Mathf.Abs(maxAnchorBounds.x - colliderMaxX) > warningTolerance ||
+            Mathf.Abs(minAnchorBounds.y - colliderMinZ) > warningTolerance ||
+            Mathf.Abs(maxAnchorBounds.y - colliderMaxZ) > warningTolerance;
+
+        if (isMisaligned)
+        {
+            Debug.LogWarning("BoardRoot Collider 범위와 Cell 앵커 범위가 어긋나 있습니다. 외곽 클릭 오차가 발생할 수 있습니다.");
+        }
+    }
+
+    /// <summary>
+    /// 셀 앵커들의 로컬 XZ 범위를 계산함.
+    /// </summary>
+    /// <param name="minBounds">최소 로컬 XZ 좌표.</param>
+    /// <param name="maxBounds">최대 로컬 XZ 좌표.</param>
+    /// <returns>범위 계산 성공 여부.</returns>
+    private bool TryGetAnchorLocalBounds(out Vector2 minBounds, out Vector2 maxBounds)
+    {
+        minBounds = new Vector2(float.MaxValue, float.MaxValue);
+        maxBounds = new Vector2(float.MinValue, float.MinValue);
+        bool hasValidAnchor = false;
+
+        for (int xIndex = 0; xIndex < BoardSize; xIndex++)
+        {
+            for (int yIndex = 0; yIndex < BoardSize; yIndex++)
+            {
+                Transform cellAnchor = _cellAnchors[xIndex, yIndex];
+                if (cellAnchor == null)
+                {
+                    continue;
+                }
+
+                Vector3 localPosition = _boardRoot.InverseTransformPoint(cellAnchor.position);
+                minBounds.x = Mathf.Min(minBounds.x, localPosition.x);
+                minBounds.y = Mathf.Min(minBounds.y, localPosition.z);
+                maxBounds.x = Mathf.Max(maxBounds.x, localPosition.x);
+                maxBounds.y = Mathf.Max(maxBounds.y, localPosition.z);
+                hasValidAnchor = true;
+            }
+        }
+
+        return hasValidAnchor;
+    }
+
+    /// <summary>
     /// 돌의 시각 중심이 셀 중심과 맞도록 위치를 보정함.
     /// </summary>
     /// <param name="stoneTransform">정렬할 돌 Transform.</param>
@@ -434,6 +582,19 @@ public sealed class GomokuManager_Test : MonoBehaviour
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// 보드 평면 기준 두 월드 좌표의 평면 거리를 계산함.
+    /// </summary>
+    /// <param name="from">기준 좌표.</param>
+    /// <param name="to">비교 좌표.</param>
+    /// <returns>보드 평면 기준 거리.</returns>
+    private float GetPlanarDistance(Vector3 from, Vector3 to)
+    {
+        Vector3 planeNormal = _boardRoot != null ? _boardRoot.up : Vector3.up;
+        Vector3 delta = Vector3.ProjectOnPlane(to - from, planeNormal);
+        return delta.magnitude;
     }
 
     /// <summary>
