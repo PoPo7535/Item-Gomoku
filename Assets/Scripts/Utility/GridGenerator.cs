@@ -29,6 +29,11 @@ public sealed class GridGenerator : MonoBehaviour
             return;
         }
 
+        if (_gridSize != DefaultGridSize)
+        {
+            Debug.LogWarning($"현재 Grid Size는 {_gridSize}입니다. GomokuManager_Test는 기본적으로 {DefaultGridSize}x{DefaultGridSize} 셀을 기대합니다.");
+        }
+
         ClearGeneratedGrid();
 
         float topY = boardCollider.center.y + (boardCollider.size.y * 0.5f) + _anchorHeightOffset;
@@ -45,7 +50,7 @@ public sealed class GridGenerator : MonoBehaviour
             }
         }
 
-        Debug.Log($"{name}에 셀 앵커 {_gridSize * _gridSize}개를 생성했습니다.");
+        Debug.Log($"{name}에 셀 앵커 {_gridSize * _gridSize}개를 생성했습니다. GomokuManager_Test의 BoardRoot도 이 오브젝트를 가리켜야 합니다.");
     }
 
     /// <summary>
@@ -54,9 +59,16 @@ public sealed class GridGenerator : MonoBehaviour
     [ContextMenu("Clear Cell Anchors")]
     public void ClearGeneratedGrid()
     {
-        for (int childIndex = transform.childCount - 1; childIndex >= 0; childIndex--)
+        Transform[] childTransforms = GetComponentsInChildren<Transform>(true);
+
+        for (int childIndex = childTransforms.Length - 1; childIndex >= 0; childIndex--)
         {
-            Transform childTransform = transform.GetChild(childIndex);
+            Transform childTransform = childTransforms[childIndex];
+            if (childTransform == transform)
+            {
+                continue;
+            }
+
             if (!IsGeneratedCellAnchor(childTransform.name))
             {
                 continue;
@@ -79,7 +91,7 @@ public sealed class GridGenerator : MonoBehaviour
             return true;
         }
 
-        Debug.LogError("GridGenerator는 BoxCollider가 있는 보드 오브젝트에 부착해야 합니다.");
+        Debug.LogError("GridGenerator는 클릭 기준이 되는 BoxCollider 보드 오브젝트에 직접 부착해야 합니다.");
         return false;
     }
 
