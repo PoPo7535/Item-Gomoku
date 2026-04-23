@@ -114,7 +114,7 @@ public class GomokuManager : MonoBehaviour
                 Vector3 spawnPos = hit.transform.position;
                 spawnPos.y += 0.05f;
 
-                // 5. 기록 저장 (누락 복구)
+                // 5. 기록 저장
                 UpdateAndShowLastPlace(xIdx, zIdx);
                 string posText = $"{xIdx},{zIdx}";
                 if (_isBlackTurn) _blackHistory.Add(posText);
