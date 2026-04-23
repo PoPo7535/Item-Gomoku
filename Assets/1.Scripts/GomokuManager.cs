@@ -99,7 +99,7 @@ void PlaceStone()
         {
             // 3. 포인트 오브젝트 확인
             string objectName = hit.transform.name;
-            if (!objectName.Contains("Point")) return;
+            if (!objectName.StartsWith("Point_")) return;
 
             string[] nameParts = objectName.Split('_');
             int xIdx = int.Parse(nameParts[1]);
