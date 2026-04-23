@@ -9,21 +9,34 @@ public sealed class GomokuManager_Test : MonoBehaviour
 {
     private const int BoardSize = 15;
 
+    private enum GhostPreviewState
+    {
+        Hidden,
+        Valid,
+        Forbidden,
+    }
+
     [Header("프리팹 설정")]
     [SerializeField] private GameObject _blackStonePrefab;
     [SerializeField] private GameObject _whiteStonePrefab;
     [SerializeField] private float _stoneScale = 30f;
 
+    [Header("고스트 프리팹 설정")]
+    [SerializeField] private GameObject _blackGhostPrefab;
+    [SerializeField] private GameObject _whiteGhostPrefab;
+
     [Header("보드 설정")]
     [SerializeField] private Transform _boardRoot;
     [SerializeField] private Camera _clickCamera;
     [SerializeField] private float _stoneHeight = 0.1f;
-    [SerializeField] private float _cellClickRadiusRatio = 0.45f;
+    [SerializeField] private float _ghostHeight = 0.15f;
+    [SerializeField] private float _cellClickRadiusRatio = 0.5f;
 
     [Header("돌 정리 설정")]
     [SerializeField] private Transform _stoneRoot;
     [SerializeField] private Transform _blackStoneParent;
     [SerializeField] private Transform _whiteStoneParent;
+    [SerializeField] private Transform _ghostParent;
 
     private OmokuLogic _logic;
     private GameObject[,] _stoneObjects;
@@ -35,6 +48,8 @@ public sealed class GomokuManager_Test : MonoBehaviour
     private int _whiteStoneCount;
     private float _cellSpacing;
     private float _cellClickRadius;
+    private GameObject _ghostStoneObject;
+    private StoneColor _ghostStoneColor = StoneColor.None;
 
     /// <summary>
     /// 테스트 게임 상태를 초기화함.
@@ -51,8 +66,11 @@ public sealed class GomokuManager_Test : MonoBehaviour
     {
         if (!_isReady || _isGameOver)
         {
+            HideGhostPreview();
             return;
         }
+
+        UpdateGhostPreview();
 
         if (Input.GetMouseButtonDown(0))
         {
@@ -74,6 +92,7 @@ public sealed class GomokuManager_Test : MonoBehaviour
         _whiteStoneCount = 0;
         _cellSpacing = 0f;
         _cellClickRadius = 0f;
+        _ghostStoneColor = StoneColor.None;
         _isReady = TryCacheCellAnchors() && TryValidateCellLayout() && ValidateStoneHierarchy();
     }
 
@@ -315,9 +334,10 @@ public sealed class GomokuManager_Test : MonoBehaviour
         }
 
         // 셀 반경보다 먼 클릭은 가장자리 셀로 흡수하지 않음.
-        if (closestDistanceSqr > (_cellClickRadius * _cellClickRadius))
+        float closestPlanarDistance = GetPlanarDistance(_cellAnchors[xIndex, yIndex].position, worldPoint);
+        if (closestPlanarDistance > _cellClickRadius)
         {
-            Debug.Log($"클릭이 유효 셀 반경을 벗어나 착수를 무시함. Distance={Mathf.Sqrt(closestDistanceSqr):0.###}, Radius={_cellClickRadius:0.###}");
+            // Debug.Log($"클릭이 유효 셀 반경을 벗어나 착수를 무시함. Distance={closestPlanarDistance:0.###}, Radius={_cellClickRadius:0.###}");
             xIndex = -1;
             yIndex = -1;
             return false;
@@ -353,11 +373,13 @@ public sealed class GomokuManager_Test : MonoBehaviour
         if (_logic.CheckWin(xIndex, yIndex, currentColor))
         {
             _isGameOver = true;
+            HideGhostPreview();
             Debug.Log($"승리: {currentColor}");
             return;
         }
 
         _isBlackTurn = !_isBlackTurn;
+        UpdateGhostPreview();
     }
 
     /// <summary>
@@ -412,6 +434,130 @@ public sealed class GomokuManager_Test : MonoBehaviour
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// 현재 마우스 위치 기준으로 고스트 돌 미리보기를 갱신함.
+    /// </summary>
+    private void UpdateGhostPreview()
+    {
+        if (!TryResolveGhostPreview(out GhostPreviewState previewState, out int xIndex, out int yIndex, out StoneColor previewColor))
+        {
+            HideGhostPreview();
+            return;
+        }
+
+        if (previewState == GhostPreviewState.Hidden)
+        {
+            HideGhostPreview();
+            return;
+        }
+
+        if (!TryEnsureGhostObject(previewColor))
+        {
+            HideGhostPreview();
+            return;
+        }
+
+        Transform cellAnchor = _cellAnchors[xIndex, yIndex];
+        if (cellAnchor == null)
+        {
+            HideGhostPreview();
+            return;
+        }
+
+        Vector3 ghostPosition = cellAnchor.position + (_boardRoot.up * _ghostHeight);
+        _ghostStoneObject.transform.position = ghostPosition;
+        _ghostStoneObject.transform.rotation = _boardRoot.rotation * GetGhostRotation(previewColor);
+        _ghostStoneObject.transform.localScale = Vector3.one * _stoneScale;
+        AlignStoneToCellCenter(_ghostStoneObject.transform, ghostPosition);
+
+        if (!_ghostStoneObject.activeSelf)
+        {
+            _ghostStoneObject.SetActive(true);
+        }
+    }
+
+    /// <summary>
+    /// 현재 hover 상태에서 보여줄 고스트 정책을 계산함.
+    /// </summary>
+    /// <param name="previewState">계산된 고스트 표시 상태.</param>
+    /// <param name="xIndex">hover 셀 X 인덱스.</param>
+    /// <param name="yIndex">hover 셀 Y 인덱스.</param>
+    /// <param name="previewColor">현재 턴 기준 고스트 색상.</param>
+    /// <returns>고스트 계산 성공 여부.</returns>
+    private bool TryResolveGhostPreview(out GhostPreviewState previewState, out int xIndex, out int yIndex, out StoneColor previewColor)
+    {
+        previewState = GhostPreviewState.Hidden;
+        xIndex = 0;
+        yIndex = 0;
+        previewColor = _isBlackTurn ? StoneColor.Black : StoneColor.White;
+
+        if (!TryGetBoardIndex(out xIndex, out yIndex))
+        {
+            return false;
+        }
+
+        if (IsCellOccupied(xIndex, yIndex))
+        {
+            return true;
+        }
+
+        if (IsForbiddenPreview(xIndex, yIndex, previewColor))
+        {
+            previewState = GhostPreviewState.Forbidden;
+            return true;
+        }
+
+        previewState = GhostPreviewState.Valid;
+        return true;
+    }
+
+    /// <summary>
+    /// 현재 색상에 맞는 고스트 오브젝트가 준비되어 있는지 확인함.
+    /// </summary>
+    /// <param name="ghostColor">준비할 고스트 색상.</param>
+    /// <returns>고스트 오브젝트 준비 성공 여부.</returns>
+    private bool TryEnsureGhostObject(StoneColor ghostColor)
+    {
+        GameObject ghostPrefab = GetGhostPrefab(ghostColor);
+        if (ghostPrefab == null)
+        {
+            return false;
+        }
+
+        if (_ghostStoneObject != null && _ghostStoneColor == ghostColor)
+        {
+            return true;
+        }
+
+        if (_ghostStoneObject != null)
+        {
+            Destroy(_ghostStoneObject);
+            _ghostStoneObject = null;
+        }
+
+        Transform ghostParent = GetGhostParent();
+        _ghostStoneObject = Instantiate(ghostPrefab, Vector3.zero, Quaternion.identity, ghostParent);
+        _ghostStoneObject.name = $"Ghost_{ghostColor}";
+        _ghostStoneColor = ghostColor;
+        return true;
+    }
+
+    /// <summary>
+    /// 고스트 오브젝트를 숨김 상태로 전환함.
+    /// </summary>
+    private void HideGhostPreview()
+    {
+        if (_ghostStoneObject == null)
+        {
+            return;
+        }
+
+        if (_ghostStoneObject.activeSelf)
+        {
+            _ghostStoneObject.SetActive(false);
+        }
     }
 
     /// <summary>
@@ -543,6 +689,34 @@ public sealed class GomokuManager_Test : MonoBehaviour
     }
 
     /// <summary>
+    /// 해당 셀에 실제 돌이 이미 놓였는지 확인함.
+    /// </summary>
+    /// <param name="xIndex">검사할 X 인덱스.</param>
+    /// <param name="yIndex">검사할 Y 인덱스.</param>
+    /// <returns>셀 점유 여부.</returns>
+    private bool IsCellOccupied(int xIndex, int yIndex)
+    {
+        return _logic != null && _logic.Board[xIndex, yIndex].Color != StoneColor.None;
+    }
+
+    /// <summary>
+    /// 현재 hover 셀이 금수 경고 대상인지 확인함.
+    /// </summary>
+    /// <param name="xIndex">검사할 X 인덱스.</param>
+    /// <param name="yIndex">검사할 Y 인덱스.</param>
+    /// <param name="stoneColor">현재 턴 돌 색상.</param>
+    /// <returns>금수 경고 대상 여부.</returns>
+    private bool IsForbiddenPreview(int xIndex, int yIndex, StoneColor stoneColor)
+    {
+        if (_logic == null || stoneColor != StoneColor.Black)
+        {
+            return false;
+        }
+
+        return _logic.IsForbidden(xIndex, yIndex, stoneColor);
+    }
+
+    /// <summary>
     /// 돌의 시각 중심이 셀 중심과 맞도록 위치를 보정함.
     /// </summary>
     /// <param name="stoneTransform">정렬할 돌 Transform.</param>
@@ -605,6 +779,51 @@ public sealed class GomokuManager_Test : MonoBehaviour
     private Transform GetStoneParent(StoneColor stoneColor)
     {
         return stoneColor == StoneColor.Black ? _blackStoneParent : _whiteStoneParent;
+    }
+
+    /// <summary>
+    /// 현재 색상에 맞는 고스트 프리팹을 반환함.
+    /// </summary>
+    /// <param name="stoneColor">현재 턴 돌 색상.</param>
+    /// <returns>해당 색상 고스트 프리팹.</returns>
+    private GameObject GetGhostPrefab(StoneColor stoneColor)
+    {
+        if (stoneColor == StoneColor.Black)
+        {
+            return _blackGhostPrefab;
+        }
+
+        return stoneColor == StoneColor.White ? _whiteGhostPrefab : null;
+    }
+
+    /// <summary>
+    /// 고스트 돌을 배치할 부모 Transform을 반환함.
+    /// </summary>
+    /// <returns>고스트 부모 Transform.</returns>
+    private Transform GetGhostParent()
+    {
+        if (_ghostParent != null)
+        {
+            return _ghostParent;
+        }
+
+        if (_stoneRoot != null)
+        {
+            return _stoneRoot;
+        }
+
+        return transform;
+    }
+
+    /// <summary>
+    /// 현재 색상에 맞는 고스트 회전을 반환함.
+    /// </summary>
+    /// <param name="stoneColor">현재 턴 돌 색상.</param>
+    /// <returns>해당 색상 고스트 회전값.</returns>
+    private Quaternion GetGhostRotation(StoneColor stoneColor)
+    {
+        GameObject ghostPrefab = GetGhostPrefab(stoneColor);
+        return ghostPrefab != null ? ghostPrefab.transform.rotation : Quaternion.identity;
     }
 
     /// <summary>
