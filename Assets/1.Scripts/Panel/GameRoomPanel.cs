@@ -10,6 +10,8 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
     [SerializeField] private Button shutdownButton;
     [SerializeField] private TMP_Text playerText1;
     [SerializeField] private TMP_Text playerText2;
+    
+    [SerializeField] private ItemSelectPanel itemSelectPanel;
     private bool _ready = false;
     
     public override void Spawned()
@@ -35,7 +37,7 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
     [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
     private void RPC_GameStart(RpcInfo info = default)
     {
-        "GameStart".Log();
+        itemSelectPanel.ActiveCg(true);
     }
     [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
     private void RPC_Ready(bool ready, RpcInfo info = default)
