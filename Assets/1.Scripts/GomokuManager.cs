@@ -137,6 +137,7 @@ void PlaceStone()
                 if (_logic.CheckWin(xIdx, zIdx, currentColor))
                 {
                     Debug.Log($"<color=cyan>★ 승리! {currentColor} ★</color>");
+                    Reset();
                 }
 
                 ChangeTurn();
