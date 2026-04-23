@@ -6,7 +6,37 @@
   <component name="ChangeListManager">
     <list default="true" id="5d3179ff-3eba-4625-8f55-97b82d2de62f" name="변경" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.Item-Gomoku/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Item-Gomoku/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/App.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/App.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/FBX.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/FBX/BlackStone.fbx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/FBX/BlackStone.fbx.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/FBX/BlackStones.fbx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/FBX/BlackStones.fbx.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/FBX/CloakingStone_B.fbx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/FBX/CloakingStone_B.fbx.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/FBX/CloakingStone_W.fbx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/FBX/CloakingStone_W.fbx.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/FBX/FakeStone_B.fbx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/FBX/FakeStone_B.fbx.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/FBX/FakeStone_W.fbx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/FBX/FakeStone_W.fbx.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/FBX/StoneContainer.fbx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/FBX/StoneContainer.fbx.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/FBX/StoneContainerCover.fbx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/FBX/StoneContainerCover.fbx.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/FBX/WhiteStone.fbx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/FBX/WhiteStone.fbx.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/FBX/WhiteStones.fbx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/FBX/WhiteStones.fbx.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/UV.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/UV/GomokPlate.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/UV/GomokPlate.png.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/UV/Materials.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/UV/Materials/GomokPlate.mat" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/UV/Materials/GomokPlate.mat.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/UV/StoneContainer.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Image/UV/StoneContainer.png.meta" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scenes/1.GameScene.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/1.GameScene.unity" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -122,7 +152,7 @@
       <workItem from="1776442096580" duration="2420000" />
       <workItem from="1776690325136" duration="11394000" />
       <workItem from="1776778056065" duration="24726000" />
-      <workItem from="1776902791172" duration="10521000" />
+      <workItem from="1776902791172" duration="13498000" />
     </task>
     <servers />
   </component>
