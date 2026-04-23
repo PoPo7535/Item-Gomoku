@@ -1,7 +1,11 @@
+using System;
+using System.Collections.Generic;
 using Fusion;
 using Fusion.Photon.Realtime;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 using Utility;
+using Random = System.Random;
 
 
 public class App : SimulationSingleton<App>
@@ -10,8 +14,8 @@ public class App : SimulationSingleton<App>
     {
         base.Awake();
     }
-
-    public async void GameStart(GameMode gameMode)
+    
+    public async void GameStart(GameMode gameMode, bool fastJoin = true)
     {
         var runner = gameObject.GetComponent<NetworkRunner>();
         var runnerEvent = gameObject.GetComponent<NetworkEvents>();
@@ -28,15 +32,16 @@ public class App : SimulationSingleton<App>
         });
         var sceneInfo = new NetworkSceneInfo();
         sceneInfo.AddSceneRef(SceneRef.FromIndex(1));
+
+
         var startArguments = new StartGameArgs()
         {
             GameMode = gameMode,
             PlayerCount = 2,
-            SessionName = "TestRoom", // Extensions.GenerateBase36(6),
-            SessionNameGenerator = null,
-            // SessionProperties = new Dictionary<string, SessionProperty> {["GameMode"] = GameModeIdentifier},
+            SessionName = "A",//fastJoin ? string.Empty : Extensions.GenerateBase36(6),
+            // SessionProperties = tt,
             Scene = sceneInfo,
-            MatchmakingMode = MatchmakingMode.FillRoom,
+            MatchmakingMode = MatchmakingMode.RandomMatching,
         };
 
         var startTask = runner.StartGame(startArguments);
@@ -55,6 +60,6 @@ public class App : SimulationSingleton<App>
 
     public void GameQuit()
     {
-        ((SimulationBehaviour)this).Runner.Shutdown();
+        Runner.Shutdown();
     }
 }
