@@ -742,7 +742,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0.00002260859}
+  m_AnchoredPosition: {x: 0, y: 0.00007063159}
   m_SizeDelta: {x: 0, y: 300}
   m_Pivot: {x: 0, y: 1}
 --- !u!1 &494552728
@@ -1375,7 +1375,7 @@ GameObject:
   - component: {fileID: 710382516}
   - component: {fileID: 710382515}
   - component: {fileID: 710382514}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2600,7 +2600,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.RawImage
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -3208,10 +3208,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GomokuManager
   BlackStonePrefab: {fileID: 7260710996652760942, guid: e3918a27c6f212a45bb00c6961101026, type: 3}
   WhiteStonePrefab: {fileID: 5117338148248406338, guid: abeb61bcbdc0db54c8c6d4c2f23bf275, type: 3}
-  BoardPhysicalSize: 8
-  LineCount: 15
-  boardCamera: {fileID: 2146248141}
   GameViewImage: {fileID: 1614487142}
+  BoardCamera: {fileID: 2146248141}
+  LineCount: 15
 --- !u!4 &1912329768
 Transform:
   m_ObjectHideFlags: 0
