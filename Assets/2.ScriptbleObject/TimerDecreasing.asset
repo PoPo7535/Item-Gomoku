@@ -15,4 +15,4 @@ MonoBehaviour:
   name: "\uD0C0\uC774\uBA38 \uAC10\uC18C"
   description: "\uC0C1\uB300\uC758 \uB2E4\uC74C \uD134 \uC81C\uD55C \uC2DC\uAC04\uC744
     \uAC10\uC18C\uC2DC\uD0B4"
-  image: {fileID: 21300000, guid: e3cb154734fe51d4c8683db757002d01, type: 3}
+  sprite: {fileID: 21300000, guid: e3cb154734fe51d4c8683db757002d01, type: 3}
