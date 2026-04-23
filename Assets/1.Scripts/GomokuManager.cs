@@ -75,7 +75,7 @@ public class GomokuManager : MonoBehaviour
         }
     }
 
-    void PlaceStone()
+void PlaceStone()
     {
         if (GameViewImage == null || BoardCamera == null) return;
 
@@ -105,16 +105,21 @@ public class GomokuManager : MonoBehaviour
             int xIdx = int.Parse(nameParts[1]);
             int zIdx = int.Parse(nameParts[2]);
 
+            // 잘못된거확인
+            if (xIdx < 0 || xIdx >= LineCount || zIdx < 0 || zIdx >= LineCount)
+            {
+                Debug.LogError($"<color=red>[범위 초과]</color> 잘못된 인덱스입니다! x: {xIdx}, z: {zIdx}. (최대치: {LineCount-1})");
+                return;
+            }
+
             StoneColor currentColor = _isBlackTurn ? StoneColor.Black : StoneColor.White;
 
-            // 4. 오목 로직 착수 (금수 및 중복 체크)
+            // 4. 오목 로직 착수
             if (_logic.PlaceStone(xIdx, zIdx, currentColor))
             {
-                // [핵심] 맞은 포인트의 '정중앙' 좌표 사용
                 Vector3 spawnPos = hit.transform.position;
                 spawnPos.y += 0.05f;
 
-                // 5. 기록 저장
                 UpdateAndShowLastPlace(xIdx, zIdx);
                 string posText = $"{xIdx},{zIdx}";
                 if (_isBlackTurn) _blackHistory.Add(posText);
@@ -124,16 +129,16 @@ public class GomokuManager : MonoBehaviour
                 GameObject prefab = _isBlackTurn ? BlackStonePrefab : WhiteStonePrefab;
                 GameObject stone = Instantiate(prefab, spawnPos, Quaternion.identity);
                 stone.tag = "Stone"; 
+
+                
                 _stoneObjects[xIdx, zIdx] = stone;
 
-                // 7. 승리 판정 (누락 복구)
+                // 7. 승리 판정
                 if (_logic.CheckWin(xIdx, zIdx, currentColor))
                 {
                     Debug.Log($"<color=cyan>★ 승리! {currentColor} ★</color>");
-                    // 여기에 승리 팝업 UI 실행 등의 추가 코드를 넣으세요.
                 }
 
-                // 8. 턴 변경
                 ChangeTurn();
             }
         }
