@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f774f0fe291af3d46ab15acf579ef130, type: 3}
+  m_Name: TimerDecreasing
+  m_EditorClassIdentifier: Assembly-CSharp::GomokuItem
+  name: "\uD0C0\uC774\uBA38 \uAC10\uC18C"
+  description: "\uC0C1\uB300\uC758 \uB2E4\uC74C \uD134 \uC81C\uD55C \uC2DC\uAC04\uC744
+    \uAC10\uC18C\uC2DC\uD0B4"
+  image: {fileID: 21300000, guid: e3cb154734fe51d4c8683db757002d01, type: 3}
