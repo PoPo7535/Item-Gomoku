@@ -41,26 +41,24 @@ public class GomokuManager : MonoBehaviour
     /// </summary>
     private void CreateClickPoints()
     {
-        // 기존 자식들 싹 제거
+
         for (int i = GeneratedPoints.transform.childCount - 1; i >= 0; i--)
             Destroy(GeneratedPoints.transform.GetChild(i).gameObject);
 
-        // 부모의 위치가 어디든 상관없이, 입력한 StartPos(월드 좌표)를 기준으로 정렬
+
         for (int x = 0; x < LineCount; x++)
         {
             for (int z = 0; z < LineCount; z++)
             {
                 GameObject p = new GameObject($"Point_{x}_{z}");
                 
-                // 1. 부모 자식 관계를 먼저 맺어줍니다.
+
                 p.transform.SetParent(GeneratedPoints.transform);
 
-                // 2. [가장 확실한 방법] localPosition이 아니라 position(월드 좌표)을 씁니다.
-                // 이렇게 하면 인스펙터의 Start Pos 숫자가 곧 실제 세상의 위치가 됩니다.
                 Vector3 worldPos = new Vector3(StartPos.x + (x * Interval), StartPos.y, StartPos.z + (z * Interval));
                 p.transform.position = worldPos;
 
-                // 3. 충돌체 설정
+
                 SphereCollider sc = p.AddComponent<SphereCollider>();
                 sc.radius = Interval * 0.45f;
                 sc.isTrigger = true;
