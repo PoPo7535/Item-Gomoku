@@ -75,7 +75,7 @@ public class GomokuManager : MonoBehaviour
         }
     }
 
-void PlaceStone()
+    void PlaceStone()
     {
         if (GameViewImage == null || BoardCamera == null) return;
 
@@ -138,12 +138,14 @@ void PlaceStone()
                 {
                     Debug.Log($"<color=cyan>★ 승리! {currentColor} ★</color>");
                     Reset();
+                    return;
                 }
 
                 ChangeTurn();
             }
         }
     }
+
     /// <summary>
     /// 게임 초기화
     /// </summary>
@@ -164,7 +166,6 @@ void PlaceStone()
     }
 
     public void ChangeTurn() => _isBlackTurn = !_isBlackTurn;
-
     /// <summary>
     /// 최근 착수 위치 알리기
     /// </summary>
