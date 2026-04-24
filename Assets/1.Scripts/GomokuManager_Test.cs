@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -181,9 +182,7 @@ public sealed class GomokuManager_Test : MonoBehaviour
         }
 
         _isBlackTurn = false;
-        HandleAiTurn(ref turnRecord);
-        _turnHistory.Push(turnRecord);
-        RefreshGhostPreview();
+        StartCoroutine(HandleAiTurnCoroutine(turnRecord));
     }
 
     /// <summary>
@@ -629,18 +628,21 @@ public sealed class GomokuManager_Test : MonoBehaviour
     }
 
     /// <summary>
-    /// AI 응수를 계산하고 현재 턴 기록에 반영함.
+    /// 플레이어 착수 직후 한 프레임 대기한 뒤 AI 응수를 계산하고 턴 기록을 마감함.
     /// </summary>
     /// <param name="turnRecord">이번 턴에 누적할 턴 기록.</param>
-    private void HandleAiTurn(ref TurnRecord turnRecord)
+    private IEnumerator HandleAiTurnCoroutine(TurnRecord turnRecord)
     {
         if (_ai == null || _isGameOver)
         {
-            return;
+            _turnHistory.Push(turnRecord);
+            RefreshGhostPreview();
+            yield break;
         }
 
         _isAiThinking = true;
         HideGhostPreview();
+        yield return null;
 
         GomokuMove bestMove = _ai.FindBestMove(Mathf.Max(1, (int)_aiDifficulty));
         if (!bestMove.IsValid)
@@ -648,7 +650,9 @@ public sealed class GomokuManager_Test : MonoBehaviour
             Debug.LogWarning("AI가 유효한 착수 위치를 찾지 못했습니다.");
             _isAiThinking = false;
             _isBlackTurn = true;
-            return;
+            _turnHistory.Push(turnRecord);
+            RefreshGhostPreview();
+            yield break;
         }
 
         if (!TryPlaceStone(bestMove.X, bestMove.Y, StoneColor.White, out MoveRecord aiMoveRecord))
@@ -656,7 +660,9 @@ public sealed class GomokuManager_Test : MonoBehaviour
             Debug.LogWarning($"AI 착수에 실패했습니다: ({bestMove.X}, {bestMove.Y})");
             _isAiThinking = false;
             _isBlackTurn = true;
-            return;
+            _turnHistory.Push(turnRecord);
+            RefreshGhostPreview();
+            yield break;
         }
 
         turnRecord.HasAiMove = true;
@@ -667,6 +673,9 @@ public sealed class GomokuManager_Test : MonoBehaviour
         {
             _isBlackTurn = true;
         }
+
+        _turnHistory.Push(turnRecord);
+        RefreshGhostPreview();
     }
 
     /// <summary>
