@@ -24,9 +24,9 @@ public class GomokuManager : MonoBehaviour
     private int _lastX; // 최근착수 위치 x
     private int _lastZ; // 최근착수 위치 y
 
-    private GameObject[,] _stoneObjects; //실제 돌 담은 공간
-    private OmokuLogic _logic;           
-    private bool _isBlackTurn = true;    //턴여부 true면 흑 false면 백
+    private GameObject[,] _stoneObjects; //실제 돌 오브젝트 담는 공간 
+    private OmokuLogic _logic; // 여기에 실제 돌 데이터 담김        
+    private bool _isBlackTurn = true;  //턴여부 true면 흑 false면 백
     private bool _isPlaying = false; // 게임시작여부
 
     void Awake()

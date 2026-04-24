@@ -11,7 +11,7 @@ public struct StoneData
 public class OmokuLogic
 {
     private const int BoardSize = 15;
-    public StoneData[,] Board = new StoneData[BoardSize, BoardSize];
+    public StoneData[,] Board = new StoneData[BoardSize, BoardSize]; // 실제 돌데이터는 여기에 담긴다 0,0좌표 흑돌 이렇게
 
     private readonly int[] dx = { 1, 0, 1, 1 };
     private readonly int[] dy = { 0, 1, 1, -1 };
