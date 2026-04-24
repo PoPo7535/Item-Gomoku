@@ -19,15 +19,15 @@ public class GomokuManager : MonoBehaviour
     public GameObject GeneratedPoints;  // 생성된 포인트들을 담을 부모
 
     [Header("--- 기록 관리 ---")]
-    private List<string> _blackHistory = new List<string>();
-    private List<string> _whiteHistory = new List<string>();
-    private int _lastX; 
-    private int _lastZ;
+    private List<string> _blackHistory = new List<string>(); // 전체기록 흑
+    private List<string> _whiteHistory = new List<string>(); // 전체기록 백 
+    private int _lastX; // 최근착수 위치 x
+    private int _lastZ; // 최근착수 위티 y
 
-    private GameObject[,] _stoneObjects; 
+    private GameObject[,] _stoneObjects; //실제 돌 담은 공간
     private OmokuLogic _logic;           
-    private bool _isBlackTurn = true;    
-    private bool _isPlaying = false;
+    private bool _isBlackTurn = true;    //턴여부 true면 흑 false면 백
+    private bool _isPlaying = false; // 게임시작여부
 
     void Awake()
     {
