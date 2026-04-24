@@ -21,7 +21,7 @@ public class GomokuManager : MonoBehaviour
     [Header("--- 기록 관리 ---")]
     private List<string> _blackHistory = new List<string>();
     private List<string> _whiteHistory = new List<string>();
-    private int _lastX;
+    private int _lastX; 
     private int _lastZ;
 
     private GameObject[,] _stoneObjects; 

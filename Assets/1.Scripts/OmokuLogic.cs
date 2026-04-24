@@ -41,7 +41,7 @@ public class OmokuLogic
         // 2. 흑돌일 때만 렌주룰 금수 체크
         if (color == StoneColor.Black && !isFake)
         {
-            // [수정] 5목을 완성하는 수라면 금수 체크를 무시하고 통과!
+            // 5목을 완성하는 수라면 금수 체크를 무시하고 통과!
             if (CheckWin(x, y, color)) return true;
 
             // 금수 지점이라면 방금 둔 돌을 무효화하고 착수 취소
