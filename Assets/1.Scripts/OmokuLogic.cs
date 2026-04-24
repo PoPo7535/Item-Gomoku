@@ -84,7 +84,9 @@ public class OmokuLogic
         return false;
     }
 
-    // --- [4 판정 로직] ---
+    /// <summary>
+    /// [4 판정 시뮬레이션] 해당 자리에 두었을 때 '4'가 되는지 주변 빈칸을 수읽기함
+    /// </summary>-
     private bool CheckFour(int x, int y, int dX, int dY, StoneColor color)
     {
         bool isFour = false;
@@ -113,7 +115,9 @@ public class OmokuLogic
         return isFour;
     }
 
-    // --- [열린 3 판정 로직 (띄움 포함)] ---
+    /// <summary>
+    /// [열린 3 판정 시뮬레이션] 띄움 삼삼(X.XX)을 잡아내기 위해 가상 수읽기 진행
+    /// </summary>
     public bool IsOpenThree(int x, int y, int dX, int dY, StoneColor color)
     {
         bool foundOpenFour = false;
@@ -139,7 +143,9 @@ public class OmokuLogic
         }
         return foundOpenFour;
     }
-
+    /// <summary>
+    /// [열린 4 판정] 4개의 돌 양 끝이 모두 비어있어 수비가 불가능한 '열린 4'인지 확인
+    /// </summary>
     private bool CheckOpenFour(int x, int y, int dX, int dY, StoneColor color)
     {
         if (GetSequenceCount(x, y, dX, dY, color) != 4) return false;
@@ -157,6 +163,9 @@ public class OmokuLogic
         return winPoints == 2; 
     }
 
+    /// <summary>
+    /// [승리 판정] 흑/백의 서로 다른 승리 조건을 체크
+    /// </summary>
     public bool CheckWin(int x, int y, StoneColor color)
     {
         if (Board[x, y].IsFake) return false;
@@ -170,12 +179,16 @@ public class OmokuLogic
         }
         return false;
     }
-
+    /// <summary>
+    /// [직선 탐색] 특정 좌표와 방향을 기준으로 연결된 같은 색 돌의 총 개수 반환
+    /// </summary>
     public int GetSequenceCount(int x, int y, int dX, int dY, StoneColor color)
     {
         return 1 + CountStones(x, y, dX, dY, color) + CountStones(x, y, -dX, -dY, color);
     }
-
+    /// <summary>
+    /// [단방향 카운트] 한쪽 방향으로 벽이나 다른 색 돌을 만날 때까지 개수를 셈
+    /// </summary>
     public int CountStones(int x, int y, int dX, int dY, StoneColor color)
     {
         int cnt = 0;
@@ -186,6 +199,8 @@ public class OmokuLogic
         }
         return cnt;
     }
-
+    /// <summary>
+    /// 바둑판 인덱스 범위 체크
+    /// </summary>
     public bool IsInside(int x, int y) => x >= 0 && x < BoardSize && y >= 0 && y < BoardSize;
 }
