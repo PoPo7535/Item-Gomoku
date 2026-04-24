@@ -16,6 +16,10 @@ public class OmokuLogic
     private readonly int[] dx = { 1, 0, 1, 1 };
     private readonly int[] dy = { 0, 1, 1, -1 };
 
+
+    /// <summary>
+    /// 바둑판 데이터 초기화
+    /// </summary>
     public OmokuLogic()
     {
         for (int i = 0; i < BoardSize; i++)
@@ -24,7 +28,7 @@ public class OmokuLogic
     }
 
     /// <summary>
-    /// 실제 바둑판에 착수 시도
+    /// 실제 바둑판에 착수 후 데이터 저장
     /// </summary>
     public bool PlaceStone(int x, int y, StoneColor color, bool isFake = false)
     {
@@ -84,7 +88,6 @@ public class OmokuLogic
     private bool CheckFour(int x, int y, int dX, int dY, StoneColor color)
     {
         bool isFour = false;
-        // 🔥 버그 수정: Board[x, y]는 PlaceStone에서 이미 놓여진 상태입니다. 건드리지 마세요!
 
         for (int i = -4; i <= 4; i++)
         {
@@ -151,7 +154,7 @@ public class OmokuLogic
                 if (GetSequenceCount(tx, ty, dX, dY, color) == 5) winPoints++;
             }
         }
-        return winPoints == 2; // 양 끝이 다 뚫려있어야 '열린 4'
+        return winPoints == 2; 
     }
 
     public bool CheckWin(int x, int y, StoneColor color)
