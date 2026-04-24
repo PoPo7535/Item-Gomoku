@@ -291,18 +291,4 @@ public class GomokuManager : MonoBehaviour
         if (_isPlaying) return;
         _isPlaying = true; 
     }
-    /// <summary>
-    /// [UI 연결용] 클릭 시 0,0 좌표 돌 생성
-    /// </summary>
-    public void test()
-    {
-        ForcePlaceStone(0,0);
-    }
-    /// <summary>
-    /// [UI 연결용] 클릭시 0,0좌표 돌 삭제
-    /// </summary>
-    public void test2()
-    {
-        RemoveStone(0,0);
-    }
 }
