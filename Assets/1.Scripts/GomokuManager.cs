@@ -144,7 +144,9 @@ void PlaceStone()
             }
         }
     }
-
+    /// <summary>
+    /// 게임 초기화
+    /// </summary>
     public void Reset()
     {
         _logic = new OmokuLogic();
@@ -163,6 +165,9 @@ void PlaceStone()
 
     public void ChangeTurn() => _isBlackTurn = !_isBlackTurn;
 
+    /// <summary>
+    /// 최근 착수 위치 알리기
+    /// </summary>
     public void UpdateAndShowLastPlace(int x, int z)
     {
         _lastX = x; _lastZ = z;
@@ -171,6 +176,9 @@ void PlaceStone()
         Debug.Log($"<color=orange>[턴 교체]</color> {nextPlayer} 차례 (상대 {lastPlayer}의 마지막 수: {x}, {z})");
     }
 
+    /// <summary>
+    /// 특정 좌표 돌 삭제
+    /// </summary>
     public void RemoveStone(int x, int z)
     {
         if (_stoneObjects[x, z] != null)
@@ -180,15 +188,23 @@ void PlaceStone()
             _logic.Board[x, z] = new StoneData { Color = StoneColor.None };
         }
     }
-
+    /// <summary>
+    /// 턴알려주기
+    /// </summary>
     public string GetCurrentTurnText() => _isBlackTurn ? "흑돌 턴" : "백돌 턴";
 
+    /// <summary>
+    /// 게임하는동안 좌표들 전체 기록
+    /// </summary>
     public void ShowFullLog()
     {
         Debug.Log("흑돌 기보: " + string.Join(" -> ", _blackHistory));
         Debug.Log("백돌 기보: " + string.Join(" -> ", _whiteHistory));
     }
-
+    
+    /// <summary>
+    /// (백,흑) 돌 착수 수 세기
+    /// </summary>
     public int GetStoneCount(StoneColor color)
     {
         int count = 0;
