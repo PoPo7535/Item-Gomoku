@@ -4,49 +4,58 @@ public enum StoneColor { None, Black, White }
 
 public struct StoneData
 {
-    public StoneColor Color; 
-    public bool IsFake; // 아이템 기능 만들때 쓸수있음
+    public StoneColor Color;
+    public bool IsFake;
 }
 
 public class OmokuLogic
 {
     private const int BoardSize = 15;
-    public StoneData[,] Board = new StoneData[BoardSize, BoardSize]; //바둑판 데이터 배열 
+    public StoneData[,] Board = new StoneData[BoardSize, BoardSize];
 
-    // 8방향 탐색을 위한 방향 벡터 (가로, 세로, 대각선 / , 대각선 \ )
     private readonly int[] dx = { 1, 0, 1, 1 };
     private readonly int[] dy = { 0, 1, 1, -1 };
 
-    
+    public OmokuLogic()
+    {
+        for (int i = 0; i < BoardSize; i++)
+            for (int j = 0; j < BoardSize; j++)
+                Board[i, j].Color = StoneColor.None;
+    }
+
     /// <summary>
-    /// 특정 좌표에 착수 + 보드 데이터 갱신
+    /// 실제 바둑판에 착수 시도
     /// </summary>
     public bool PlaceStone(int x, int y, StoneColor color, bool isFake = false)
     {
         if (!IsInside(x, y) || Board[x, y].Color != StoneColor.None)
             return false;
 
-        // 흑돌(Black)일 경우에만 렌주룰 금수 체크 (가짜 돌이 아닐 때만)
+        // 1. 논리 보드에 일단 돌을 확정적으로 둡니다.
+        Board[x, y] = new StoneData { Color = color, IsFake = isFake };
+
+        // 2. 흑돌일 때만 렌주룰 금수 체크
         if (color == StoneColor.Black && !isFake)
         {
+            // [수정] 5목을 완성하는 수라면 금수 체크를 무시하고 통과!
+            if (CheckWin(x, y, color)) return true;
+
+            // 금수 지점이라면 방금 둔 돌을 무효화하고 착수 취소
             if (IsForbidden(x, y, color))
             {
-                Debug.Log($"{x} , {y} 는 금수입니다");
+                Board[x, y].Color = StoneColor.None; // 돌 다시 빼기
+                Debug.Log($"<color=red>[금수]</color> {x}, {y} 자리는 금수 지점입니다.");
                 return false;
             }
         }
 
-        Board[x, y] = new StoneData { Color = color, IsFake = isFake };
         return true;
     }
 
-
-    /// <summary>
-    /// 금수 여부 체크 현재는 전부다 체크
-    /// </summary>
+    // --- [금수 체크 메인] ---
     public bool IsForbidden(int x, int y, StoneColor color)
     {
-        // 1. 장목 체크 (6목 이상)
+        // 1. 장목 (6목 이상)
         for (int i = 0; i < 4; i++)
         {
             if (GetSequenceCount(x, y, dx[i], dy[i], color) > 5) return true;
@@ -56,11 +65,11 @@ public class OmokuLogic
         int fourCount = 0;
         for (int i = 0; i < 4; i++)
         {
-            if (IsFour(x, y, dx[i], dy[i], color)) fourCount++;
+            if (CheckFour(x, y, dx[i], dy[i], color)) fourCount++;
         }
         if (fourCount >= 2) return true;
 
-        // 3. 33 체크 (열린 3이 2개 이상)
+        // 3. 33 체크
         int threeCount = 0;
         for (int i = 0; i < 4; i++)
         {
@@ -71,10 +80,80 @@ public class OmokuLogic
         return false;
     }
 
-    
-    /// <summary>
-    /// 방금 놓은 돌을 기준으로 오목이 완성되었는지 확인
-    /// </summary>
+    // --- [4 판정 로직] ---
+    private bool CheckFour(int x, int y, int dX, int dY, StoneColor color)
+    {
+        bool isFour = false;
+        // 🔥 버그 수정: Board[x, y]는 PlaceStone에서 이미 놓여진 상태입니다. 건드리지 마세요!
+
+        for (int i = -4; i <= 4; i++)
+        {
+            int tx = x + (dX * i);
+            int ty = y + (dY * i);
+
+            // 빈 곳(tx, ty)에 가상으로 하나 더 놔봅니다.
+            if (IsInside(tx, ty) && Board[tx, ty].Color == StoneColor.None)
+            {
+                Board[tx, ty].Color = color; // 가상 착수
+                
+                // 그 자리에 두었을 때 5목이 완성된다면, 현재 상태는 '4'입니다.
+                if (GetSequenceCount(tx, ty, dX, dY, color) == 5)
+                {
+                    isFour = true;
+                }
+
+                Board[tx, ty].Color = StoneColor.None; // 가상 착수만 다시 복구
+                
+                if (isFour) break;
+            }
+        }
+        return isFour;
+    }
+
+    // --- [열린 3 판정 로직 (띄움 포함)] ---
+    public bool IsOpenThree(int x, int y, int dX, int dY, StoneColor color)
+    {
+        bool foundOpenFour = false;
+
+        for (int i = -4; i <= 4; i++)
+        {
+            int tx = x + (dX * i);
+            int ty = y + (dY * i);
+
+            if (IsInside(tx, ty) && Board[tx, ty].Color == StoneColor.None)
+            {
+                Board[tx, ty].Color = color; // 빈 곳에 가상 착수
+                
+                // 하나 더 두었을 때 '열린 4'가 된다면, 현재 상태는 '열린 3'입니다.
+                if (CheckOpenFour(tx, ty, dX, dY, color)) 
+                {
+                    foundOpenFour = true;
+                }
+                
+                Board[tx, ty].Color = StoneColor.None; // 가상 착수 복구
+            }
+            if (foundOpenFour) break;
+        }
+        return foundOpenFour;
+    }
+
+    private bool CheckOpenFour(int x, int y, int dX, int dY, StoneColor color)
+    {
+        if (GetSequenceCount(x, y, dX, dY, color) != 4) return false;
+
+        int winPoints = 0;
+        for (int i = -4; i <= 4; i++)
+        {
+            int tx = x + (dX * i);
+            int ty = y + (dY * i);
+            if (IsInside(tx, ty) && Board[tx, ty].Color == StoneColor.None)
+            {
+                if (GetSequenceCount(tx, ty, dX, dY, color) == 5) winPoints++;
+            }
+        }
+        return winPoints == 2; // 양 끝이 다 뚫려있어야 '열린 4'
+    }
+
     public bool CheckWin(int x, int y, StoneColor color)
     {
         if (Board[x, y].IsFake) return false;
@@ -82,29 +161,18 @@ public class OmokuLogic
         for (int i = 0; i < 4; i++)
         {
             int count = GetSequenceCount(x, y, dx[i], dy[i], color);
-            
+            // 렌주룰: 흑은 정확히 5개여야 승리, 백은 5개 이상이면 승리
             if (color == StoneColor.Black && count == 5) return true;
             if (color == StoneColor.White && count >= 5) return true;
         }
         return false;
     }
 
-
-    //---------- 유틸리티 및 보조 판정 함수 -----------
-
-    
-    /// <summary>
-    /// 특정 방향(양방향 포함)으로 연속된 돌의 개수를 세어 반환
-    /// </summary>
     public int GetSequenceCount(int x, int y, int dX, int dY, StoneColor color)
     {
         return 1 + CountStones(x, y, dX, dY, color) + CountStones(x, y, -dX, -dY, color);
     }
 
-    
-    /// <summary>
-    /// 특정 방향으로 같은 색 돌이 몇 개 연속되는지 카운트
-    /// </summary>
     public int CountStones(int x, int y, int dX, int dY, StoneColor color)
     {
         int cnt = 0;
@@ -116,35 +184,5 @@ public class OmokuLogic
         return cnt;
     }
 
-        
-    /// <summary>
-    /// 해당 방향으로 돌을 놓았을 때 4가 되는지 확인
-    /// </summary>
-    public bool IsFour(int x, int y, int dX, int dY, StoneColor color)
-    {
-        return GetSequenceCount(x, y, dX, dY, color) == 4;
-    }
-
-    
-    /// <summary>
-    /// 양 끝이 비어있는 열린 3인지 확인. (33 금수 판정용)
-    /// </summary>
-    public bool IsOpenThree(int x, int y, int dX, int dY, StoneColor color)
-    {
-        if (GetSequenceCount(x, y, dX, dY, color) != 3) return false;
-
-        int headX = x + (CountStones(x, y, dX, dY, color) + 1) * dX;
-        int headY = y + (CountStones(x, y, dX, dY, color) + 1) * dY;
-        int tailX = x - (CountStones(x, y, -dX, -dY, color) + 1) * dX;
-        int tailY = y - (CountStones(x, y, -dX, -dY, color) + 1) * dY;
-
-        return IsInside(headX, headY) && Board[headX, headY].Color == StoneColor.None &&
-               IsInside(tailX, tailY) && Board[tailX, tailY].Color == StoneColor.None;
-    }
-
-
-    /// <summary>
-    /// 좌표가 바둑판 배열 범위 안에 있는지 확인
-    /// </summary>
     public bool IsInside(int x, int y) => x >= 0 && x < BoardSize && y >= 0 && y < BoardSize;
 }
