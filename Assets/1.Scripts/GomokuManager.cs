@@ -22,7 +22,7 @@ public class GomokuManager : MonoBehaviour
     private List<string> _blackHistory = new List<string>(); // 전체기록 흑
     private List<string> _whiteHistory = new List<string>(); // 전체기록 백 
     private int _lastX; // 최근착수 위치 x
-    private int _lastZ; // 최근착수 위티 y
+    private int _lastZ; // 최근착수 위치 y
 
     private GameObject[,] _stoneObjects; //실제 돌 담은 공간
     private OmokuLogic _logic;           
@@ -31,7 +31,6 @@ public class GomokuManager : MonoBehaviour
 
     void Awake()
     {
-
         // 포인트 생성 및 게임 초기화
         CreateClickPoints();
         Reset();
