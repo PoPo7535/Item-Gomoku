@@ -13,11 +13,13 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
     
     [SerializeField] private ItemSelectPanel itemSelectPanel;
     private bool _ready = false;
-    
+
     public override void Spawned()
     {
         InspectorInit();
         UpdatePlayers();
+        App.I.Runner.SessionInfo.IsVisible.Log();
+        App.I.Runner.SessionInfo.Name.Log();
     }
 
     private void InspectorInit()
