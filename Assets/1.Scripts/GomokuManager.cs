@@ -77,7 +77,10 @@ public class GomokuManager : MonoBehaviour
             PlaceStone();
         }
     }
-    // 실제 돌 착수 함수
+    
+    /// <summary>
+    /// 클릭한 위치에 돌 생성
+    /// </summary>
     void PlaceStone()
     {
         if (GameViewImage == null || BoardCamera == null) return;
