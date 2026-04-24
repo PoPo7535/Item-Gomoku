@@ -226,16 +226,6 @@ public class GomokuManager : MonoBehaviour
     }
 
     public void ChangeTurn() => _isBlackTurn = !_isBlackTurn;
-    /// <summary>
-    /// 최근 착수 위치 알리기
-    /// </summary>
-    public void UpdateAndShowLastPlace(int x, int z)
-    {
-        _lastX = x; _lastZ = z;
-        string lastPlayer = _isBlackTurn ? "흑돌" : "백돌";
-        string nextPlayer = _isBlackTurn ? "백돌" : "흑돌";
-        Debug.Log($"<color=orange>[턴 교체]</color> {nextPlayer} 차례 (상대 {lastPlayer}의 마지막 수: {x}, {z})");
-    }
 
 
     /// <summary>
@@ -257,6 +247,16 @@ public class GomokuManager : MonoBehaviour
     /// </summary>
     public string GetCurrentTurnText() => _isBlackTurn ? "흑돌 턴" : "백돌 턴";
 
+    /// <summary>
+    /// 게임하는동안 최근 착수 위치 알리기
+    /// </summary>
+    public void UpdateAndShowLastPlace(int x, int z)
+    {
+        _lastX = x; _lastZ = z;
+        string lastPlayer = _isBlackTurn ? "흑돌" : "백돌";
+        string nextPlayer = _isBlackTurn ? "백돌" : "흑돌";
+        Debug.Log($"<color=orange>[턴 교체]</color> {nextPlayer} 차례 (상대 {lastPlayer}의 마지막 수: {x}, {z})");
+    }
     /// <summary>
     /// 게임하는동안 좌표들 전체 기록
     /// </summary>
