@@ -27,6 +27,7 @@ public class GomokuManager : MonoBehaviour
     private GameObject[,] _stoneObjects; 
     private OmokuLogic _logic;           
     private bool _isBlackTurn = true;    
+    private bool _isPlaying = false;
 
     void Awake()
     {
@@ -68,13 +69,15 @@ public class GomokuManager : MonoBehaviour
     }
 
     void Update()
-    {
+    {   
+        if (!_isPlaying) return;
+
         if (Input.GetMouseButtonDown(0))
         {
             PlaceStone();
         }
     }
-
+    // 실제 돌 착수 함수
     void PlaceStone()
     {
         if (GameViewImage == null || BoardCamera == null) return;
@@ -150,11 +153,12 @@ public class GomokuManager : MonoBehaviour
     /// 게임 초기화
     /// </summary>
     public void Reset()
-    {
+    {   
+        _isPlaying = false;
         _logic = new OmokuLogic();
         _stoneObjects = new GameObject[LineCount, LineCount];
         _isBlackTurn = true;
-        _lastX = 0;
+        _lastX = 0; 
         _lastZ = 0;
         _blackHistory.Clear();
         _whiteHistory.Clear();
@@ -163,6 +167,60 @@ public class GomokuManager : MonoBehaviour
         foreach (var s in stones) Destroy(s);
 
         Debug.Log("게임 데이터 및 돌 리셋 완료");
+    }
+    /// <summary>
+    /// 좌표로 돌 착수 하기
+    /// 사용 예시: ForcePlaceStone(14, 14); 14,14는 바둑판 우측하단
+    /// 나오는 바둑알은 현재 자기턴 흑턴이면 흑 백턴이면 백
+    /// </summary>
+    public void ForcePlaceStone(int x, int z)
+    {   
+        if (!_isPlaying) return;
+        // 1. 바둑판 범위를 벗어났는지 확인
+        if (x < 0 || x >= LineCount || z < 0 || z >= LineCount)
+        {
+            Debug.LogError($"<color=red>[좌표 착수 실패]</color> 잘못된 인덱스입니다! x: {x}, z: {z}");
+            return;
+        }
+        StoneColor color = _isBlackTurn ? StoneColor.Black : StoneColor.White;
+
+        // 2. 로직 배열에 착수 시도 (이미 돌이 있거나 흑돌 금수 자리면 false를 반환하여 막아줌)
+        if (_logic.PlaceStone(x, z, color))
+        {
+            // 3. 실제 유니티 월드(3D) 상의 생성 좌표 계산
+            Vector3 spawnPos = new Vector3(
+                StartPos.x + (x * Interval), 
+                StartPos.y, 
+                StartPos.z + (z * Interval)
+            );
+            spawnPos.y += 0.05f;
+            UpdateAndShowLastPlace(x, z); // 최근기록 저장
+            // 4. 프리팹 선택 및 생성
+            GameObject prefab = (color == StoneColor.Black) ? BlackStonePrefab : WhiteStonePrefab;
+            GameObject stone = Instantiate(prefab, spawnPos, Quaternion.identity);
+            stone.tag = "Stone"; 
+
+            // 5. 시각적 돌 오브젝트 배열에 저장
+            _stoneObjects[x, z] = stone;
+
+            // 6. 전체 기록 남기기
+            string posText = $"{x},{z} (강제)";
+            if (color == StoneColor.Black) _blackHistory.Add(posText);
+            else _whiteHistory.Add(posText);
+
+            // 7. 승리 판정도 동일하게 적용
+            if (_logic.CheckWin(x, z, color))
+            {
+                Debug.Log($"<color=cyan>★ 승리! {color} ★</color>");
+                Reset();
+                return;
+            }
+            ChangeTurn();
+        }
+        else
+        {
+            Debug.LogWarning($"<color=orange>[강제 착수 실패]</color> ({x}, {z}) 위치에는 이미 돌이 있거나 금수 자리입니다.");
+        }
     }
 
     public void ChangeTurn() => _isBlackTurn = !_isBlackTurn;
@@ -177,11 +235,14 @@ public class GomokuManager : MonoBehaviour
         Debug.Log($"<color=orange>[턴 교체]</color> {nextPlayer} 차례 (상대 {lastPlayer}의 마지막 수: {x}, {z})");
     }
 
+
     /// <summary>
     /// 특정 좌표 돌 삭제
     /// </summary>
     public void RemoveStone(int x, int z)
-    {
+    {   
+        if (!_isPlaying) return;
+
         if (_stoneObjects[x, z] != null)
         {
             Destroy(_stoneObjects[x, z]);
@@ -213,5 +274,30 @@ public class GomokuManager : MonoBehaviour
             for (int y = 0; y < LineCount; y++)
                 if (_logic.Board[x, y].Color == color) count++;
         return count;
+    }
+
+    
+
+    /// <summary>
+    /// [UI 연결용] 게임 시작 버튼 클릭 시 호출
+    /// </summary>
+    public void StartGame()
+    {
+        if (_isPlaying) return;
+        _isPlaying = true; 
+    }
+    /// <summary>
+    /// [UI 연결용] 클릭 시 0,0 좌표 돌 생성
+    /// </summary>
+    public void test()
+    {
+        ForcePlaceStone(0,0);
+    }
+    /// <summary>
+    /// [UI 연결용] 클릭시 0,0좌표 돌 삭제
+    /// </summary>
+    public void test2()
+    {
+        RemoveStone(0,0);
     }
 }
