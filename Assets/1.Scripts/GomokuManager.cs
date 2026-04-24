@@ -225,6 +225,9 @@ public class GomokuManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 턴변경
+    /// </summary>
     public void ChangeTurn() => _isBlackTurn = !_isBlackTurn;
 
 
