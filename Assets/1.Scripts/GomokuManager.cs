@@ -21,8 +21,8 @@ public class GomokuManager : MonoBehaviour
     [Header("--- 기록 관리 ---")]
     private List<string> _blackHistory = new List<string>(); // 전체기록 흑
     private List<string> _whiteHistory = new List<string>(); // 전체기록 백 
-    private int _lastX; // 최근착수 위치 x
-    private int _lastZ; // 최근착수 위치 y
+    private int _lastX; // 최근착수 위치 x 기록
+    private int _lastZ; // 최근착수 위치 y 기록
 
     private GameObject[,] _stoneObjects; //실제 돌 오브젝트 담는 공간 
     private OmokuLogic _logic; // 여기에 실제 돌 데이터 담김        
