@@ -16,39 +16,24 @@ public class App : SimulationSingleton<App>
         base.Awake();
         _runner = gameObject.GetComponent<NetworkRunner>();
         _runnerEvent = gameObject.GetComponent<NetworkEvents>();
+        SetNetworkEvents();
     }
-    void OnGUI()
+    
+    private void SetNetworkEvents()
     {
-        int buttonWidth = 100;
-        int buttonHeight = 40;
-        int padding = 10;
-
-        // 첫 번째 버튼
-        if (GUI.Button(new Rect(padding, padding, buttonWidth, buttonHeight), "버튼 1"))
+        _runnerEvent.OnShutdown.RemoveAllListeners();
+        _runnerEvent.OnShutdown.AddListener((r, response) =>
         {
-            CreateRoom(GameMode.AutoHostOrClient);
-        }
-
-        // 두 번째 버튼
-        if (GUI.Button(new Rect(padding, padding * 2 + buttonHeight, buttonWidth, buttonHeight), "버튼 2"))
-        {
-            CreateRoom(GameMode.AutoHostOrClient);
-        }
-
-        // 세 번째 버튼
-        if (GUI.Button(new Rect(padding, padding * 3 + buttonHeight * 2, buttonWidth, buttonHeight), "버튼 3"))
-        {
-            CreateRoom(GameMode.AutoHostOrClient);
-        }
+            SceneManager.LoadScene(0);
+            PopUp.I.Open(
+                response.ToString(), 
+                () => { PopUp.I.Close();}, "확인");
+        });
     }
-
+    
     public async void FastStart()
     {
         PopUp.I.Open("접속시도...");
-        SetNetworkEvents();
-
-        var sceneInfo = new NetworkSceneInfo();
-        sceneInfo.AddSceneRef(SceneRef.FromIndex(1));
         
         var clientStartTask = StartGame(
             GameMode.Client, 
@@ -78,12 +63,8 @@ public class App : SimulationSingleton<App>
     }
     public async void CreateRoom(GameMode gameMode)
     {
-        PopUp.I.Open("Hosting...");
-        SetNetworkEvents();
+        PopUp.I.Open("호스팅 중...");
 
-        var sceneInfo = new NetworkSceneInfo();
-        sceneInfo.AddSceneRef(SceneRef.FromIndex(1));
-        
         var startTask = StartGame(
             gameMode, 
             Extensions.GenerateBase36(6), 
@@ -102,7 +83,6 @@ public class App : SimulationSingleton<App>
     public async void JoinRoom(string roomCode)
     {
         PopUp.I.Open("접속중...");
-        SetNetworkEvents();
         
         var startTask = StartGame(
             GameMode.Client,
@@ -137,17 +117,7 @@ public class App : SimulationSingleton<App>
         var hostStartTask = _runner.StartGame(startArgs);
         return hostStartTask;
     }
-    private void SetNetworkEvents()
-    {
-        _runnerEvent.OnShutdown.RemoveAllListeners();
-        _runnerEvent.OnShutdown.AddListener((r, response) =>
-        {
-            SceneManager.LoadScene(0);
-            PopUp.I.Open(
-                response.ToString(), 
-                () => { PopUp.I.Close();}, "확인");
-        });
-    }
+
     public void GameQuit()
     {
         Runner.Shutdown();
