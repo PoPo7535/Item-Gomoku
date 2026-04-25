@@ -17,13 +17,6 @@ public sealed class GomokuManager_Test : MonoBehaviour
         Forbidden,
     }
 
-    private enum AiDifficulty
-    {
-        Easy = 1,
-        Normal = 3,
-        Hard = 5
-    }
-
     private struct MoveRecord
     {
         public int XIndex;
@@ -69,10 +62,11 @@ public sealed class GomokuManager_Test : MonoBehaviour
     [SerializeField] private int _maxUndoCount;
 
     [Header("AI 설정")]
-    [SerializeField] private AiDifficulty _aiDifficulty = AiDifficulty.Normal;
+    [SerializeField] private GomokuAiAlgorithmType _aiAlgorithmType = GomokuAiAlgorithmType.Minimax;
+    [SerializeField] private GomokuAiDifficulty _aiDifficulty = GomokuAiDifficulty.Normal;
 
     private OmokuLogic _logic;
-    private GomokuAI _ai;
+    private IGomokuAI _ai;
     private GameObject[,] _stoneObjects;
     private Transform[,] _cellAnchors;
     private bool _isBlackTurn = true;
@@ -132,7 +126,7 @@ public sealed class GomokuManager_Test : MonoBehaviour
     private void InitializeGame()
     {
         _logic = new OmokuLogic();
-        _ai = new GomokuAI(_logic, BoardSize);
+        _ai = GomokuAiFactory.Create(_aiAlgorithmType, _logic, BoardSize);
         _stoneObjects = new GameObject[BoardSize, BoardSize];
         _cellAnchors = new Transform[BoardSize, BoardSize];
         _isBlackTurn = true;

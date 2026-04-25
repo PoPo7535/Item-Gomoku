@@ -4,7 +4,7 @@ using UnityEngine;
 /// <summary>
 /// 오목 AI의 후보 생성과 minimax 의사결정을 담당함.
 /// </summary>
-public class GomokuAI
+public class MinimaxGomokuAI : IGomokuAI
 {
     private const bool EnableAiDebugLog = true;
 
@@ -42,7 +42,7 @@ public class GomokuAI
     /// <summary>
     /// 오목 AI를 생성함.
     /// </summary>
-    public GomokuAI(OmokuLogic logic, int boardSize)
+    public MinimaxGomokuAI(OmokuLogic logic, int boardSize)
     {
         _logic = logic;
         _boardSize = boardSize;
@@ -1373,7 +1373,7 @@ public class GomokuAI
             return;
         }
 
-        Debug.Log($"[GomokuAI] {message}");
+            Debug.Log($"[MinimaxGomokuAI] {message}");
     }
 
     /// <summary>
