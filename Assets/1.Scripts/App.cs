@@ -26,17 +26,21 @@ public class App : SimulationSingleton<App>
         });
     }
 
+    public void FastRoom()
+    {
+        CreateGame(GameMode.AutoHostOrClient, null, true);
+    }
+    public void CreateRoom(GameMode gameMode)
+    {
+        CreateGame(gameMode, null, false);
+    }
     public void JoinRoom(string roomCode)
     {
-        CreateGame(GameMode.Client, roomCode, true, "접속중");
+        CreateGame(GameMode.Client, roomCode, false);
     }
-    public async void CreateRoom(GameMode gameMode)
+    private async void CreateGame(GameMode gameMode, string roomCode, bool isVisible)
     {
-        CreateGame(GameMode.Host, null, true, "호스팅 중");
-    }
-    private async void CreateGame(GameMode gameMode, string roomCode, bool isVisible, string connectingMsg)
-    {
-        PopUp.I.Open(connectingMsg);
+        PopUp.I.Open("연결 중 . . .");
         
         var startTask = StartGame(
             gameMode,
