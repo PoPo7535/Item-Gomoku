@@ -19,18 +19,18 @@ public class GomokuManager : MonoBehaviour
     public GameObject GeneratedPoints;  // 생성된 포인트들을 담을 부모
 
     [Header("--- 기록 관리 ---")]
-    private List<string> _blackHistory = new List<string>();
-    private List<string> _whiteHistory = new List<string>();
-    private int _lastX;
-    private int _lastZ;
+    private List<string> _blackHistory = new List<string>(); // 전체기록 흑
+    private List<string> _whiteHistory = new List<string>(); // 전체기록 백 
+    private int _lastX; // 최근착수 위치 x 기록
+    private int _lastZ; // 최근착수 위치 y 기록
 
-    private GameObject[,] _stoneObjects; 
-    private OmokuLogic _logic;           
-    private bool _isBlackTurn = true;    
+    private GameObject[,] _stoneObjects; //실제 돌 오브젝트 담는 공간 
+    private OmokuLogic _logic; // 여기에 실제 돌 데이터 담김        
+    private bool _isBlackTurn = true;  //턴여부 true면 흑 false면 백
+    private bool _isPlaying = false; // 게임시작여부
 
     void Awake()
     {
-
         // 포인트 생성 및 게임 초기화
         CreateClickPoints();
         Reset();
@@ -68,14 +68,19 @@ public class GomokuManager : MonoBehaviour
     }
 
     void Update()
-    {
+    {   
+        if (!_isPlaying) return;
+
         if (Input.GetMouseButtonDown(0))
         {
             PlaceStone();
         }
     }
-
-void PlaceStone()
+    
+    /// <summary>
+    /// 클릭한 위치에 돌 생성
+    /// </summary>
+    void PlaceStone()
     {
         if (GameViewImage == null || BoardCamera == null) return;
 
@@ -138,6 +143,7 @@ void PlaceStone()
                 {
                     Debug.Log($"<color=cyan>★ 승리! {currentColor} ★</color>");
                     Reset();
+                    return;
                 }
 
                 ChangeTurn();
@@ -145,12 +151,16 @@ void PlaceStone()
         }
     }
 
+    /// <summary>
+    /// 게임 초기화
+    /// </summary>
     public void Reset()
-    {
+    {   
+        _isPlaying = false;
         _logic = new OmokuLogic();
         _stoneObjects = new GameObject[LineCount, LineCount];
         _isBlackTurn = true;
-        _lastX = 0;
+        _lastX = 0; 
         _lastZ = 0;
         _blackHistory.Clear();
         _whiteHistory.Clear();
@@ -160,19 +170,74 @@ void PlaceStone()
 
         Debug.Log("게임 데이터 및 돌 리셋 완료");
     }
+    /// <summary>
+    /// 좌표로 돌 착수 하기
+    /// 사용 예시: ForcePlaceStone(14, 14); 14,14는 바둑판 우측하단
+    /// 나오는 바둑알은 현재 자기턴 흑턴이면 흑 백턴이면 백
+    /// </summary>
+    public void ForcePlaceStone(int x, int z)
+    {   
+        if (!_isPlaying) return;
+        // 1. 바둑판 범위를 벗어났는지 확인
+        if (x < 0 || x >= LineCount || z < 0 || z >= LineCount)
+        {
+            Debug.LogError($"<color=red>[좌표 착수 실패]</color> 잘못된 인덱스입니다! x: {x}, z: {z}");
+            return;
+        }
+        StoneColor color = _isBlackTurn ? StoneColor.Black : StoneColor.White;
 
-    public void ChangeTurn() => _isBlackTurn = !_isBlackTurn;
+        // 2. 로직 배열에 착수 시도 (이미 돌이 있거나 흑돌 금수 자리면 false를 반환하여 막아줌)
+        if (_logic.PlaceStone(x, z, color))
+        {
+            // 3. 실제 유니티 월드(3D) 상의 생성 좌표 계산
+            Vector3 spawnPos = new Vector3(
+                StartPos.x + (x * Interval), 
+                StartPos.y, 
+                StartPos.z + (z * Interval)
+            );
+            spawnPos.y += 0.05f;
+            UpdateAndShowLastPlace(x, z); // 최근기록 저장
+            // 4. 프리팹 선택 및 생성
+            GameObject prefab = (color == StoneColor.Black) ? BlackStonePrefab : WhiteStonePrefab;
+            GameObject stone = Instantiate(prefab, spawnPos, Quaternion.identity);
+            stone.tag = "Stone"; 
 
-    public void UpdateAndShowLastPlace(int x, int z)
-    {
-        _lastX = x; _lastZ = z;
-        string lastPlayer = _isBlackTurn ? "흑돌" : "백돌";
-        string nextPlayer = _isBlackTurn ? "백돌" : "흑돌";
-        Debug.Log($"<color=orange>[턴 교체]</color> {nextPlayer} 차례 (상대 {lastPlayer}의 마지막 수: {x}, {z})");
+            // 5. 시각적 돌 오브젝트 배열에 저장
+            _stoneObjects[x, z] = stone;
+
+            // 6. 전체 기록 남기기
+            string posText = $"{x},{z} (강제)";
+            if (color == StoneColor.Black) _blackHistory.Add(posText);
+            else _whiteHistory.Add(posText);
+
+            // 7. 승리 판정도 동일하게 적용
+            if (_logic.CheckWin(x, z, color))
+            {
+                Debug.Log($"<color=cyan>★ 승리! {color} ★</color>");
+                Reset();
+                return;
+            }
+            ChangeTurn();
+        }
+        else
+        {
+            Debug.LogWarning($"<color=orange>[강제 착수 실패]</color> ({x}, {z}) 위치에는 이미 돌이 있거나 금수 자리입니다.");
+        }
     }
 
+    /// <summary>
+    /// 턴변경
+    /// </summary>
+    public void ChangeTurn() => _isBlackTurn = !_isBlackTurn;
+
+
+    /// <summary>
+    /// 특정 좌표 돌 삭제
+    /// </summary>
     public void RemoveStone(int x, int z)
-    {
+    {   
+        if (!_isPlaying) return;
+
         if (_stoneObjects[x, z] != null)
         {
             Destroy(_stoneObjects[x, z]);
@@ -180,15 +245,33 @@ void PlaceStone()
             _logic.Board[x, z] = new StoneData { Color = StoneColor.None };
         }
     }
-
+    /// <summary>
+    /// 턴알려주기
+    /// </summary>
     public string GetCurrentTurnText() => _isBlackTurn ? "흑돌 턴" : "백돌 턴";
 
+    /// <summary>
+    /// 게임하는동안 최근 착수 위치 알리기
+    /// </summary>
+    public void UpdateAndShowLastPlace(int x, int z)
+    {
+        _lastX = x; _lastZ = z;
+        string lastPlayer = _isBlackTurn ? "흑돌" : "백돌";
+        string nextPlayer = _isBlackTurn ? "백돌" : "흑돌";
+        Debug.Log($"<color=orange>[턴 교체]</color> {nextPlayer} 차례 (상대 {lastPlayer}의 마지막 수: {x}, {z})");
+    }
+    /// <summary>
+    /// 게임하는동안 좌표들 전체 기록
+    /// </summary>
     public void ShowFullLog()
     {
         Debug.Log("흑돌 기보: " + string.Join(" -> ", _blackHistory));
         Debug.Log("백돌 기보: " + string.Join(" -> ", _whiteHistory));
     }
-
+    
+    /// <summary>
+    /// (백,흑) 돌 착수 수 세기
+    /// </summary>
     public int GetStoneCount(StoneColor color)
     {
         int count = 0;
@@ -196,5 +279,16 @@ void PlaceStone()
             for (int y = 0; y < LineCount; y++)
                 if (_logic.Board[x, y].Color == color) count++;
         return count;
+    }
+
+    
+
+    /// <summary>
+    /// [UI 연결용] 게임 시작 버튼 클릭 시 호출
+    /// </summary>
+    public void StartGame()
+    {
+        if (_isPlaying) return;
+        _isPlaying = true; 
     }
 }
