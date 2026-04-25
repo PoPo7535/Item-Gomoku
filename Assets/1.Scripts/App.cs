@@ -32,7 +32,7 @@ public class App : SimulationSingleton<App>
     }
     public void CreateRoom(GameMode gameMode)
     {
-        CreateGame(gameMode, null, false);
+        CreateGame(gameMode, null, true);
     }
     public void JoinRoom(string roomCode)
     {

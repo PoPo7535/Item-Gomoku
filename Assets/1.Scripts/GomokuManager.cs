@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
+using Fusion;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class GomokuManager : MonoBehaviour
+public class GomokuManager : NetworkBehaviour
 {
     [Header("프리팹 설정")]
     public GameObject BlackStonePrefab;
@@ -19,17 +21,17 @@ public class GomokuManager : MonoBehaviour
     public GameObject GeneratedPoints;  // 생성된 포인트들을 담을 부모
 
     [Header("--- 기록 관리 ---")]
-    private List<string> _blackHistory = new List<string>(); // 전체기록 흑
-    private List<string> _whiteHistory = new List<string>(); // 전체기록 백 
+    private readonly List<string> _blackHistory = new(); // 전체기록 흑
+    private readonly List<string> _whiteHistory = new(); // 전체기록 백 
     private int _lastX; // 최근착수 위치 x 기록
     private int _lastZ; // 최근착수 위치 y 기록
 
     private GameObject[,] _stoneObjects; //실제 돌 오브젝트 담는 공간 
     private OmokuLogic _logic; // 여기에 실제 돌 데이터 담김        
-    private bool _isBlackTurn = true;  //턴여부 true면 흑 false면 백
-    private bool _isPlaying = false; // 게임시작여부
+    public bool _isBlackTurn = true;  //턴여부 true면 흑 false면 백
+    [Networked] public NetworkBool _isPlaying { get; set; } // 게임시작여부
 
-    void Awake()
+    public override void Spawned()
     {
         // 포인트 생성 및 게임 초기화
         CreateClickPoints();
@@ -44,7 +46,6 @@ public class GomokuManager : MonoBehaviour
 
         for (int i = GeneratedPoints.transform.childCount - 1; i >= 0; i--)
             Destroy(GeneratedPoints.transform.GetChild(i).gameObject);
-
 
         for (int x = 0; x < LineCount; x++)
         {
@@ -67,23 +68,82 @@ public class GomokuManager : MonoBehaviour
         }
     }
 
-    void Update()
+    private void Update()
     {   
         if (!_isPlaying) return;
 
         if (Input.GetMouseButtonDown(0))
         {
-            PlaceStone();
+            if (GameViewImage == null || BoardCamera == null) return;
+            var result = CalculateRay();
+            PlaceStone(result.pos, result.x, result.z);
+        }
+
+        if (Input.GetMouseButtonDown(1)) 
+        {
+            if (GameViewImage == null || BoardCamera == null) return;
+            var result = CalculateRay();
+            
+            if (_isBlackTurn)
+            {
+                if (Object.HasStateAuthority)
+                    Rpc_PlaceStone(result.pos, result.x, result.z);
+            }
+            else
+            {
+                if (false == Object.HasStateAuthority)
+                    Rpc_PlaceStone(result.pos, result.x, result.z);
+            }
         }
     }
-    
+
+    [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
+    private void Rpc_PlaceStone(Vector3 pos, int x, int z)
+    {
+        PlaceStone(pos, x, z);
+    }
     /// <summary>
     /// 클릭한 위치에 돌 생성
     /// </summary>
-    void PlaceStone()
+    private void PlaceStone(Vector3 pos, int x, int z)
     {
         if (GameViewImage == null || BoardCamera == null) return;
 
+        StoneColor currentColor = _isBlackTurn ? StoneColor.Black : StoneColor.White;
+
+        // 4. 오목 로직 착수
+        if (_logic.PlaceStone(x, z, currentColor))
+        {
+            Vector3 spawnPos = pos;
+            spawnPos.y += 0.05f;
+
+            UpdateAndShowLastPlace(x, z);
+            string posText = $"{x},{z}";
+            if (_isBlackTurn) _blackHistory.Add(posText);
+            else _whiteHistory.Add(posText);
+
+            // 6. 돌 생성
+            GameObject prefab = _isBlackTurn ? BlackStonePrefab : WhiteStonePrefab;
+            GameObject stone = Instantiate(prefab, spawnPos, Quaternion.identity);
+            stone.tag = "Stone"; 
+
+                
+            _stoneObjects[x, z] = stone;
+
+            // 7. 승리 판정
+            if (_logic.CheckWin(x, z, currentColor))
+            {
+                Debug.Log($"<color=cyan>★ 승리! {currentColor} ★</color>");
+                Reset();
+                return;
+            }
+
+            ChangeTurn();
+        }
+    }
+
+    private (Vector3 pos, int x, int z) CalculateRay()
+    {
         // 1. UI 좌표 -> 렌더 텍스처 비율 변환
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
             GameViewImage.rectTransform, 
@@ -100,57 +160,30 @@ public class GomokuManager : MonoBehaviour
         Ray ray = BoardCamera.ViewportPointToRay(new Vector3(nX, nY, 0));
         int layerMask = 1 << LayerMask.NameToLayer("Board");
 
+        var vec = Vector3.zero;
+        var xIdx = 0;
+        var zIdx = 0;
         if (Physics.Raycast(ray, out RaycastHit hit, 1000f, layerMask))
         {
             // 3. 포인트 오브젝트 확인
             string objectName = hit.transform.name;
-            if (!objectName.StartsWith("Point_")) return;
+            if (!objectName.StartsWith("Point_")) 
+                return (hit.transform.position, 0, 0);
 
             string[] nameParts = objectName.Split('_');
-            int xIdx = int.Parse(nameParts[1]);
-            int zIdx = int.Parse(nameParts[2]);
+            vec = hit.transform.position;
+            xIdx = int.Parse(nameParts[1]);
+            zIdx = int.Parse(nameParts[2]);
 
             // 잘못된거확인
             if (xIdx < 0 || xIdx >= LineCount || zIdx < 0 || zIdx >= LineCount)
             {
-                Debug.LogError($"<color=red>[범위 초과]</color> 잘못된 인덱스입니다! x: {xIdx}, z: {zIdx}. (최대치: {LineCount-1})");
-                return;
-            }
-
-            StoneColor currentColor = _isBlackTurn ? StoneColor.Black : StoneColor.White;
-
-            // 4. 오목 로직 착수
-            if (_logic.PlaceStone(xIdx, zIdx, currentColor))
-            {
-                Vector3 spawnPos = hit.transform.position;
-                spawnPos.y += 0.05f;
-
-                UpdateAndShowLastPlace(xIdx, zIdx);
-                string posText = $"{xIdx},{zIdx}";
-                if (_isBlackTurn) _blackHistory.Add(posText);
-                else _whiteHistory.Add(posText);
-
-                // 6. 돌 생성
-                GameObject prefab = _isBlackTurn ? BlackStonePrefab : WhiteStonePrefab;
-                GameObject stone = Instantiate(prefab, spawnPos, Quaternion.identity);
-                stone.tag = "Stone"; 
-
-                
-                _stoneObjects[xIdx, zIdx] = stone;
-
-                // 7. 승리 판정
-                if (_logic.CheckWin(xIdx, zIdx, currentColor))
-                {
-                    Debug.Log($"<color=cyan>★ 승리! {currentColor} ★</color>");
-                    Reset();
-                    return;
-                }
-
-                ChangeTurn();
+                Debug.LogError($"<color=red>[범위 초과]</color> 잘못된 인덱스입니다! x: {xIdx}, z: {zIdx}. (최대치: {LineCount - 1})");
+                return (vec, 0, 0);
             }
         }
+        return (vec, xIdx, zIdx);
     }
-
     /// <summary>
     /// 게임 초기화
     /// </summary>
