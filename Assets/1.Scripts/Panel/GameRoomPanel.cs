@@ -18,7 +18,6 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
     {
         InspectorInit();
         UpdatePlayers();
-        App.I.Runner.SessionInfo.IsVisible.Log();
         App.I.Runner.SessionInfo.Name.Log();
     }
 
@@ -32,7 +31,7 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
             else
                 RPC_Ready(false == _ready);
         });
-        readyText.text = Object.HasStateAuthority ? "Start" : "Ready";
+        readyText.text = Object.HasStateAuthority ? "게임시작" : "준비";
         readyButton.interactable = false == Object.HasStateAuthority;
     }
 
