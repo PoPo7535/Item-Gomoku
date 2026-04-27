@@ -82,7 +82,8 @@ public class GomokuManager : NetworkBehaviour
         }
 
         //돌 미리보기
-        UpdateStonePreview(); 
+        var result = CalculateRay();
+        HandleGhostStoneSingle(result);
 
         if (Input.GetMouseButtonDown(0))
         {
@@ -345,43 +346,7 @@ public class GomokuManager : NetworkBehaviour
         }
     }
 
-    /// <summary>
-    /// 멀티용 : 돌 미리보여주기
-    /// </summary>
-    private void HandleGhostStoneNetwork((Vector3 pos, int x, int z) result)
-    {
-        BlackGhostObj.SetActive(false);
-        WhiteGhostObj.SetActive(false);
 
-        bool isMyTurn = Object.HasStateAuthority ? _isBlackTurn : !_isBlackTurn;
-        if (!isMyTurn) return;
-
-        if (result.pos != Vector3.zero && _logic.Board[result.x, result.z].Color == StoneColor.None)
-        {
-            GameObject target = _isBlackTurn ? BlackGhostObj : WhiteGhostObj;
-            if (target != null)
-            {
-                target.transform.position = result.pos + new Vector3(0, 0.05f, 0);
-                target.SetActive(true);
-            }
-        }
-    }
-    /// <summary>
-    /// 현재 게임 모드(싱글/멀티)에 따라 고스트 돌(미리보기) 표시를 처리하는 함수
-    /// </summary>
-    private void UpdateStonePreview()
-    {
-        var result = CalculateRay();
-
-        if (Runner.GameMode != GameMode.Single)
-        {
-            HandleGhostStoneNetwork(result);
-        }
-        else
-        {
-            HandleGhostStoneSingle(result);
-        }
-    }
         
 
     /// <summary>
