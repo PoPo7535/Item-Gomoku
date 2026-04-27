@@ -32,8 +32,13 @@ public class GomokuManager : NetworkBehaviour
     private GameObject[,] _stoneObjects; //실제 돌 오브젝트 담는 공간 
     private OmokuLogic _logic; // 여기에 실제 돌 데이터 담김        
     public bool _isBlackTurn = true;  //턴여부 true면 흑 false면 백
+    // 현재 클라이언트 기준 조작 가능한 돌 색상
     private StoneColor _myColor;
     [Networked] public NetworkBool _isPlaying { get; set; } // 게임시작여부
+    [Header("턴 제한 시간")]
+    public float TurnTimeLimit = 10f;
+
+    private float _turnTimer;
 
     public override void Spawned()
     {
@@ -51,7 +56,7 @@ public class GomokuManager : NetworkBehaviour
                 break;
 
             case GamePlayMode.Multi:
-                _myColor = Object.HasStateAuthority ? StoneColor.Black : StoneColor.White; //호스트가 흑돌
+                _myColor = Object.HasStateAuthority ? StoneColor.Black : StoneColor.White;
                 break;
         }
     }
@@ -95,7 +100,7 @@ public class GomokuManager : NetworkBehaviour
             WhiteGhostObj.SetActive(false);
             return;
         }
-
+        UpdateTurnTimer();
         //돌 미리보기
         var result = CalculateRay();
         HandleGhostStone(result);
@@ -221,6 +226,7 @@ public class GomokuManager : NetworkBehaviour
         _logic = new OmokuLogic();
         _stoneObjects = new GameObject[LineCount, LineCount];
         _isBlackTurn = true;
+        StartTurnTimer();
         _lastX = 0; 
         _lastZ = 0;
         _blackHistory.Clear();
@@ -289,8 +295,32 @@ public class GomokuManager : NetworkBehaviour
     /// <summary>
     /// 턴변경
     /// </summary>
-    public void ChangeTurn() => _isBlackTurn = !_isBlackTurn;
+    public void ChangeTurn()
+    {
+        _isBlackTurn = !_isBlackTurn;
+        StartTurnTimer();
+    }
+    /// <summary>
+    /// 턴 시작시 제한시간 초기화
+    /// </summary>
+    private void StartTurnTimer()
+    {
+        _turnTimer = TurnTimeLimit;
+    }
+    /// <summary>
+    /// 시간이 0 이하가 되면 자동으로 턴을 변경
+    /// </summary>
+    private void UpdateTurnTimer()
+    {
+        _turnTimer -= Time.deltaTime;
 
+        if (_turnTimer <= 0f)
+        {
+            Debug.Log("시간 초과로 턴 변경");
+
+            ChangeTurn();
+        }
+    }
 
     /// <summary>
     /// 특정 좌표 돌 삭제
