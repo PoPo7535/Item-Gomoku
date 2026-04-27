@@ -342,7 +342,7 @@ public class GomokuManager : NetworkBehaviour
         return count;
     }
     /// <summary>
-    /// 싱글용 : 돌 미리보여주기
+    /// 돌 미리보여주기
     /// </summary>
     private void HandleGhostStone((Vector3 pos, int x, int z) result)
     {
@@ -359,11 +359,11 @@ public class GomokuManager : NetworkBehaviour
         switch (App.I.PlayMode)
         {
             case GamePlayMode.Single:
-                // 둘 다 보여줌 (턴 기준)
+                // 둘 다 보여주기
                 target = _isBlackTurn ? BlackGhostObj : WhiteGhostObj;
                 break;
 
-            case GamePlayMode.AI:
+            case GamePlayMode.AI: // 여긴 추가해야함
             case GamePlayMode.Multi:
                 // 내 턴만
                 if (currentTurn != _myColor) return;
