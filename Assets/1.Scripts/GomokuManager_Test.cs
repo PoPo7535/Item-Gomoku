@@ -63,8 +63,8 @@ public sealed class GomokuManager_Test : MonoBehaviour
     [SerializeField] private int _maxUndoCount;
 
     [Header("AI 설정")]
-    [SerializeField] private GomokuAiAlgorithmType _aiAlgorithmType = GomokuAiAlgorithmType.Minimax;
-    [SerializeField] private GomokuAiDifficulty _aiDifficulty = GomokuAiDifficulty.Normal;
+    [SerializeField] private GomokuAIAlgorithmType _aiAlgorithmType = GomokuAIAlgorithmType.Minimax;
+    [SerializeField] private GomokuAIDifficulty _aiDifficulty = GomokuAIDifficulty.Normal;
 
     private OmokuLogic _logic;
     private GameObject[,] _stoneObjects;
@@ -688,11 +688,11 @@ public sealed class GomokuManager_Test : MonoBehaviour
         CancellationTokenSource searchCancellationTokenSource = new CancellationTokenSource();
         _aiSearchCancellationTokenSource = searchCancellationTokenSource;
         GomokuBoardSnapshot snapshot = new GomokuBoardSnapshot(_logic.Board, _boardVersion);
-        GomokuAiSearchRequest request = new GomokuAiSearchRequest(requestId, _aiAlgorithmType, _aiDifficulty, snapshot);
+        GomokuAISearchRequest request = new GomokuAISearchRequest(requestId, _aiAlgorithmType, _aiDifficulty, snapshot);
 
         try
         {
-            GomokuMove bestMove = await GomokuAiAsyncRunner.FindBestMoveAsync(request, searchCancellationTokenSource.Token);
+            GomokuMove bestMove = await GomokuAIAsyncRunner.FindBestMoveAsync(request, searchCancellationTokenSource.Token);
             await UniTask.SwitchToMainThread(searchCancellationTokenSource.Token);
 
             if (!IsAiSearchRequestActive(request))
@@ -733,7 +733,7 @@ public sealed class GomokuManager_Test : MonoBehaviour
     /// <param name="request">검증할 AI 요청.</param>
     /// <param name="bestMove">AI가 반환한 추천 수.</param>
     /// <returns>AI 결과 적용 가능 여부.</returns>
-    private bool CanApplyAiSearchResult(GomokuAiSearchRequest request, GomokuMove bestMove)
+    private bool CanApplyAiSearchResult(GomokuAISearchRequest request, GomokuMove bestMove)
     {
         if (!IsAiSearchRequestActive(request) ||
             _isGameOver ||
@@ -753,7 +753,7 @@ public sealed class GomokuManager_Test : MonoBehaviour
     /// </summary>
     /// <param name="request">확인할 AI 요청.</param>
     /// <returns>현재 적용 가능한 요청인지 여부.</returns>
-    private bool IsAiSearchRequestActive(GomokuAiSearchRequest request)
+    private bool IsAiSearchRequestActive(GomokuAISearchRequest request)
     {
         return request.RequestId == _aiSearchRequestId &&
                _isAiThinking &&
