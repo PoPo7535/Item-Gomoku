@@ -144,18 +144,19 @@ public class GomokuManager : NetworkBehaviour
 
         StoneColor currentColor = _isBlackTurn ? StoneColor.Black : StoneColor.White;
 
-        // 4. 오목 로직 착수
+        // 오목 로직 착수
         if (_logic.PlaceStone(x, z, currentColor))
         {
             Vector3 spawnPos = pos;
             spawnPos.y += 0.15f;
-
+            //최근기록 저장
             UpdateAndShowLastPlace(x, z);
+            //전체기록 저장
             string posText = $"{x},{z}";
             if (_isBlackTurn) _blackHistory.Add(posText);
             else _whiteHistory.Add(posText);
 
-            // 6. 돌 생성
+            // 돌 생성
             GameObject prefab = _isBlackTurn ? BlackStonePrefab : WhiteStonePrefab;
             GameObject stone = Instantiate(prefab, spawnPos, Quaternion.identity);
             stone.tag = "Stone"; 
@@ -163,14 +164,14 @@ public class GomokuManager : NetworkBehaviour
                 
             _stoneObjects[x, z] = stone;
 
-            // 7. 승리 판정
+            // 승리 판정
             if (_logic.CheckWin(x, z, currentColor))
             {
                 Debug.Log($"<color=cyan>★ 승리! {currentColor} ★</color>");
                 Reset();
                 return;
             }
-
+            // 턴변경
             ChangeTurn();
         }
     }
