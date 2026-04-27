@@ -9,6 +9,9 @@ public class GomokuManager : NetworkBehaviour
     [Header("프리팹 설정")]
     public GameObject BlackStonePrefab;
     public GameObject WhiteStonePrefab;
+    [Header("고스트 돌 설정")]
+    public GameObject BlackGhostObj; 
+    public GameObject WhiteGhostObj;
 
     [Header("렌더 텍스처 & 카메라 설정")]
     public RawImage GameViewImage; 
@@ -61,7 +64,7 @@ public class GomokuManager : NetworkBehaviour
 
 
                 SphereCollider sc = p.AddComponent<SphereCollider>();
-                sc.radius = Interval * 0.45f;
+                sc.radius = Interval * 0.75f;
                 sc.isTrigger = true;
                 p.layer = LayerMask.NameToLayer("Board");
             }
@@ -70,32 +73,43 @@ public class GomokuManager : NetworkBehaviour
 
     private void Update()
     {   
-        if (!_isPlaying) return;
+        if (!_isPlaying) 
+        {
+            // 게임 중이 아닐 땐 고스트 끄기
+            BlackGhostObj.SetActive(false);
+            WhiteGhostObj.SetActive(false);
+            return;
+        }
+
+        var result = CalculateRay();
+
+        // --- 반투명 돌 보여주기---
+        HandleGhostStone(result);
 
         if (Input.GetMouseButtonDown(0))
         {
             if (GameViewImage == null || BoardCamera == null) return;
-            var result = CalculateRay();
-            PlaceStone(result.pos, result.x, result.z);
+            var resultRay = CalculateRay();
+            PlaceStone(resultRay.pos, resultRay.x, resultRay.z);
         }
 
         if (Input.GetMouseButtonDown(1)) 
         {
             if (GameViewImage == null || BoardCamera == null) return;
-            var result = CalculateRay();
+            var resultRay = CalculateRay();
             
             if (_isBlackTurn)
             {
                 if (Object.HasStateAuthority)
-                    Rpc_PlaceStone(result.pos, result.x, result.z);
+                    Rpc_PlaceStone(resultRay.pos, resultRay.x, resultRay.z);
             }
             else
             {
                 if (false == Object.HasStateAuthority)
-                    Rpc_PlaceStone(result.pos, result.x, result.z);
+                    Rpc_PlaceStone(resultRay.pos, resultRay.x, resultRay.z);
             }
         }
-    }
+}
 
     [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
     private void Rpc_PlaceStone(Vector3 pos, int x, int z)
@@ -313,8 +327,36 @@ public class GomokuManager : NetworkBehaviour
                 if (_logic.Board[x, y].Color == color) count++;
         return count;
     }
+    /// <summary>
+    /// 반 투명 돌 보여주기
+    /// </summary>
+    private void HandleGhostStone((Vector3 pos, int x, int z) result)
+    {
 
-    
+        if (BlackGhostObj) BlackGhostObj.SetActive(false);
+        if (WhiteGhostObj) WhiteGhostObj.SetActive(false);
+
+        bool isMyTurn = false;
+        if (Object.HasStateAuthority) // 내가 호스트일 때
+        {
+            if (_isBlackTurn) isMyTurn = true;
+        }
+        else 
+        {
+            if (!_isBlackTurn) isMyTurn = true;
+        }
+        if (!isMyTurn) return; 
+        if (result.pos != Vector3.zero && _logic.Board[result.x, result.z].Color == StoneColor.None)
+        {
+            GameObject target = _isBlackTurn ? BlackGhostObj : WhiteGhostObj;
+            if (target != null)
+            {
+                target.transform.position = result.pos + new Vector3(0, 0.05f, 0);
+                target.SetActive(true);
+            }
+        }
+    }
+        
 
     /// <summary>
     /// [UI 연결용] 게임 시작 버튼 클릭 시 호출
