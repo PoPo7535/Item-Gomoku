@@ -333,8 +333,8 @@ public class GomokuManager : NetworkBehaviour
     private void HandleGhostStone((Vector3 pos, int x, int z) result)
     {
 
-        if (BlackGhostObj) BlackGhostObj.SetActive(false);
-        if (WhiteGhostObj) WhiteGhostObj.SetActive(false);
+        BlackGhostObj.SetActive(false);
+        WhiteGhostObj.SetActive(false);
 
 
         if (result.pos != Vector3.zero && _logic.Board[result.x, result.z].Color == StoneColor.None)
