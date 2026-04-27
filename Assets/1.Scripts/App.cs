@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using Utility;
 
-public enum GamePlayMode
+public enum GamePlayMode 
 {
     Single,
     AI,
