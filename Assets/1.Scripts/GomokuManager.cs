@@ -382,7 +382,7 @@ public class GomokuManager : NetworkBehaviour
         
 
     /// <summary>
-    /// [UI 연결용] 게임 시작 버튼 클릭 시 호출
+    /// [UI 연결용] 게임 시작 버튼 클릭 시 호출.
     /// </summary>
     public void StartGame()
     {
