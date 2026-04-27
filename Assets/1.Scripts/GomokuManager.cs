@@ -81,16 +81,8 @@ public class GomokuManager : NetworkBehaviour
             return;
         }
 
-        var result = CalculateRay();
-
-        if (Runner.GameMode != GameMode.Single)
-        {
-            HandleGhostStoneNetwork(result);
-        }
-        else
-        {
-            HandleGhostStoneSingle(result);
-        }
+        //돌 미리보기
+        UpdateStonePreview(); 
 
         if (Input.GetMouseButtonDown(0))
         {
@@ -372,6 +364,22 @@ public class GomokuManager : NetworkBehaviour
                 target.transform.position = result.pos + new Vector3(0, 0.05f, 0);
                 target.SetActive(true);
             }
+        }
+    }
+    /// <summary>
+    /// 현재 게임 모드(싱글/멀티)에 따라 고스트 돌(미리보기) 표시를 처리하는 함수
+    /// </summary>
+    private void UpdateStonePreview()
+    {
+        var result = CalculateRay();
+
+        if (Runner.GameMode != GameMode.Single)
+        {
+            HandleGhostStoneNetwork(result);
+        }
+        else
+        {
+            HandleGhostStoneSingle(result);
         }
     }
         
