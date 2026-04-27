@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
+using Stopwatch = System.Diagnostics.Stopwatch;
 
 /// <summary>
 /// 오목 AI의 후보 생성과 minimax 의사결정을 담당함.
@@ -18,6 +19,10 @@ public class MinimaxGomokuAI : IGomokuAI
         public int OpenThreeCount;
         public int BlockedFourCount;
         public int OpenFourCount;
+    }
+
+    private sealed class SearchTimeoutException : System.Exception
+    {
     }
 
     private const int WinScore = 10000000;
@@ -40,6 +45,9 @@ public class MinimaxGomokuAI : IGomokuAI
     private readonly GomokuBoardEvaluator _evaluator;
     private readonly int _boardSize;
     private CancellationToken _cancellationToken;
+    private Stopwatch _searchStopwatch;
+    private double _maxSearchTimeSeconds;
+    private GomokuMove _bestMoveSoFar;
 
     /// <summary>
     /// 오목 AI를 생성함.
@@ -67,9 +75,53 @@ public class MinimaxGomokuAI : IGomokuAI
     /// <returns>선택된 AI 착수 후보.</returns>
     public GomokuMove FindBestMove(int searchDepth, CancellationToken cancellationToken)
     {
-        _cancellationToken = cancellationToken;
-        ThrowIfCancellationRequested();
+        BeginSearch(cancellationToken, 0d);
+        try
+        {
+            return FindBestMoveCore(searchDepth);
+        }
+        finally
+        {
+            EndSearch();
+        }
+    }
 
+    /// <summary>
+    /// 지정한 탐색 깊이, 취소 토큰, 시간 제한으로 백돌 AI의 최선 수를 찾음.
+    /// </summary>
+    /// <param name="searchDepth">탐색 깊이.</param>
+    /// <param name="cancellationToken">탐색 취소 토큰.</param>
+    /// <param name="maxSearchTimeSeconds">탐색 시간 제한 초 단위 값.</param>
+    /// <returns>AI 탐색 상태와 선택된 착수 후보.</returns>
+    public GomokuAISearchResult FindBestMove(int searchDepth, CancellationToken cancellationToken, double maxSearchTimeSeconds)
+    {
+        BeginSearch(cancellationToken, maxSearchTimeSeconds);
+        try
+        {
+            GomokuMove move = FindBestMoveCore(searchDepth);
+            double elapsedSeconds = GetElapsedSearchSeconds();
+            return move.IsValid
+                ? GomokuAISearchResult.Completed(move, elapsedSeconds)
+                : GomokuAISearchResult.NoMove(move.Reason, elapsedSeconds);
+        }
+        catch (SearchTimeoutException)
+        {
+            return GomokuAISearchResult.TimedOut(GetBestMoveSoFarOrFallback(), GetElapsedSearchSeconds());
+        }
+        finally
+        {
+            EndSearch();
+        }
+    }
+
+    /// <summary>
+    /// 현재 설정된 탐색 조건으로 백돌 AI의 최선 수를 계산함.
+    /// </summary>
+    /// <param name="searchDepth">탐색 깊이.</param>
+    /// <returns>선택된 AI 착수 후보.</returns>
+    private GomokuMove FindBestMoveCore(int searchDepth)
+    {
+        ThrowIfCancellationRequested();
         int clampedDepth = System.Math.Min(System.Math.Max(searchDepth, 1), 5);
         bool isHardDifficulty = IsHardDifficulty(clampedDepth);
         bool shouldPrioritizeFutureRouteDefense = !IsEasyDifficulty(clampedDepth);
@@ -80,6 +132,8 @@ public class MinimaxGomokuAI : IGomokuAI
         {
             return FindFallbackMove();
         }
+
+        _bestMoveSoFar = fullCandidates[0];
 
         GomokuMove openingMove = FindOpeningMove();
         if (openingMove.IsValid)
@@ -240,6 +294,12 @@ public class MinimaxGomokuAI : IGomokuAI
         int beta = int.MaxValue;
         bool shouldApplyResponsePenalty = !IsEasyDifficulty(searchDepth);
 
+        if (candidates.Count > 0)
+        {
+            // 첫 후보를 기본 fallback으로 보관해 시간 초과 시에도 착수 후보를 잃지 않음.
+            _bestMoveSoFar = candidates[0];
+        }
+
         for (int i = 0; i < candidates.Count; i++)
         {
             ThrowIfCancellationRequested();
@@ -273,6 +333,7 @@ public class MinimaxGomokuAI : IGomokuAI
             {
                 bestScore = score;
                 bestMove = new GomokuMove(candidate.X, candidate.Y, score, $"Minimax depth {searchDepth}");
+                _bestMoveSoFar = bestMove;
             }
 
             alpha = System.Math.Max(alpha, bestScore);
@@ -1406,11 +1467,55 @@ public class MinimaxGomokuAI : IGomokuAI
     }
 
     /// <summary>
+    /// AI 탐색 상태와 제한 시간을 초기화함.
+    /// </summary>
+    /// <param name="cancellationToken">외부 탐색 취소 토큰.</param>
+    /// <param name="maxSearchTimeSeconds">탐색 시간 제한 초 단위 값.</param>
+    private void BeginSearch(CancellationToken cancellationToken, double maxSearchTimeSeconds)
+    {
+        _cancellationToken = cancellationToken;
+        _maxSearchTimeSeconds = System.Math.Max(0d, maxSearchTimeSeconds);
+        _searchStopwatch = _maxSearchTimeSeconds > 0d ? Stopwatch.StartNew() : null;
+        _bestMoveSoFar = GomokuMove.Invalid("Best move not evaluated yet");
+    }
+
+    /// <summary>
+    /// AI 탐색 상태를 정리함.
+    /// </summary>
+    private void EndSearch()
+    {
+        _searchStopwatch = null;
+        _maxSearchTimeSeconds = 0d;
+    }
+
+    /// <summary>
+    /// 현재 탐색에 걸린 시간을 초 단위로 반환함.
+    /// </summary>
+    /// <returns>탐색 경과 시간.</returns>
+    private double GetElapsedSearchSeconds()
+    {
+        return _searchStopwatch != null ? _searchStopwatch.Elapsed.TotalSeconds : 0d;
+    }
+
+    /// <summary>
+    /// 시간 초과 시 사용할 best-so-far 또는 안전한 fallback 후보를 반환함.
+    /// </summary>
+    /// <returns>시간 초과 시 적용할 착수 후보.</returns>
+    private GomokuMove GetBestMoveSoFarOrFallback()
+    {
+        return _bestMoveSoFar.IsValid ? _bestMoveSoFar : FindFallbackMove();
+    }
+
+    /// <summary>
     /// 현재 AI 탐색 취소 요청이 들어왔는지 확인함.
     /// </summary>
     private void ThrowIfCancellationRequested()
     {
         _cancellationToken.ThrowIfCancellationRequested();
+        if (_searchStopwatch != null && _searchStopwatch.Elapsed.TotalSeconds >= _maxSearchTimeSeconds)
+        {
+            throw new SearchTimeoutException();
+        }
     }
 
     /// <summary>

@@ -5050,7 +5050,8 @@ MonoBehaviour:
   _ghostParent: {fileID: 923248253}
   _maxUndoCount: 0
   _aiAlgorithmType: 0
-  _aiDifficulty: 3
+  _aiDifficulty: 5
+  _maxAiSearchTimeSeconds: 5
 --- !u!4 &1181881346
 Transform:
   m_ObjectHideFlags: 0

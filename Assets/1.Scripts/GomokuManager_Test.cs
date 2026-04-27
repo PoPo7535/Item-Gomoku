@@ -65,6 +65,7 @@ public sealed class GomokuManager_Test : MonoBehaviour
     [Header("AI 설정")]
     [SerializeField] private GomokuAIAlgorithmType _aiAlgorithmType = GomokuAIAlgorithmType.Minimax;
     [SerializeField] private GomokuAIDifficulty _aiDifficulty = GomokuAIDifficulty.Normal;
+    [SerializeField] private float _maxAiSearchTimeSeconds = 3f;
 
     private OmokuLogic _logic;
     private GameObject[,] _stoneObjects;
@@ -688,11 +689,11 @@ public sealed class GomokuManager_Test : MonoBehaviour
         CancellationTokenSource searchCancellationTokenSource = new CancellationTokenSource();
         _aiSearchCancellationTokenSource = searchCancellationTokenSource;
         GomokuBoardSnapshot snapshot = new GomokuBoardSnapshot(_logic.Board, _boardVersion);
-        GomokuAISearchRequest request = new GomokuAISearchRequest(requestId, _aiAlgorithmType, _aiDifficulty, snapshot);
+        GomokuAISearchRequest request = new GomokuAISearchRequest(requestId, _aiAlgorithmType, _aiDifficulty, snapshot, _maxAiSearchTimeSeconds);
 
         try
         {
-            GomokuMove bestMove = await GomokuAIAsyncRunner.FindBestMoveAsync(request, searchCancellationTokenSource.Token);
+            GomokuAISearchResult searchResult = await GomokuAIAsyncRunner.FindBestMoveAsync(request, searchCancellationTokenSource.Token);
             await UniTask.SwitchToMainThread(searchCancellationTokenSource.Token);
 
             if (!IsAiSearchRequestActive(request))
@@ -700,9 +701,17 @@ public sealed class GomokuManager_Test : MonoBehaviour
                 return;
             }
 
+            if (searchResult.Status == GomokuAISearchResultStatus.Canceled)
+            {
+                // Active 요청이 취소 상태로 돌아오면 턴 잠금을 피하기 위해 안전하게 마감함.
+                CompleteAiTurnWithoutMove(turnRecord, "AI 탐색이 취소되었습니다.");
+                return;
+            }
+
+            GomokuMove bestMove = searchResult.Move;
             if (!CanApplyAiSearchResult(request, bestMove))
             {
-                CompleteAiTurnWithoutMove(turnRecord, bestMove.IsValid ? "AI 결과 검증 실패" : "AI가 유효한 착수 위치를 찾지 못했습니다.");
+                CompleteAiTurnWithoutMove(turnRecord, bestMove.IsValid ? $"AI 결과 검증 실패: {searchResult.Status}" : searchResult.Reason);
                 return;
             }
 

@@ -1,4 +1,6 @@
+using System;
 using System.Threading;
+using Stopwatch = System.Diagnostics.Stopwatch;
 using Cysharp.Threading.Tasks;
 
 /// <summary>
@@ -12,17 +14,30 @@ public static class GomokuAIAsyncRunner
     /// <param name="request">AI 탐색 요청.</param>
     /// <param name="cancellationToken">탐색 취소 토큰.</param>
     /// <returns>AI가 선택한 착수 후보.</returns>
-    public static UniTask<GomokuMove> FindBestMoveAsync(GomokuAISearchRequest request, CancellationToken cancellationToken)
+    public static async UniTask<GomokuAISearchResult> FindBestMoveAsync(GomokuAISearchRequest request, CancellationToken cancellationToken)
     {
-        return UniTask.RunOnThreadPool(
-            () =>
-            {
-                cancellationToken.ThrowIfCancellationRequested();
+        Stopwatch stopwatch = Stopwatch.StartNew();
 
-                OmokuLogic logicCopy = request.BoardSnapshot.CreateLogicCopy();
-                IGomokuAI ai = GomokuAIFactory.Create(request.AlgorithmType, logicCopy, request.BoardSize);
-                return ai.FindBestMove(request.SearchDepth, cancellationToken);
-            },
-            cancellationToken: cancellationToken);
+        try
+        {
+            return await UniTask.RunOnThreadPool(
+                () =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    OmokuLogic logicCopy = request.BoardSnapshot.CreateLogicCopy();
+                    IGomokuAI ai = GomokuAIFactory.Create(request.AlgorithmType, logicCopy, request.BoardSize);
+                    return ai.FindBestMove(request.SearchDepth, cancellationToken, request.MaxSearchTimeSeconds);
+                },
+                cancellationToken: cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            return GomokuAISearchResult.Canceled(stopwatch.Elapsed.TotalSeconds);
+        }
+        catch (System.Exception exception)
+        {
+            return GomokuAISearchResult.Failed(exception.Message, stopwatch.Elapsed.TotalSeconds);
+        }
     }
 }

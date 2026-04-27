@@ -7,6 +7,7 @@ public readonly struct GomokuAISearchRequest
     public readonly GomokuAIAlgorithmType AlgorithmType;
     public readonly GomokuAIDifficulty Difficulty;
     public readonly GomokuBoardSnapshot BoardSnapshot;
+    public readonly float MaxSearchTimeSeconds;
 
     public int BoardVersion => BoardSnapshot != null ? BoardSnapshot.BoardVersion : -1;
     public int BoardSize => BoardSnapshot != null ? BoardSnapshot.BoardSize : 15;
@@ -23,11 +24,13 @@ public readonly struct GomokuAISearchRequest
         int requestId,
         GomokuAIAlgorithmType algorithmType,
         GomokuAIDifficulty difficulty,
-        GomokuBoardSnapshot boardSnapshot)
+        GomokuBoardSnapshot boardSnapshot,
+        float maxSearchTimeSeconds)
     {
         RequestId = requestId;
         AlgorithmType = algorithmType;
         Difficulty = difficulty;
         BoardSnapshot = boardSnapshot;
+        MaxSearchTimeSeconds = maxSearchTimeSeconds;
     }
 }
