@@ -52,7 +52,7 @@ public class GomokuManager : NetworkBehaviour
                 break;
 
             case GamePlayMode.AI:
-                _myColor = StoneColor.Black; // 여기는 입력받자
+                // _myColor = StoneColor.Black; // 여기는 입력받아서 결정
                 break;
 
             case GamePlayMode.Multi:
