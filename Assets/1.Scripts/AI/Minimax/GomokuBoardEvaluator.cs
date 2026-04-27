@@ -1,4 +1,4 @@
-using UnityEngine;
+using System;
 
 /// <summary>
 /// 현재 오목 보드 상태를 백돌 AI 관점에서 평가함.
@@ -199,7 +199,7 @@ public class GomokuBoardEvaluator
             return TwoScore * openEnds;
         }
 
-        return Mathf.Max(1, count);
+        return Math.Max(1, count);
     }
 
     /// <summary>

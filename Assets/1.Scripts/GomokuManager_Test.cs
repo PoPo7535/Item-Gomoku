@@ -1,6 +1,7 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 /// <summary>
@@ -66,7 +67,6 @@ public sealed class GomokuManager_Test : MonoBehaviour
     [SerializeField] private GomokuAiDifficulty _aiDifficulty = GomokuAiDifficulty.Normal;
 
     private OmokuLogic _logic;
-    private IGomokuAI _ai;
     private GameObject[,] _stoneObjects;
     private Transform[,] _cellAnchors;
     private bool _isBlackTurn = true;
@@ -81,6 +81,11 @@ public sealed class GomokuManager_Test : MonoBehaviour
     private StoneColor _ghostStoneColor = StoneColor.None;
     private Stack<TurnRecord> _turnHistory;
     private int _remainingUndoCount;
+    private int _boardVersion;
+    private int _aiSearchRequestId;
+    private bool _hasPendingAiTurnRecord;
+    private TurnRecord _pendingAiTurnRecord;
+    private CancellationTokenSource _aiSearchCancellationTokenSource;
 
     /// <summary>
     /// 테스트 게임 상태를 초기화함.
@@ -88,6 +93,14 @@ public sealed class GomokuManager_Test : MonoBehaviour
     private void Awake()
     {
         InitializeGame();
+    }
+
+    /// <summary>
+    /// 테스트 매니저가 파괴될 때 진행 중인 AI 요청을 정리함.
+    /// </summary>
+    private void OnDestroy()
+    {
+        CancelAiSearchRequest();
     }
 
     /// <summary>
@@ -125,8 +138,8 @@ public sealed class GomokuManager_Test : MonoBehaviour
     /// </summary>
     private void InitializeGame()
     {
+        CancelAiSearchRequest();
         _logic = new OmokuLogic();
-        _ai = GomokuAiFactory.Create(_aiAlgorithmType, _logic, BoardSize);
         _stoneObjects = new GameObject[BoardSize, BoardSize];
         _cellAnchors = new Transform[BoardSize, BoardSize];
         _isBlackTurn = true;
@@ -139,6 +152,9 @@ public sealed class GomokuManager_Test : MonoBehaviour
         _ghostStoneColor = StoneColor.None;
         _turnHistory = new Stack<TurnRecord>();
         _remainingUndoCount = _maxUndoCount > 0 ? _maxUndoCount : 0;
+        _boardVersion = 0;
+        _hasPendingAiTurnRecord = false;
+        _pendingAiTurnRecord = default;
         _isReady = TryCacheCellAnchors() && TryValidateCellLayout() && ValidateStoneHierarchy();
     }
 
@@ -176,7 +192,7 @@ public sealed class GomokuManager_Test : MonoBehaviour
         }
 
         _isBlackTurn = false;
-        StartCoroutine(HandleAiTurnCoroutine(turnRecord));
+        HandleAiTurnAsync(turnRecord).Forget();
     }
 
     /// <summary>
@@ -185,9 +201,14 @@ public sealed class GomokuManager_Test : MonoBehaviour
     /// <returns>이번 프레임에 무르기 입력을 처리했는지 여부.</returns>
     private bool TryHandleUndoInput()
     {
-        if (!Input.GetKeyDown(KeyCode.Space) || _isAiThinking)
+        if (!Input.GetKeyDown(KeyCode.Space))
         {
             return false;
+        }
+
+        if (_isAiThinking)
+        {
+            return TryUndoPendingAiTurn();
         }
 
         return TryUndoLastTurn();
@@ -455,6 +476,7 @@ public sealed class GomokuManager_Test : MonoBehaviour
         }
 
         moveRecord.StoneObject = SpawnStone(stonePrefab, xIndex, yIndex, stoneColor);
+        _boardVersion++;
         Debug.Log($"{stoneColor} 착수: ({xIndex}, {yIndex})");
 
         // 착수 기록 저장 이후에만 승리 여부를 확정함.
@@ -568,6 +590,7 @@ public sealed class GomokuManager_Test : MonoBehaviour
         _isGameOver = moveRecord.WasGameOverBeforeMove;
         _blackStoneCount = moveRecord.BlackStoneCountBeforeMove;
         _whiteStoneCount = moveRecord.WhiteStoneCountBeforeMove;
+        _boardVersion++;
     }
 
     /// <summary>
@@ -586,6 +609,27 @@ public sealed class GomokuManager_Test : MonoBehaviour
         ConsumeUndoUsage();
         RefreshGhostPreview();
         Debug.Log($"턴 무르기 실행: {FormatTurnUndoLog(turnRecord)}");
+        return true;
+    }
+
+    /// <summary>
+    /// AI 계산 중인 미완료 턴을 취소하고 플레이어 착수를 되돌림.
+    /// </summary>
+    /// <returns>미완료 턴 복구 성공 여부.</returns>
+    private bool TryUndoPendingAiTurn()
+    {
+        if (!_hasPendingAiTurnRecord || (_maxUndoCount > 0 && _remainingUndoCount <= 0))
+        {
+            return false;
+        }
+
+        TurnRecord turnRecord = _pendingAiTurnRecord;
+        CancelAiSearchRequest();
+        RestoreTurnRecord(turnRecord);
+        ClearPendingAiTurnRecord();
+        ConsumeUndoUsage();
+        RefreshGhostPreview();
+        Debug.Log($"AI 계산 중 턴 무르기 실행: {FormatTurnUndoLog(turnRecord)}");
         return true;
     }
 
@@ -622,45 +666,125 @@ public sealed class GomokuManager_Test : MonoBehaviour
     }
 
     /// <summary>
-    /// 플레이어 착수 직후 한 프레임 대기한 뒤 AI 응수를 계산하고 턴 기록을 마감함.
+    /// 플레이어 착수 직후 비동기로 AI 응수를 계산하고 턴 기록을 마감함.
     /// </summary>
     /// <param name="turnRecord">이번 턴에 누적할 턴 기록.</param>
-    private IEnumerator HandleAiTurnCoroutine(TurnRecord turnRecord)
+    private async UniTaskVoid HandleAiTurnAsync(TurnRecord turnRecord)
     {
-        if (_ai == null || _isGameOver)
+        if (_isGameOver)
         {
             _turnHistory.Push(turnRecord);
             RefreshGhostPreview();
-            yield break;
+            return;
         }
 
+        CancelAiSearchRequest();
         _isAiThinking = true;
+        _pendingAiTurnRecord = turnRecord;
+        _hasPendingAiTurnRecord = true;
         HideGhostPreview();
-        yield return null;
 
-        GomokuMove bestMove = _ai.FindBestMove(Mathf.Max(1, (int)_aiDifficulty));
-        if (!bestMove.IsValid)
+        int requestId = ++_aiSearchRequestId;
+        CancellationTokenSource searchCancellationTokenSource = new CancellationTokenSource();
+        _aiSearchCancellationTokenSource = searchCancellationTokenSource;
+        GomokuBoardSnapshot snapshot = new GomokuBoardSnapshot(_logic.Board, _boardVersion);
+        GomokuAiSearchRequest request = new GomokuAiSearchRequest(requestId, _aiAlgorithmType, _aiDifficulty, snapshot);
+
+        try
         {
-            Debug.LogWarning("AI가 유효한 착수 위치를 찾지 못했습니다.");
-            _isAiThinking = false;
-            _isBlackTurn = true;
-            _turnHistory.Push(turnRecord);
-            RefreshGhostPreview();
-            yield break;
+            GomokuMove bestMove = await GomokuAiAsyncRunner.FindBestMoveAsync(request, searchCancellationTokenSource.Token);
+            await UniTask.SwitchToMainThread(searchCancellationTokenSource.Token);
+
+            if (!IsAiSearchRequestActive(request))
+            {
+                return;
+            }
+
+            if (!CanApplyAiSearchResult(request, bestMove))
+            {
+                CompleteAiTurnWithoutMove(turnRecord, bestMove.IsValid ? "AI 결과 검증 실패" : "AI가 유효한 착수 위치를 찾지 못했습니다.");
+                return;
+            }
+
+            if (!TryPlaceStone(bestMove.X, bestMove.Y, StoneColor.White, out MoveRecord aiMoveRecord))
+            {
+                CompleteAiTurnWithoutMove(turnRecord, $"AI 착수에 실패했습니다: ({bestMove.X}, {bestMove.Y})");
+                return;
+            }
+
+            turnRecord.HasAiMove = true;
+            turnRecord.AiMove = aiMoveRecord;
+            _pendingAiTurnRecord = turnRecord;
+            CompleteAiTurn(turnRecord);
+        }
+        catch (OperationCanceledException)
+        {
+            await UniTask.SwitchToMainThread();
+        }
+        finally
+        {
+            DisposeAiSearchRequest(searchCancellationTokenSource);
+        }
+    }
+
+    /// <summary>
+    /// AI 결과를 현재 라이브 보드에 적용해도 되는지 검증함.
+    /// </summary>
+    /// <param name="request">검증할 AI 요청.</param>
+    /// <param name="bestMove">AI가 반환한 추천 수.</param>
+    /// <returns>AI 결과 적용 가능 여부.</returns>
+    private bool CanApplyAiSearchResult(GomokuAiSearchRequest request, GomokuMove bestMove)
+    {
+        if (!IsAiSearchRequestActive(request) ||
+            _isGameOver ||
+            _isBlackTurn ||
+            _boardVersion != request.BoardVersion)
+        {
+            return false;
         }
 
-        if (!TryPlaceStone(bestMove.X, bestMove.Y, StoneColor.White, out MoveRecord aiMoveRecord))
+        return bestMove.IsValid &&
+               _logic.IsInside(bestMove.X, bestMove.Y) &&
+               _logic.Board[bestMove.X, bestMove.Y].Color == StoneColor.None;
+    }
+
+    /// <summary>
+    /// AI 요청이 아직 최신 요청으로 살아 있는지 확인함.
+    /// </summary>
+    /// <param name="request">확인할 AI 요청.</param>
+    /// <returns>현재 적용 가능한 요청인지 여부.</returns>
+    private bool IsAiSearchRequestActive(GomokuAiSearchRequest request)
+    {
+        return request.RequestId == _aiSearchRequestId &&
+               _isAiThinking &&
+               _hasPendingAiTurnRecord;
+    }
+
+    /// <summary>
+    /// AI 응수 없이 현재 턴을 마감함.
+    /// </summary>
+    /// <param name="turnRecord">마감할 턴 기록.</param>
+    /// <param name="warningMessage">출력할 경고 메시지.</param>
+    private void CompleteAiTurnWithoutMove(TurnRecord turnRecord, string warningMessage)
+    {
+        if (!string.IsNullOrEmpty(warningMessage))
         {
-            Debug.LogWarning($"AI 착수에 실패했습니다: ({bestMove.X}, {bestMove.Y})");
-            _isAiThinking = false;
-            _isBlackTurn = true;
-            _turnHistory.Push(turnRecord);
-            RefreshGhostPreview();
-            yield break;
+            Debug.LogWarning(warningMessage);
         }
 
-        turnRecord.HasAiMove = true;
-        turnRecord.AiMove = aiMoveRecord;
+        _isAiThinking = false;
+        _isBlackTurn = true;
+        _turnHistory.Push(turnRecord);
+        ClearPendingAiTurnRecord();
+        RefreshGhostPreview();
+    }
+
+    /// <summary>
+    /// AI 응수 결과를 포함해 현재 턴을 마감함.
+    /// </summary>
+    /// <param name="turnRecord">마감할 턴 기록.</param>
+    private void CompleteAiTurn(TurnRecord turnRecord)
+    {
         _isAiThinking = false;
 
         if (!_isGameOver)
@@ -669,7 +793,48 @@ public sealed class GomokuManager_Test : MonoBehaviour
         }
 
         _turnHistory.Push(turnRecord);
+        ClearPendingAiTurnRecord();
         RefreshGhostPreview();
+    }
+
+    /// <summary>
+    /// 진행 중인 AI 계산 요청을 취소하고 토큰을 정리함.
+    /// </summary>
+    private void CancelAiSearchRequest()
+    {
+        if (_aiSearchCancellationTokenSource == null)
+        {
+            return;
+        }
+
+        _aiSearchCancellationTokenSource.Cancel();
+        _aiSearchCancellationTokenSource.Dispose();
+        _aiSearchCancellationTokenSource = null;
+        _aiSearchRequestId++;
+    }
+
+    /// <summary>
+    /// 완료된 AI 계산 요청 토큰을 정리함.
+    /// </summary>
+    /// <param name="searchCancellationTokenSource">정리할 AI 요청 토큰.</param>
+    private void DisposeAiSearchRequest(CancellationTokenSource searchCancellationTokenSource)
+    {
+        if (_aiSearchCancellationTokenSource != searchCancellationTokenSource)
+        {
+            return;
+        }
+
+        _aiSearchCancellationTokenSource.Dispose();
+        _aiSearchCancellationTokenSource = null;
+    }
+
+    /// <summary>
+    /// AI 응수 대기 중인 턴 기록을 초기화함.
+    /// </summary>
+    private void ClearPendingAiTurnRecord()
+    {
+        _pendingAiTurnRecord = default;
+        _hasPendingAiTurnRecord = false;
     }
 
     /// <summary>

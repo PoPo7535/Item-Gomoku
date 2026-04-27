@@ -1,4 +1,5 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 
 /// <summary>
@@ -6,7 +7,7 @@ using UnityEngine;
 /// </summary>
 public class MinimaxGomokuAI : IGomokuAI
 {
-    private const bool EnableAiDebugLog = true;
+    private const bool EnableAiDebugLog = false;
 
     /// <summary>
     /// 특정 좌표의 위협 형태를 정리한 결과임.
@@ -38,6 +39,7 @@ public class MinimaxGomokuAI : IGomokuAI
     private readonly OmokuLogic _logic;
     private readonly GomokuBoardEvaluator _evaluator;
     private readonly int _boardSize;
+    private CancellationToken _cancellationToken;
 
     /// <summary>
     /// 오목 AI를 생성함.
@@ -54,7 +56,21 @@ public class MinimaxGomokuAI : IGomokuAI
     /// </summary>
     public GomokuMove FindBestMove(int searchDepth)
     {
-        int clampedDepth = Mathf.Clamp(searchDepth, 1, 5);
+        return FindBestMove(searchDepth, CancellationToken.None);
+    }
+
+    /// <summary>
+    /// 지정한 탐색 깊이와 취소 토큰으로 백돌 AI의 최선 수를 찾음.
+    /// </summary>
+    /// <param name="searchDepth">탐색 깊이.</param>
+    /// <param name="cancellationToken">탐색 취소 토큰.</param>
+    /// <returns>선택된 AI 착수 후보.</returns>
+    public GomokuMove FindBestMove(int searchDepth, CancellationToken cancellationToken)
+    {
+        _cancellationToken = cancellationToken;
+        ThrowIfCancellationRequested();
+
+        int clampedDepth = System.Math.Min(System.Math.Max(searchDepth, 1), 5);
         bool isHardDifficulty = IsHardDifficulty(clampedDepth);
         bool shouldPrioritizeFutureRouteDefense = !IsEasyDifficulty(clampedDepth);
         List<GomokuMove> fullCandidates = GenerateCandidates(StoneColor.White, false);
@@ -168,6 +184,7 @@ public class MinimaxGomokuAI : IGomokuAI
     {
         for (int i = 0; i < candidates.Count; i++)
         {
+            ThrowIfCancellationRequested();
             GomokuMove candidate = candidates[i];
             int followUpRisk = EvaluatePlayerFollowUpRiskAfterAiMove(candidate.X, candidate.Y);
             if (followUpRisk <= 0)
@@ -193,6 +210,7 @@ public class MinimaxGomokuAI : IGomokuAI
     {
         for (int i = 0; i < candidates.Count; i++)
         {
+            ThrowIfCancellationRequested();
             GomokuMove candidate = candidates[i];
             int futureRouteRisk = EvaluatePlayerFutureRouteRiskAfterAiMove(candidate.X, candidate.Y, isHardDifficulty) +
                                   EvaluatePlayerStrongestResponseRiskAfterAiMove(candidate.X, candidate.Y, isHardDifficulty);
@@ -224,6 +242,7 @@ public class MinimaxGomokuAI : IGomokuAI
 
         for (int i = 0; i < candidates.Count; i++)
         {
+            ThrowIfCancellationRequested();
             GomokuMove candidate = candidates[i];
             int score;
 
@@ -256,7 +275,7 @@ public class MinimaxGomokuAI : IGomokuAI
                 bestMove = new GomokuMove(candidate.X, candidate.Y, score, $"Minimax depth {searchDepth}");
             }
 
-            alpha = Mathf.Max(alpha, bestScore);
+            alpha = System.Math.Max(alpha, bestScore);
         }
 
         return bestMove.IsValid ? bestMove : FindFallbackMove();
@@ -267,6 +286,8 @@ public class MinimaxGomokuAI : IGomokuAI
     /// </summary>
     private int Minimax(int depth, bool isAiTurn, int alpha, int beta, GomokuMove lastMove, StoneColor lastColor)
     {
+        ThrowIfCancellationRequested();
+
         if (lastMove.IsValid && _logic.CheckWin(lastMove.X, lastMove.Y, lastColor))
         {
             return lastColor == StoneColor.White ? WinScore + depth : -WinScore - depth;
@@ -302,6 +323,7 @@ public class MinimaxGomokuAI : IGomokuAI
 
         for (int i = 0; i < candidates.Count; i++)
         {
+            ThrowIfCancellationRequested();
             GomokuMove candidate = candidates[i];
             int score;
 
@@ -316,8 +338,8 @@ public class MinimaxGomokuAI : IGomokuAI
                 RestoreTemporary(candidate.X, candidate.Y);
             }
 
-            bestScore = Mathf.Max(bestScore, score);
-            alpha = Mathf.Max(alpha, bestScore);
+            bestScore = System.Math.Max(bestScore, score);
+            alpha = System.Math.Max(alpha, bestScore);
 
             if (beta <= alpha)
             {
@@ -338,6 +360,7 @@ public class MinimaxGomokuAI : IGomokuAI
 
         for (int i = 0; i < candidates.Count; i++)
         {
+            ThrowIfCancellationRequested();
             GomokuMove candidate = candidates[i];
             int score;
 
@@ -352,8 +375,8 @@ public class MinimaxGomokuAI : IGomokuAI
                 RestoreTemporary(candidate.X, candidate.Y);
             }
 
-            worstScore = Mathf.Min(worstScore, score);
-            beta = Mathf.Min(beta, worstScore);
+            worstScore = System.Math.Min(worstScore, score);
+            beta = System.Math.Min(beta, worstScore);
 
             if (beta <= alpha)
             {
@@ -372,6 +395,7 @@ public class MinimaxGomokuAI : IGomokuAI
     {
         for (int i = 0; i < candidates.Count; i++)
         {
+            ThrowIfCancellationRequested();
             GomokuMove candidate = candidates[i];
 
             if (!IsLegalMove(candidate.X, candidate.Y, color))
@@ -415,6 +439,7 @@ public class MinimaxGomokuAI : IGomokuAI
 
         for (int i = 0; i < candidates.Count; i++)
         {
+            ThrowIfCancellationRequested();
             GomokuMove candidate = candidates[i];
 
             if (!IsLegalMove(candidate.X, candidate.Y, StoneColor.Black))
@@ -497,6 +522,7 @@ public class MinimaxGomokuAI : IGomokuAI
             List<GomokuMove> playerResponses = GenerateCandidates(StoneColor.Black, false);
             for (int i = 0; i < playerResponses.Count; i++)
             {
+                ThrowIfCancellationRequested();
                 GomokuMove response = playerResponses[i];
                 if (!IsLegalMove(response.X, response.Y, StoneColor.Black))
                 {
@@ -506,7 +532,7 @@ public class MinimaxGomokuAI : IGomokuAI
                 if (_evaluator.CreatesBlockedFourOpenThreeThreat(_logic, _boardSize, response.X, response.Y, StoneColor.Black))
                 {
                     // 방어 후 바로 복합 위협을 허용하면 거의 강제패 함정으로 취급함.
-                    penalty = Mathf.Max(penalty, BlockedFourOpenThreeRiskPenalty);
+                    penalty = System.Math.Max(penalty, BlockedFourOpenThreeRiskPenalty);
                 }
             }
         }
@@ -518,11 +544,6 @@ public class MinimaxGomokuAI : IGomokuAI
         return penalty;
     }
 
-    /// <summary>
-    /// 현재 위협 방어 수가 즉시 반영해야 할 강제 방어인지 확인함.
-    /// </summary>
-    /// <param name="threatDefense">평가된 위협 방어 수.</param>
-    /// <returns>즉시 방어가 필요한 강한 위협 여부.</returns>
     /// <summary>
     /// AI 수 이후 플레이어 우회 수와 다음 턴 치명 완성점까지 이어지는 루트를 평가함.
     /// </summary>
@@ -540,6 +561,7 @@ public class MinimaxGomokuAI : IGomokuAI
             List<GomokuMove> playerResponses = GenerateCandidates(StoneColor.Black, false);
             for (int i = 0; i < playerResponses.Count; i++)
             {
+                ThrowIfCancellationRequested();
                 GomokuMove response = playerResponses[i];
                 if (!IsLegalMove(response.X, response.Y, StoneColor.Black))
                 {
@@ -552,7 +574,7 @@ public class MinimaxGomokuAI : IGomokuAI
                 {
                     if (HasPlayerFutureComboFinisher())
                     {
-                        penalty = Mathf.Max(penalty, isHardDifficulty ? HardFutureRouteRiskPenalty : NormalFutureRouteRiskPenalty);
+                        penalty = System.Math.Max(penalty, isHardDifficulty ? HardFutureRouteRiskPenalty : NormalFutureRouteRiskPenalty);
                     }
                 }
                 finally
@@ -586,6 +608,7 @@ public class MinimaxGomokuAI : IGomokuAI
             List<GomokuMove> playerResponses = GenerateCandidates(StoneColor.Black, false);
             for (int i = 0; i < playerResponses.Count; i++)
             {
+                ThrowIfCancellationRequested();
                 GomokuMove response = playerResponses[i];
                 if (!IsLegalMove(response.X, response.Y, StoneColor.Black))
                 {
@@ -598,7 +621,7 @@ public class MinimaxGomokuAI : IGomokuAI
                     LogAiDebug(
                         $"Strongest response detected ai=({aiMoveX},{aiMoveY}) response=({response.X},{response.Y}) " +
                         $"penalty={(isHardDifficulty ? HardForcedComboResponsePenalty : NormalForcedComboResponsePenalty)}");
-                    penalty = Mathf.Max(
+                    penalty = System.Math.Max(
                         penalty,
                         isHardDifficulty ? HardForcedComboResponsePenalty : NormalForcedComboResponsePenalty);
                 }
@@ -621,6 +644,7 @@ public class MinimaxGomokuAI : IGomokuAI
         List<GomokuMove> playerFinishers = GenerateCandidates(StoneColor.Black, false);
         for (int i = 0; i < playerFinishers.Count; i++)
         {
+            ThrowIfCancellationRequested();
             GomokuMove finisher = playerFinishers[i];
             if (!IsLegalMove(finisher.X, finisher.Y, StoneColor.Black))
             {
@@ -655,6 +679,7 @@ public class MinimaxGomokuAI : IGomokuAI
             List<GomokuMove> playerResponses = GenerateCandidates(StoneColor.Black, false);
             for (int i = 0; i < playerResponses.Count; i++)
             {
+                ThrowIfCancellationRequested();
                 GomokuMove response = playerResponses[i];
                 if (!IsLegalMove(response.X, response.Y, StoneColor.Black))
                 {
@@ -718,6 +743,7 @@ public class MinimaxGomokuAI : IGomokuAI
     {
         for (int x = 0; x < _boardSize; x++)
         {
+            ThrowIfCancellationRequested();
             for (int y = 0; y < _boardSize; y++)
             {
                 if (_logic.Board[x, y].Color != StoneColor.Black || _logic.Board[x, y].IsFake)
@@ -841,17 +867,17 @@ public class MinimaxGomokuAI : IGomokuAI
             if (count >= 4 && openEnds == 2)
             {
                 analysis.OpenFourCount++;
-                analysis.Score = Mathf.Max(analysis.Score, OpenFourThreatScore);
+                analysis.Score = System.Math.Max(analysis.Score, OpenFourThreatScore);
             }
             else if (count >= 4 && openEnds == 1)
             {
                 analysis.BlockedFourCount++;
-                analysis.Score = Mathf.Max(analysis.Score, BlockedFourThreatScore);
+                analysis.Score = System.Math.Max(analysis.Score, BlockedFourThreatScore);
             }
             else if (count == 3 && openEnds == 2)
             {
                 analysis.OpenThreeCount++;
-                analysis.Score = Mathf.Max(analysis.Score, OpenThreeThreatScore);
+                analysis.Score = System.Math.Max(analysis.Score, OpenThreeThreatScore);
             }
         }
 
@@ -942,7 +968,7 @@ public class MinimaxGomokuAI : IGomokuAI
         }
 
         // blocked four + open three 완성 루트를 끊는 핵심 칸은 한 단계 위협으로 승격함.
-        return Mathf.Min(basePriority + 1, 4);
+        return System.Math.Min(basePriority + 1, 4);
     }
 
     /// <summary>
@@ -1015,6 +1041,7 @@ public class MinimaxGomokuAI : IGomokuAI
 
         for (int x = 0; x < _boardSize; x++)
         {
+            ThrowIfCancellationRequested();
             for (int y = 0; y < _boardSize; y++)
             {
                 StoneData stoneData = _logic.Board[x, y];
@@ -1118,6 +1145,7 @@ public class MinimaxGomokuAI : IGomokuAI
     {
         for (int i = 0; i < fullCandidates.Count; i++)
         {
+            ThrowIfCancellationRequested();
             GomokuMove candidate = fullCandidates[i];
             if (ContainsMove(searchCandidates, candidate.X, candidate.Y))
             {
@@ -1200,6 +1228,7 @@ public class MinimaxGomokuAI : IGomokuAI
     {
         for (int x = originX - CandidateRadius; x <= originX + CandidateRadius; x++)
         {
+            ThrowIfCancellationRequested();
             for (int y = originY - CandidateRadius; y <= originY + CandidateRadius; y++)
             {
                 if (!IsLegalMove(x, y, color) || ContainsMove(candidates, x, y))
@@ -1373,7 +1402,15 @@ public class MinimaxGomokuAI : IGomokuAI
             return;
         }
 
-            Debug.Log($"[MinimaxGomokuAI] {message}");
+        Debug.Log($"[MinimaxGomokuAI] {message}");
+    }
+
+    /// <summary>
+    /// 현재 AI 탐색 취소 요청이 들어왔는지 확인함.
+    /// </summary>
+    private void ThrowIfCancellationRequested()
+    {
+        _cancellationToken.ThrowIfCancellationRequested();
     }
 
     /// <summary>
@@ -1460,7 +1497,7 @@ public class MinimaxGomokuAI : IGomokuAI
             finisher.Y,
             StoneColor.Black))
         {
-            threatScore = Mathf.Max(threatScore, BlockedFourOpenThreeRiskPenalty);
+            threatScore = System.Math.Max(threatScore, BlockedFourOpenThreeRiskPenalty);
         }
 
         // 2️⃣ 실제 패턴 분석 (열린4, 열린3 등)
@@ -1471,19 +1508,19 @@ public class MinimaxGomokuAI : IGomokuAI
 
             if (analysis.OpenFourCount > 0)
             {
-                threatScore = Mathf.Max(threatScore, OpenFourThreatScore);
+                threatScore = System.Math.Max(threatScore, OpenFourThreatScore);
             }
             else if (analysis.BlockedFourCount > 0 && analysis.OpenThreeCount > 0)
             {
-                threatScore = Mathf.Max(threatScore, BlockedFourOpenThreeRiskPenalty);
+                threatScore = System.Math.Max(threatScore, BlockedFourOpenThreeRiskPenalty);
             }
             else if (analysis.BlockedFourCount > 0)
             {
-                threatScore = Mathf.Max(threatScore, BlockedFourThreatScore);
+                threatScore = System.Math.Max(threatScore, BlockedFourThreatScore);
             }
             else if (analysis.OpenThreeCount >= 2)
             {
-                threatScore = Mathf.Max(threatScore, BlockedFourOpenThreeRiskPenalty);
+                threatScore = System.Math.Max(threatScore, BlockedFourOpenThreeRiskPenalty);
             }
         }
         finally
