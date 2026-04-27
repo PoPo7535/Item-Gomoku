@@ -40,7 +40,7 @@ public sealed class GomokuManager_Test : MonoBehaviour
     [Header("프리팹 설정")]
     [SerializeField] private GameObject _blackStonePrefab;
     [SerializeField] private GameObject _whiteStonePrefab;
-    [SerializeField] private float _stoneScale = 30f;
+    [SerializeField] private float _stoneScale = 0.28f;
 
     [Header("고스트 프리팹 설정")]
     [SerializeField] private GameObject _blackGhostPrefab;

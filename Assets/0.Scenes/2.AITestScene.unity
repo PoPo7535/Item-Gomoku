@@ -5034,11 +5034,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3398c3c5ec92f3e488c9596c4bf1262b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GomokuManager_Test
-  _blackStonePrefab: {fileID: 3151744981719310882, guid: d23599df5595ac94d8ddb71ec0710edb, type: 3}
-  _whiteStonePrefab: {fileID: 6451595335120359313, guid: ca6ec835eb0a6c64f939df60de3cb7f2, type: 3}
-  _stoneScale: 30
-  _blackGhostPrefab: {fileID: 8469609472904599049, guid: 2258ed1a29f15454ba5e9044c74a7d30, type: 3}
-  _whiteGhostPrefab: {fileID: 3756707115647038349, guid: 6531fced1a85e1d4194977fbae7b6df9, type: 3}
+  _blackStonePrefab: {fileID: 1471949938043805457, guid: 87303f3d373acae45afc767e87e217d6, type: 3}
+  _whiteStonePrefab: {fileID: 8892691702012031676, guid: 8114b2505a1af144bbc2602a5b0a4797, type: 3}
+  _stoneScale: 0.28
+  _blackGhostPrefab: {fileID: 6137473338564080170, guid: 578e8ed6fbc564c47bf4c478aa076bfc, type: 3}
+  _whiteGhostPrefab: {fileID: 4744781026894999395, guid: 6ba90282ea56ed9498d806b7fd2a22cd, type: 3}
   _boardRoot: {fileID: 604769222}
   _clickCamera: {fileID: 961739752}
   _stoneHeight: 0.1
@@ -5051,7 +5051,7 @@ MonoBehaviour:
   _maxUndoCount: 0
   _aiAlgorithmType: 0
   _aiDifficulty: 5
-  _maxAiSearchTimeSeconds: 5
+  _maxAiSearchTimeSeconds: 3
 --- !u!4 &1181881346
 Transform:
   m_ObjectHideFlags: 0
