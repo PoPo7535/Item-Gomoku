@@ -83,8 +83,14 @@ public class GomokuManager : NetworkBehaviour
 
         var result = CalculateRay();
 
-        // --- 반투명 돌 보여주기---
-        HandleGhostStone(result);
+        if (Runner.GameMode != GameMode.Single)
+        {
+            HandleGhostStoneNetwork(result);
+        }
+        else
+        {
+            HandleGhostStoneSingle(result);
+        }
 
         if (Input.GetMouseButtonDown(0))
         {
@@ -328,18 +334,38 @@ public class GomokuManager : NetworkBehaviour
         return count;
     }
     /// <summary>
-    /// 반 투명 돌 보여주기
+    /// 싱글용 : 반 투명 돌 보여주기
     /// </summary>
-    private void HandleGhostStone((Vector3 pos, int x, int z) result)
-    {
-
+    private void HandleGhostStoneSingle((Vector3 pos, int x, int z) result)
+    {   
+        
         BlackGhostObj.SetActive(false);
         WhiteGhostObj.SetActive(false);
 
+        if (result.pos != Vector3.zero && _logic.Board[result.x, result.z].Color == StoneColor.None)
+        {
+            GameObject target = _isBlackTurn ? BlackGhostObj : WhiteGhostObj;
+            if (target != null)
+            {
+                target.transform.position = result.pos + new Vector3(0, 0.05f, 0);
+                target.SetActive(true);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 멀티용 : 반 투명 돌 보여주기
+    /// </summary>
+    private void HandleGhostStoneNetwork((Vector3 pos, int x, int z) result)
+    {
+        BlackGhostObj.SetActive(false);
+        WhiteGhostObj.SetActive(false);
+
+        bool isMyTurn = Object.HasStateAuthority ? _isBlackTurn : !_isBlackTurn;
+        if (!isMyTurn) return;
 
         if (result.pos != Vector3.zero && _logic.Board[result.x, result.z].Color == StoneColor.None)
         {
-
             GameObject target = _isBlackTurn ? BlackGhostObj : WhiteGhostObj;
             if (target != null)
             {
