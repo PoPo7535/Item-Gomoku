@@ -4229,8 +4229,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 233d7816bc218ae4486cbd0b52842f22, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GomokuManager
-  BlackStonePrefab: {fileID: 3151744981719310882, guid: d23599df5595ac94d8ddb71ec0710edb, type: 3}
-  WhiteStonePrefab: {fileID: 6451595335120359313, guid: ca6ec835eb0a6c64f939df60de3cb7f2, type: 3}
+  BlackStonePrefab: {fileID: 9126950547641344875, guid: ac63fdf56ac754543a44724aea1e7c02, type: 3}
+  WhiteStonePrefab: {fileID: 8113395107229059385, guid: d5d85f78f6550ab43a8dcf0cd8ec5f09, type: 3}
   GameViewImage: {fileID: 1614487142}
   BoardCamera: {fileID: 2146248141}
   LineCount: 15
