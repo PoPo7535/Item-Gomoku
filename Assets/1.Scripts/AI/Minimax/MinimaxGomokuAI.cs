@@ -21,6 +21,16 @@ public class MinimaxGomokuAI : IGomokuAI
         public int OpenFourCount;
     }
 
+    /// <summary>
+    /// 후보 생성 목적에 따라 평가 비용과 후보 상한을 구분함.
+    /// </summary>
+    private enum CandidateGenerationMode
+    {
+        RootEvaluation,
+        SearchNode,
+        ThreatScan
+    }
+
     private sealed class SearchTimeoutException : System.Exception
     {
     }
@@ -31,6 +41,10 @@ public class MinimaxGomokuAI : IGomokuAI
     private const int OpenThreeThreatScore = 50000;
     private const int CandidateRadius = 2;
     private const int MaxCandidateCount = 18;
+    private const int SearchNodeCandidateCount = 10;
+    private const int ThreatScanCandidateCount = 24;
+    private const int NormalPreciseRiskCandidateCount = 6;
+    private const int HardPreciseRiskCandidateCount = 8;
     private const int BlockedFourOpenThreeRiskPenalty = 600000;
     private const int NormalStructuralRiskPenaltyBonus = 400000;
     private const int NormalFutureRouteRiskPenalty = 350000;
@@ -125,7 +139,7 @@ public class MinimaxGomokuAI : IGomokuAI
         int clampedDepth = System.Math.Min(System.Math.Max(searchDepth, 1), 5);
         bool isHardDifficulty = IsHardDifficulty(clampedDepth);
         bool shouldPrioritizeFutureRouteDefense = !IsEasyDifficulty(clampedDepth);
-        List<GomokuMove> fullCandidates = GenerateCandidates(StoneColor.White, false);
+        List<GomokuMove> fullCandidates = GenerateCandidates(StoneColor.White, CandidateGenerationMode.RootEvaluation, false);
         LogAiDebug($"FindBestMove depth={clampedDepth}, fullCandidates={FormatCandidateList(fullCandidates)}");
 
         if (fullCandidates.Count == 0)
@@ -171,7 +185,7 @@ public class MinimaxGomokuAI : IGomokuAI
             }
         }
 
-        List<GomokuMove> searchCandidates = GenerateCandidates(StoneColor.White, true);
+        List<GomokuMove> searchCandidates = GenerateCandidates(StoneColor.White, CandidateGenerationMode.RootEvaluation, true);
         if (searchCandidates.Count == 0)
         {
             return FindFallbackMove();
@@ -236,7 +250,8 @@ public class MinimaxGomokuAI : IGomokuAI
     /// <param name="candidates">보정할 백돌 후보 목록.</param>
     private void ApplyNormalStructuralRiskPenalty(List<GomokuMove> candidates)
     {
-        for (int i = 0; i < candidates.Count; i++)
+        int preciseCandidateCount = System.Math.Min(candidates.Count, NormalPreciseRiskCandidateCount);
+        for (int i = 0; i < preciseCandidateCount; i++)
         {
             ThrowIfCancellationRequested();
             GomokuMove candidate = candidates[i];
@@ -262,7 +277,8 @@ public class MinimaxGomokuAI : IGomokuAI
     /// <param name="isHardDifficulty">Hard 난이도 여부.</param>
     private void ApplyFutureRouteRiskPenalty(List<GomokuMove> candidates, bool isHardDifficulty)
     {
-        for (int i = 0; i < candidates.Count; i++)
+        int preciseCandidateCount = System.Math.Min(candidates.Count, isHardDifficulty ? HardPreciseRiskCandidateCount : NormalPreciseRiskCandidateCount);
+        for (int i = 0; i < preciseCandidateCount; i++)
         {
             ThrowIfCancellationRequested();
             GomokuMove candidate = candidates[i];
@@ -360,7 +376,7 @@ public class MinimaxGomokuAI : IGomokuAI
         }
 
         StoneColor currentColor = isAiTurn ? StoneColor.White : StoneColor.Black;
-        List<GomokuMove> candidates = GenerateCandidates(currentColor, true);
+        List<GomokuMove> candidates = GenerateCandidates(currentColor, CandidateGenerationMode.SearchNode, true);
 
         if (candidates.Count == 0)
         {
@@ -530,10 +546,11 @@ public class MinimaxGomokuAI : IGomokuAI
             }
 
             bool isForcedDefense = IsForcedThreatAnalysis(threatAnalysis, isHardDifficulty);
-            int futureRouteRisk = shouldPrioritizeFutureRouteDefense
+            bool shouldRunPreciseFutureCheck = shouldPrioritizeFutureRouteDefense && i < GetPreciseThreatDefenseCandidateCount(isHardDifficulty);
+            int futureRouteRisk = shouldRunPreciseFutureCheck
                 ? EvaluatePlayerFutureRouteRiskAfterAiMove(candidate.X, candidate.Y, isHardDifficulty)
                 : 0;
-            bool blocksFutureComboFinisher = shouldPrioritizeFutureRouteDefense &&
+            bool blocksFutureComboFinisher = shouldRunPreciseFutureCheck &&
                                              BlocksPlayerFutureComboFinisher(candidate.X, candidate.Y);
             int baseThreatPriority = GetThreatPriority(threatAnalysis);
             int promotedThreatPriority = GetPromotedThreatPriority(threatAnalysis, blocksFutureComboFinisher);
@@ -580,7 +597,7 @@ public class MinimaxGomokuAI : IGomokuAI
         PlaceTemporary(aiMoveX, aiMoveY, StoneColor.White);
         try
         {
-            List<GomokuMove> playerResponses = GenerateCandidates(StoneColor.Black, false);
+            List<GomokuMove> playerResponses = GenerateCandidates(StoneColor.Black, CandidateGenerationMode.ThreatScan, true);
             for (int i = 0; i < playerResponses.Count; i++)
             {
                 ThrowIfCancellationRequested();
@@ -619,7 +636,7 @@ public class MinimaxGomokuAI : IGomokuAI
         PlaceTemporary(aiMoveX, aiMoveY, StoneColor.White);
         try
         {
-            List<GomokuMove> playerResponses = GenerateCandidates(StoneColor.Black, false);
+            List<GomokuMove> playerResponses = GenerateCandidates(StoneColor.Black, CandidateGenerationMode.ThreatScan, true);
             for (int i = 0; i < playerResponses.Count; i++)
             {
                 ThrowIfCancellationRequested();
@@ -666,7 +683,7 @@ public class MinimaxGomokuAI : IGomokuAI
         PlaceTemporary(aiMoveX, aiMoveY, StoneColor.White);
         try
         {
-            List<GomokuMove> playerResponses = GenerateCandidates(StoneColor.Black, false);
+            List<GomokuMove> playerResponses = GenerateCandidates(StoneColor.Black, CandidateGenerationMode.ThreatScan, true);
             for (int i = 0; i < playerResponses.Count; i++)
             {
                 ThrowIfCancellationRequested();
@@ -702,7 +719,7 @@ public class MinimaxGomokuAI : IGomokuAI
     /// <returns>막힌 4와 열린 3 조합 완성점 존재 여부.</returns>
     private bool HasPlayerFutureComboFinisher()
     {
-        List<GomokuMove> playerFinishers = GenerateCandidates(StoneColor.Black, false);
+        List<GomokuMove> playerFinishers = GenerateCandidates(StoneColor.Black, CandidateGenerationMode.ThreatScan, true);
         for (int i = 0; i < playerFinishers.Count; i++)
         {
             ThrowIfCancellationRequested();
@@ -737,7 +754,7 @@ public class MinimaxGomokuAI : IGomokuAI
         PlaceTemporary(aiMoveX, aiMoveY, StoneColor.White);
         try
         {
-            List<GomokuMove> playerResponses = GenerateCandidates(StoneColor.Black, false);
+            List<GomokuMove> playerResponses = GenerateCandidates(StoneColor.Black, CandidateGenerationMode.ThreatScan, true);
             for (int i = 0; i < playerResponses.Count; i++)
             {
                 ThrowIfCancellationRequested();
@@ -1163,7 +1180,7 @@ public class MinimaxGomokuAI : IGomokuAI
     /// <summary>
     /// 기존 돌 주변 반경 안에서 후보 수를 생성함.
     /// </summary>
-    private List<GomokuMove> GenerateCandidates(StoneColor color, bool limitCandidates)
+    private List<GomokuMove> GenerateCandidates(StoneColor color, CandidateGenerationMode mode, bool limitCandidates)
     {
         List<GomokuMove> candidates = new List<GomokuMove>();
         bool hasStone = false;
@@ -1175,7 +1192,7 @@ public class MinimaxGomokuAI : IGomokuAI
                 if (_logic.Board[x, y].Color != StoneColor.None)
                 {
                     hasStone = true;
-                    AddNearbyCandidates(candidates, x, y, color);
+                    AddNearbyCandidates(candidates, x, y, color, mode);
                 }
             }
         }
@@ -1188,12 +1205,41 @@ public class MinimaxGomokuAI : IGomokuAI
 
         SortCandidates(candidates, color);
 
-        if (limitCandidates && candidates.Count > MaxCandidateCount)
+        int candidateLimit = GetCandidateLimit(mode);
+        if (limitCandidates && candidates.Count > candidateLimit)
         {
-            candidates.RemoveRange(MaxCandidateCount, candidates.Count - MaxCandidateCount);
+            candidates.RemoveRange(candidateLimit, candidates.Count - candidateLimit);
         }
 
         return candidates;
+    }
+
+    /// <summary>
+    /// 후보 생성 모드에 맞는 후보 상한을 반환함.
+    /// </summary>
+    /// <param name="mode">후보 생성 모드.</param>
+    /// <returns>후보 목록에 유지할 최대 개수.</returns>
+    private int GetCandidateLimit(CandidateGenerationMode mode)
+    {
+        switch (mode)
+        {
+            case CandidateGenerationMode.SearchNode:
+                return SearchNodeCandidateCount;
+            case CandidateGenerationMode.ThreatScan:
+                return ThreatScanCandidateCount;
+            default:
+                return MaxCandidateCount;
+        }
+    }
+
+    /// <summary>
+    /// 위협 방어 후보 중 정밀 미래 경로 평가를 수행할 상위 후보 개수를 반환함.
+    /// </summary>
+    /// <param name="isHardDifficulty">Hard 난이도 여부.</param>
+    /// <returns>정밀 위협 평가를 적용할 후보 수.</returns>
+    private int GetPreciseThreatDefenseCandidateCount(bool isHardDifficulty)
+    {
+        return isHardDifficulty ? HardPreciseRiskCandidateCount : NormalPreciseRiskCandidateCount;
     }
 
     /// <summary>
@@ -1225,7 +1271,8 @@ public class MinimaxGomokuAI : IGomokuAI
             }
 
             bool isOpenThreeDefense = threatAnalysis.OpenThreeCount > 0;
-            bool blocksFutureComboFinisher = BlocksPlayerFutureComboFinisher(candidate.X, candidate.Y);
+            bool blocksFutureComboFinisher = i < GetPreciseThreatDefenseCandidateCount(isHardDifficulty) &&
+                                             BlocksPlayerFutureComboFinisher(candidate.X, candidate.Y);
             if (!isOpenThreeDefense && !blocksFutureComboFinisher)
             {
                 continue;
@@ -1285,7 +1332,7 @@ public class MinimaxGomokuAI : IGomokuAI
     /// <summary>
     /// 특정 돌 주변의 빈 좌표를 후보 목록에 추가함.
     /// </summary>
-    private void AddNearbyCandidates(List<GomokuMove> candidates, int originX, int originY, StoneColor color)
+    private void AddNearbyCandidates(List<GomokuMove> candidates, int originX, int originY, StoneColor color, CandidateGenerationMode mode)
     {
         for (int x = originX - CandidateRadius; x <= originX + CandidateRadius; x++)
         {
@@ -1297,16 +1344,47 @@ public class MinimaxGomokuAI : IGomokuAI
                     continue;
                 }
 
-                int score = _evaluator.EvaluateMove(_logic, _boardSize, x, y, color);
-                if (color == StoneColor.White)
-                {
-                    // 공격 점수가 좋아 보여도 다음 턴 치명 조합을 허용하면 강하게 깎음.
-                    score -= EvaluatePlayerFollowUpRiskAfterAiMove(x, y);
-                }
-
+                int score = EvaluateCandidateScore(x, y, color, mode);
                 candidates.Add(new GomokuMove(x, y, score, "Nearby candidate"));
             }
         }
+    }
+
+    /// <summary>
+    /// 후보 생성 모드에 맞는 후보 점수를 계산함.
+    /// </summary>
+    /// <param name="x">후보 X 좌표.</param>
+    /// <param name="y">후보 Y 좌표.</param>
+    /// <param name="color">후보 돌 색상.</param>
+    /// <param name="mode">후보 생성 모드.</param>
+    /// <returns>정렬에 사용할 후보 점수.</returns>
+    private int EvaluateCandidateScore(int x, int y, StoneColor color, CandidateGenerationMode mode)
+    {
+        if (mode == CandidateGenerationMode.RootEvaluation)
+        {
+            return _evaluator.EvaluateMove(_logic, _boardSize, x, y, color);
+        }
+
+        return EvaluateLightweightCandidateScore(x, y, color);
+    }
+
+    /// <summary>
+    /// 전체 보드 평가 없이 지역 위협과 중앙 근접도만으로 후보 점수를 계산함.
+    /// </summary>
+    /// <param name="x">후보 X 좌표.</param>
+    /// <param name="y">후보 Y 좌표.</param>
+    /// <param name="color">후보 돌 색상.</param>
+    /// <returns>정렬에 사용할 경량 후보 점수.</returns>
+    private int EvaluateLightweightCandidateScore(int x, int y, StoneColor color)
+    {
+        ThreatAnalysis ownThreat = AnalyzeThreatAt(x, y, color);
+        StoneColor opponentColor = color == StoneColor.White ? StoneColor.Black : StoneColor.White;
+        ThreatAnalysis opponentThreat = AnalyzeThreatAt(x, y, opponentColor);
+        int center = _boardSize / 2;
+        int centerDistance = System.Math.Abs(x - center) + System.Math.Abs(y - center);
+        int score = ownThreat.Score + opponentThreat.Score / 2 - centerDistance;
+
+        return color == StoneColor.White ? score : -score;
     }
 
     /// <summary>
@@ -1576,8 +1654,8 @@ public class MinimaxGomokuAI : IGomokuAI
 
     private GomokuMove FindPlayerFutureComboBlockMove()
 {
-    // 플레이어(흑)가 둘 수 있는 후보 전부 생성 (제한 없음)
-    List<GomokuMove> playerFinishers = GenerateCandidates(StoneColor.Black, false);
+    // 위협 스캔용 상위 후보만 검사해 미래 복합 위협 완성점을 찾음.
+    List<GomokuMove> playerFinishers = GenerateCandidates(StoneColor.Black, CandidateGenerationMode.ThreatScan, true);
 
     GomokuMove bestBlock = GomokuMove.Invalid("Player future combo block not found");
     int bestThreatScore = 0;
