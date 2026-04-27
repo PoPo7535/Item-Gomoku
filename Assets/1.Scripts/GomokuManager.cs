@@ -332,15 +332,14 @@ public class GomokuManager : NetworkBehaviour
     /// </summary>
     private void HandleGhostStone((Vector3 pos, int x, int z) result)
     {
-        // 일단 둘 다 끄기
+
         if (BlackGhostObj) BlackGhostObj.SetActive(false);
         if (WhiteGhostObj) WhiteGhostObj.SetActive(false);
 
-        // 1. 마우스가 유효한 포인트 위에 있고 (pos가 zero가 아님)
-        // 2. 해당 좌표에 아직 돌이 놓이지 않았을 때만 (Color == StoneColor.None) 표시
+
         if (result.pos != Vector3.zero && _logic.Board[result.x, result.z].Color == StoneColor.None)
         {
-            // 현재 턴에 맞는 돌 선택해서 위치 옮기고 켜기
+
             GameObject target = _isBlackTurn ? BlackGhostObj : WhiteGhostObj;
             if (target != null)
             {
