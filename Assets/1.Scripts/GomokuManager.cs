@@ -334,7 +334,7 @@ public class GomokuManager : NetworkBehaviour
         return count;
     }
     /// <summary>
-    /// 싱글용 : 반 투명 돌 보여주기
+    /// 싱글용 : 돌 미리보여주기
     /// </summary>
     private void HandleGhostStoneSingle((Vector3 pos, int x, int z) result)
     {   
@@ -354,7 +354,7 @@ public class GomokuManager : NetworkBehaviour
     }
 
     /// <summary>
-    /// 멀티용 : 반 투명 돌 보여주기
+    /// 멀티용 : 돌 미리보여주기
     /// </summary>
     private void HandleGhostStoneNetwork((Vector3 pos, int x, int z) result)
     {
