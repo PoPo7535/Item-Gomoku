@@ -12,10 +12,12 @@ public class MainPanel : MonoBehaviour
         _button1.onClick.AddListener(() =>
         {
             App.I.CreateRoom(GameMode.Single);
+            App.I.PlayMode = GamePlayMode.Single;
         });
         _button2.onClick.AddListener(() =>
         {
             App.I.CreateRoom(GameMode.AutoHostOrClient);
+            App.I.PlayMode = GamePlayMode.Multi;
         });
     }
 }

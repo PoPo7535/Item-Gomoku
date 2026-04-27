@@ -32,6 +32,7 @@ public class GomokuManager : NetworkBehaviour
     private GameObject[,] _stoneObjects; //실제 돌 오브젝트 담는 공간 
     private OmokuLogic _logic; // 여기에 실제 돌 데이터 담김        
     public bool _isBlackTurn = true;  //턴여부 true면 흑 false면 백
+    private StoneColor _myColor;
     [Networked] public NetworkBool _isPlaying { get; set; } // 게임시작여부
 
     public override void Spawned()
@@ -39,6 +40,20 @@ public class GomokuManager : NetworkBehaviour
         // 포인트 생성 및 게임 초기화
         CreateClickPoints();
         Reset();
+        switch (App.I.PlayMode)
+        {
+            case GamePlayMode.Single:
+                _myColor = StoneColor.Black; // 둘 다 조작
+                break;
+
+            case GamePlayMode.AI:
+                _myColor = StoneColor.Black; // 여기는 입력받자
+                break;
+
+            case GamePlayMode.Multi:
+                _myColor = Object.HasStateAuthority ? StoneColor.Black : StoneColor.White; //호스트가 흑돌
+                break;
+        }
     }
 
     /// <summary>
@@ -83,7 +98,7 @@ public class GomokuManager : NetworkBehaviour
 
         //돌 미리보기
         var result = CalculateRay();
-        HandleGhostStoneSingle(result);
+        HandleGhostStone(result);
 
         if (Input.GetMouseButtonDown(0))
         {
@@ -128,7 +143,7 @@ public class GomokuManager : NetworkBehaviour
         if (_logic.PlaceStone(x, z, currentColor))
         {
             Vector3 spawnPos = pos;
-            spawnPos.y += 0.05f;
+            spawnPos.y += 0.15f;
 
             UpdateAndShowLastPlace(x, z);
             string posText = $"{x},{z}";
@@ -329,20 +344,37 @@ public class GomokuManager : NetworkBehaviour
     /// <summary>
     /// 싱글용 : 돌 미리보여주기
     /// </summary>
-    private void HandleGhostStoneSingle((Vector3 pos, int x, int z) result)
-    {   
-        
+    private void HandleGhostStone((Vector3 pos, int x, int z) result)
+    {
         BlackGhostObj.SetActive(false);
         WhiteGhostObj.SetActive(false);
 
-        if (result.pos != Vector3.zero && _logic.Board[result.x, result.z].Color == StoneColor.None)
+        if (result.pos == Vector3.zero) return;
+        if (_logic.Board[result.x, result.z].Color != StoneColor.None) return;
+
+        StoneColor currentTurn = _isBlackTurn ? StoneColor.Black : StoneColor.White;
+
+        GameObject target = null;
+
+        switch (App.I.PlayMode)
         {
-            GameObject target = _isBlackTurn ? BlackGhostObj : WhiteGhostObj;
-            if (target != null)
-            {
-                target.transform.position = result.pos + new Vector3(0, 0.05f, 0);
-                target.SetActive(true);
-            }
+            case GamePlayMode.Single:
+                // 둘 다 보여줌 (턴 기준)
+                target = _isBlackTurn ? BlackGhostObj : WhiteGhostObj;
+                break;
+
+            case GamePlayMode.AI:
+            case GamePlayMode.Multi:
+                // 내 턴만
+                if (currentTurn != _myColor) return;
+                target = (_myColor == StoneColor.Black) ? BlackGhostObj : WhiteGhostObj;
+                break;
+        }
+
+        if (target != null)
+        {
+            target.transform.position = result.pos + new Vector3(0, 0.15f, 0);
+            target.SetActive(true);
         }
     }
 
