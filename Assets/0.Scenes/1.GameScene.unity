@@ -4365,8 +4365,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 233d7816bc218ae4486cbd0b52842f22, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GomokuManager
-  BlackStonePrefab: {fileID: 9126950547641344875, guid: ac63fdf56ac754543a44724aea1e7c02, type: 3}
-  WhiteStonePrefab: {fileID: 8113395107229059385, guid: d5d85f78f6550ab43a8dcf0cd8ec5f09, type: 3}
+  BlackStonePrefab: {fileID: 1471949938043805457, guid: 87303f3d373acae45afc767e87e217d6, type: 3}
+  WhiteStonePrefab: {fileID: 8892691702012031676, guid: 8114b2505a1af144bbc2602a5b0a4797, type: 3}
   BlackGhostObj: {fileID: 1614458920}
   WhiteGhostObj: {fileID: 997951397}
   GameViewImage: {fileID: 1614487142}
