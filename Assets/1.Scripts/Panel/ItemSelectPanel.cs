@@ -1,15 +1,25 @@
+using Fusion;
+using TMPro;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
-public class ItemSelectPanel : MonoBehaviour
+public class ItemSelectPanel : NetworkBehaviour
 {
     [SerializeField] private CanvasGroup cg;
-    [SerializeField] private ItemPanel itemPanel;
-    [SerializeField] private ItemToggle itemPrefab;
     private ItemToggle[] _toggles;
+    [Header("아이템")]
+    [SerializeField] private ItemPanel itemPanel;
     [SerializeField] private GomokuItem[] itemSO;
+    [SerializeField] private ItemToggle itemPrefab;
     [SerializeField] private Transform itemParent;
+    
+    [Header("타이머")]
+    [SerializeField] private Slider timerSlider;
+    [SerializeField] private TMP_Text timerText;
+    [Networked] public TickTimer Timer { get; set; }
+    public float timeLimit = 30f;
+    
+    [Space]
     [SerializeField] private Button okBtn;
     private const int SelectMaxCount = 3;
     private int _currentSelectCount = 0;
@@ -20,9 +30,20 @@ public class ItemSelectPanel : MonoBehaviour
         SetToggleEvent();
         SetButtonEvent();
     }
-    public void ActiveCg(bool isActive) => cg.ActiveCG(isActive);
+    public void LateUpdate()
+    {
+        var time = App.I.TickTimerRemainingTime(Timer);
+        timerText.text = $"{time:0.0}";
+        timerSlider.value = time/ timeLimit;
+    }
 
-    public GomokuItem[] GetSelectItem()
+    public void ActiveCg(bool isActive)
+    {
+        cg.ActiveCG(isActive);
+        Timer = isActive ? TickTimer.CreateFromSeconds(App.I.Runner, timeLimit) : TickTimer.None;
+    }
+
+    private GomokuItem[] GetSelectItem()
     {
         var items = new GomokuItem[SelectMaxCount];
         var count = 0;

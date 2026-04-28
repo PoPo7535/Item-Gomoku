@@ -26,13 +26,9 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
 
     public void LateUpdate()
     {
-        if (GomokuManager.I.TickTimer.ExpiredOrNotRunning(App.I.Runner))
-            return;
-        var time = GomokuManager.I.TickTimer.RemainingTime(App.I.Runner);
-        if (time == null) 
-            return;
+        var time = App.I.TickTimerRemainingTime(GomokuManager.I.TickTimer);
         timerText.text = $"{time:0.0}";
-        timerSlider.value = (float)time/ GomokuManager.I.TurnTimeLimit;
+        timerSlider.value = time/ GomokuManager.I.TurnTimeLimit;
     }
 
     private void InspectorInit()
