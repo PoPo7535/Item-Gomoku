@@ -6,6 +6,7 @@ public readonly struct GomokuAISearchRequest
     public readonly int RequestId;
     public readonly GomokuAIAlgorithmType AlgorithmType;
     public readonly GomokuAIDifficulty Difficulty;
+    public readonly StoneColor AiStoneColor;
     public readonly GomokuBoardSnapshot BoardSnapshot;
     public readonly float MaxSearchTimeSeconds;
 
@@ -20,16 +21,19 @@ public readonly struct GomokuAISearchRequest
     /// <param name="algorithmType">사용할 AI 알고리즘.</param>
     /// <param name="difficulty">AI 난이도.</param>
     /// <param name="boardSnapshot">탐색 기준 보드 스냅샷.</param>
+    /// <param name="aiStoneColor">AI가 사용할 돌 색상.</param>
     public GomokuAISearchRequest(
         int requestId,
         GomokuAIAlgorithmType algorithmType,
         GomokuAIDifficulty difficulty,
+        StoneColor aiStoneColor,
         GomokuBoardSnapshot boardSnapshot,
         float maxSearchTimeSeconds)
     {
         RequestId = requestId;
         AlgorithmType = algorithmType;
         Difficulty = difficulty;
+        AiStoneColor = aiStoneColor == StoneColor.Black ? StoneColor.Black : StoneColor.White;
         BoardSnapshot = boardSnapshot;
         MaxSearchTimeSeconds = maxSearchTimeSeconds;
     }

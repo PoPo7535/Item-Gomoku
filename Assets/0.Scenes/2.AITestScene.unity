@@ -5049,9 +5049,10 @@ MonoBehaviour:
   _whiteStoneParent: {fileID: 2008485267}
   _ghostParent: {fileID: 923248253}
   _maxUndoCount: 0
+  _aiStoneColor: 1
   _aiAlgorithmType: 0
   _aiDifficulty: 5
-  _maxAiSearchTimeSeconds: 3
+  _maxAiSearchTimeSeconds: 5
 --- !u!4 &1181881346
 Transform:
   m_ObjectHideFlags: 0

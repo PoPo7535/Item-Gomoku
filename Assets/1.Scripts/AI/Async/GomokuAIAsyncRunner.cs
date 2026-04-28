@@ -26,7 +26,7 @@ public static class GomokuAIAsyncRunner
                     cancellationToken.ThrowIfCancellationRequested();
 
                     OmokuLogic logicCopy = request.BoardSnapshot.CreateLogicCopy();
-                    IGomokuAI ai = GomokuAIFactory.Create(request.AlgorithmType, logicCopy, request.BoardSize);
+                    IGomokuAI ai = GomokuAIFactory.Create(request.AlgorithmType, logicCopy, request.BoardSize, request.AiStoneColor);
                     return ai.FindBestMove(request.SearchDepth, cancellationToken, request.MaxSearchTimeSeconds);
                 },
                 cancellationToken: cancellationToken);

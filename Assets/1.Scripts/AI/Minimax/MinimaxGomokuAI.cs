@@ -64,6 +64,8 @@ public class MinimaxGomokuAI : IGomokuAI
     private readonly OmokuLogic _logic;
     private readonly GomokuBoardEvaluator _evaluator;
     private readonly int _boardSize;
+    private readonly StoneColor _aiColor;
+    private readonly StoneColor _opponentColor;
     private CancellationToken _cancellationToken;
     private Stopwatch _searchStopwatch;
     private double _maxSearchTimeSeconds;
@@ -84,10 +86,23 @@ public class MinimaxGomokuAI : IGomokuAI
     /// 오목 AI를 생성함.
     /// </summary>
     public MinimaxGomokuAI(OmokuLogic logic, int boardSize)
+        : this(logic, boardSize, StoneColor.White)
+    {
+    }
+
+    /// <summary>
+    /// 지정된 AI 색상 기준으로 오목 AI를 생성함.
+    /// </summary>
+    /// <param name="logic">AI가 사용할 오목 규칙과 보드 상태.</param>
+    /// <param name="boardSize">보드 크기.</param>
+    /// <param name="aiColor">AI가 사용할 돌 색상.</param>
+    public MinimaxGomokuAI(OmokuLogic logic, int boardSize, StoneColor aiColor)
     {
         _logic = logic;
         _boardSize = boardSize;
         _evaluator = new GomokuBoardEvaluator();
+        _aiColor = aiColor == StoneColor.Black ? StoneColor.Black : StoneColor.White;
+        _opponentColor = GetOppositeColor(_aiColor);
     }
 
     /// <summary>
@@ -160,7 +175,7 @@ public class MinimaxGomokuAI : IGomokuAI
         int clampedDepth = System.Math.Min(System.Math.Max(searchDepth, 1), 5);
         bool isHardDifficulty = IsHardDifficulty(clampedDepth);
         bool shouldPrioritizeFutureRouteDefense = !IsEasyDifficulty(clampedDepth);
-        List<GomokuMove> fullCandidates = GenerateCandidates(StoneColor.White, CandidateGenerationMode.RootEvaluation, false);
+        List<GomokuMove> fullCandidates = GenerateCandidates(_aiColor, CandidateGenerationMode.RootEvaluation, false);
         LogAiDebug($"FindBestMove depth={clampedDepth}, fullCandidates={FormatCandidateList(fullCandidates)}");
 
         if (fullCandidates.Count == 0)
@@ -176,14 +191,14 @@ public class MinimaxGomokuAI : IGomokuAI
             return openingMove;
         }
 
-        GomokuMove immediateWin = FindImmediateMove(fullCandidates, StoneColor.White, "Immediate win");
+        GomokuMove immediateWin = FindImmediateMove(fullCandidates, _aiColor, "Immediate win");
         if (immediateWin.IsValid)
         {
             LogAiDebug($"Immediate win selected {FormatMove(immediateWin)}");
             return immediateWin;
         }
 
-        GomokuMove immediateDefense = FindImmediateMove(fullCandidates, StoneColor.Black, "Immediate defense");
+        GomokuMove immediateDefense = FindImmediateMove(fullCandidates, _opponentColor, "Immediate defense");
         if (immediateDefense.IsValid)
         {
             LogAiDebug($"Immediate defense selected {FormatMove(immediateDefense)}");
@@ -206,7 +221,7 @@ public class MinimaxGomokuAI : IGomokuAI
             }
         }
 
-        List<GomokuMove> searchCandidates = GenerateCandidates(StoneColor.White, CandidateGenerationMode.RootEvaluation, true);
+        List<GomokuMove> searchCandidates = GenerateCandidates(_aiColor, CandidateGenerationMode.RootEvaluation, true);
         if (searchCandidates.Count == 0)
         {
             return FindFallbackMove();
@@ -288,7 +303,7 @@ public class MinimaxGomokuAI : IGomokuAI
             candidates[i] = candidate;
         }
 
-        SortCandidates(candidates, StoneColor.White);
+        SortCandidates(candidates, _aiColor);
     }
 
     /// <summary>
@@ -316,7 +331,7 @@ public class MinimaxGomokuAI : IGomokuAI
             candidates[i] = candidate;
         }
 
-        SortCandidates(candidates, StoneColor.White);
+        SortCandidates(candidates, _aiColor);
         LogAiDebug($"ApplyFutureRouteRiskPenalty result={FormatCandidateList(candidates)}");
     }
 
@@ -344,10 +359,10 @@ public class MinimaxGomokuAI : IGomokuAI
             int score;
 
             // AI 가상 착수 후 예외가 발생해도 반드시 복구함.
-            PlaceTemporary(candidate.X, candidate.Y, StoneColor.White);
+            PlaceTemporary(candidate.X, candidate.Y, _aiColor);
             try
             {
-                score = Minimax(searchDepth - 1, false, alpha, beta, candidate, StoneColor.White);
+                score = Minimax(searchDepth - 1, false, alpha, beta, candidate, _aiColor);
             }
             finally
             {
@@ -389,20 +404,20 @@ public class MinimaxGomokuAI : IGomokuAI
 
         if (lastMove.IsValid && _logic.CheckWin(lastMove.X, lastMove.Y, lastColor))
         {
-            return lastColor == StoneColor.White ? WinScore + depth : -WinScore - depth;
+            return lastColor == _aiColor ? WinScore + depth : -WinScore - depth;
         }
 
         if (depth <= 0)
         {
-            return _evaluator.Evaluate(_logic, _boardSize);
+            return _evaluator.Evaluate(_logic, _boardSize, _aiColor);
         }
 
-        StoneColor currentColor = isAiTurn ? StoneColor.White : StoneColor.Black;
+        StoneColor currentColor = isAiTurn ? _aiColor : _opponentColor;
         List<GomokuMove> candidates = GenerateCandidates(currentColor, CandidateGenerationMode.SearchNode, true);
 
         if (candidates.Count == 0)
         {
-            return _evaluator.Evaluate(_logic, _boardSize);
+            return _evaluator.Evaluate(_logic, _boardSize, _aiColor);
         }
 
         if (isAiTurn)
@@ -519,7 +534,7 @@ public class MinimaxGomokuAI : IGomokuAI
 
             if (isWin)
             {
-                return new GomokuMove(candidate.X, candidate.Y, color == StoneColor.White ? WinScore : -WinScore, reason);
+                return new GomokuMove(candidate.X, candidate.Y, color == _aiColor ? WinScore : -WinScore, reason);
             }
         }
 
@@ -543,7 +558,7 @@ public class MinimaxGomokuAI : IGomokuAI
             ThrowIfCancellationRequested();
             GomokuMove candidate = candidates[i];
 
-            if (!IsLegalMove(candidate.X, candidate.Y, StoneColor.Black))
+            if (!IsLegalMove(candidate.X, candidate.Y, _opponentColor))
             {
                 continue;
             }
@@ -551,10 +566,10 @@ public class MinimaxGomokuAI : IGomokuAI
             ThreatAnalysis threatAnalysis;
 
             // 흑돌이 해당 좌표에 두면 생기는 위협을 측정하고 바로 복구함.
-            PlaceTemporary(candidate.X, candidate.Y, StoneColor.Black);
+            PlaceTemporary(candidate.X, candidate.Y, _opponentColor);
             try
             {
-                threatAnalysis = AnalyzeThreatAt(candidate.X, candidate.Y, StoneColor.Black);
+                threatAnalysis = AnalyzeThreatAt(candidate.X, candidate.Y, _opponentColor);
             }
             finally
             {
@@ -618,20 +633,20 @@ public class MinimaxGomokuAI : IGomokuAI
         int penalty = 0;
 
         // AI가 해당 위치를 둔 뒤 플레이어 다음 수의 복합 위협을 확인함.
-        PlaceTemporary(aiMoveX, aiMoveY, StoneColor.White);
+        PlaceTemporary(aiMoveX, aiMoveY, _aiColor);
         try
         {
-            List<GomokuMove> playerResponses = GenerateCandidates(StoneColor.Black, CandidateGenerationMode.ThreatScan, true);
+            List<GomokuMove> playerResponses = GenerateCandidates(_opponentColor, CandidateGenerationMode.ThreatScan, true);
             for (int i = 0; i < playerResponses.Count; i++)
             {
                 ThrowIfCancellationRequested();
                 GomokuMove response = playerResponses[i];
-                if (!IsLegalMove(response.X, response.Y, StoneColor.Black))
+                if (!IsLegalMove(response.X, response.Y, _opponentColor))
                 {
                     continue;
                 }
 
-                if (_evaluator.CreatesBlockedFourOpenThreeThreat(_logic, _boardSize, response.X, response.Y, StoneColor.Black))
+                if (_evaluator.CreatesBlockedFourOpenThreeThreat(_logic, _boardSize, response.X, response.Y, _opponentColor))
                 {
                     // 방어 후 바로 복합 위협을 허용하면 거의 강제패 함정으로 취급함.
                     penalty = System.Math.Max(penalty, BlockedFourOpenThreeRiskPenalty);
@@ -657,21 +672,21 @@ public class MinimaxGomokuAI : IGomokuAI
     {
         int penalty = 0;
 
-        PlaceTemporary(aiMoveX, aiMoveY, StoneColor.White);
+        PlaceTemporary(aiMoveX, aiMoveY, _aiColor);
         try
         {
-            List<GomokuMove> playerResponses = GenerateCandidates(StoneColor.Black, CandidateGenerationMode.ThreatScan, true);
+            List<GomokuMove> playerResponses = GenerateCandidates(_opponentColor, CandidateGenerationMode.ThreatScan, true);
             for (int i = 0; i < playerResponses.Count; i++)
             {
                 ThrowIfCancellationRequested();
                 GomokuMove response = playerResponses[i];
-                if (!IsLegalMove(response.X, response.Y, StoneColor.Black))
+                if (!IsLegalMove(response.X, response.Y, _opponentColor))
                 {
                     continue;
                 }
 
                 // 플레이어가 우회 수를 둔 뒤에도 핵심 완성점이 남는지 확인함.
-                PlaceTemporary(response.X, response.Y, StoneColor.Black);
+                PlaceTemporary(response.X, response.Y, _opponentColor);
                 try
                 {
                     if (HasPlayerFutureComboFinisher())
@@ -704,20 +719,20 @@ public class MinimaxGomokuAI : IGomokuAI
     {
         int penalty = 0;
 
-        PlaceTemporary(aiMoveX, aiMoveY, StoneColor.White);
+        PlaceTemporary(aiMoveX, aiMoveY, _aiColor);
         try
         {
-            List<GomokuMove> playerResponses = GenerateCandidates(StoneColor.Black, CandidateGenerationMode.ThreatScan, true);
+            List<GomokuMove> playerResponses = GenerateCandidates(_opponentColor, CandidateGenerationMode.ThreatScan, true);
             for (int i = 0; i < playerResponses.Count; i++)
             {
                 ThrowIfCancellationRequested();
                 GomokuMove response = playerResponses[i];
-                if (!IsLegalMove(response.X, response.Y, StoneColor.Black))
+                if (!IsLegalMove(response.X, response.Y, _opponentColor))
                 {
                     continue;
                 }
 
-                if (_evaluator.CreatesBlockedFourOpenThreeThreat(_logic, _boardSize, response.X, response.Y, StoneColor.Black))
+                if (_evaluator.CreatesBlockedFourOpenThreeThreat(_logic, _boardSize, response.X, response.Y, _opponentColor))
                 {
                     // 빨간 칸처럼 최강 응수를 바로 허용하는 수는 패배 수에 가깝게 벌점 줌.
                     LogAiDebug(
@@ -743,17 +758,17 @@ public class MinimaxGomokuAI : IGomokuAI
     /// <returns>막힌 4와 열린 3 조합 완성점 존재 여부.</returns>
     private bool HasPlayerFutureComboFinisher()
     {
-        List<GomokuMove> playerFinishers = GenerateCandidates(StoneColor.Black, CandidateGenerationMode.ThreatScan, true);
+        List<GomokuMove> playerFinishers = GenerateCandidates(_opponentColor, CandidateGenerationMode.ThreatScan, true);
         for (int i = 0; i < playerFinishers.Count; i++)
         {
             ThrowIfCancellationRequested();
             GomokuMove finisher = playerFinishers[i];
-            if (!IsLegalMove(finisher.X, finisher.Y, StoneColor.Black))
+            if (!IsLegalMove(finisher.X, finisher.Y, _opponentColor))
             {
                 continue;
             }
 
-            if (_evaluator.CreatesBlockedFourOpenThreeThreat(_logic, _boardSize, finisher.X, finisher.Y, StoneColor.Black))
+            if (_evaluator.CreatesBlockedFourOpenThreeThreat(_logic, _boardSize, finisher.X, finisher.Y, _opponentColor))
             {
                 return true;
             }
@@ -770,32 +785,32 @@ public class MinimaxGomokuAI : IGomokuAI
     /// <returns>플레이어 미래 완성점 좌표를 직접 차단하는지 여부.</returns>
     private bool BlocksPlayerFutureComboFinisher(int aiMoveX, int aiMoveY)
     {
-        if (!IsLegalMove(aiMoveX, aiMoveY, StoneColor.White))
+        if (!IsLegalMove(aiMoveX, aiMoveY, _aiColor))
         {
             return false;
         }
 
-        PlaceTemporary(aiMoveX, aiMoveY, StoneColor.White);
+        PlaceTemporary(aiMoveX, aiMoveY, _aiColor);
         try
         {
-            List<GomokuMove> playerResponses = GenerateCandidates(StoneColor.Black, CandidateGenerationMode.ThreatScan, true);
+            List<GomokuMove> playerResponses = GenerateCandidates(_opponentColor, CandidateGenerationMode.ThreatScan, true);
             for (int i = 0; i < playerResponses.Count; i++)
             {
                 ThrowIfCancellationRequested();
                 GomokuMove response = playerResponses[i];
-                if (!IsLegalMove(response.X, response.Y, StoneColor.Black))
+                if (!IsLegalMove(response.X, response.Y, _opponentColor))
                 {
                     continue;
                 }
 
                 // 플레이어 우회 응수 뒤, 지금 칸이 미래 완성점이었는지 역으로 확인함.
-                PlaceTemporary(response.X, response.Y, StoneColor.Black);
+                PlaceTemporary(response.X, response.Y, _opponentColor);
                 try
                 {
                     RestoreTemporary(aiMoveX, aiMoveY);
 
-                    if (IsLegalMove(aiMoveX, aiMoveY, StoneColor.Black) &&
-                        _evaluator.CreatesBlockedFourOpenThreeThreat(_logic, _boardSize, aiMoveX, aiMoveY, StoneColor.Black))
+                    if (IsLegalMove(aiMoveX, aiMoveY, _opponentColor) &&
+                        _evaluator.CreatesBlockedFourOpenThreeThreat(_logic, _boardSize, aiMoveX, aiMoveY, _opponentColor))
                     {
                         LogAiDebug($"Future combo finisher blocked by ai=({aiMoveX},{aiMoveY}) after response=({response.X},{response.Y})");
                         return true;
@@ -803,7 +818,7 @@ public class MinimaxGomokuAI : IGomokuAI
                 }
                 finally
                 {
-                    PlaceTemporary(aiMoveX, aiMoveY, StoneColor.White);
+                    PlaceTemporary(aiMoveX, aiMoveY, _aiColor);
                     RestoreTemporary(response.X, response.Y);
                 }
             }
@@ -848,7 +863,7 @@ public class MinimaxGomokuAI : IGomokuAI
             ThrowIfCancellationRequested();
             for (int y = 0; y < _boardSize; y++)
             {
-                if (_logic.Board[x, y].Color != StoneColor.Black || _logic.Board[x, y].IsFake)
+                if (_logic.Board[x, y].Color != _opponentColor || _logic.Board[x, y].IsFake)
                 {
                     continue;
                 }
@@ -880,7 +895,7 @@ public class MinimaxGomokuAI : IGomokuAI
         defenseMove = GomokuMove.Invalid("Easy open three defense not found");
         int previousX = startX - directionX;
         int previousY = startY - directionY;
-        if (IsBlackStone(previousX, previousY))
+        if (IsOpponentStone(previousX, previousY))
         {
             return false;
         }
@@ -895,9 +910,9 @@ public class MinimaxGomokuAI : IGomokuAI
         int y4 = startY + (directionY * 4);
 
         if (IsEmpty(previousX, previousY) &&
-            IsBlackStone(startX, startY) &&
-            IsBlackStone(x1, y1) &&
-            IsBlackStone(x2, y2) &&
+            IsOpponentStone(startX, startY) &&
+            IsOpponentStone(x1, y1) &&
+            IsOpponentStone(x2, y2) &&
             IsEmpty(x3, y3))
         {
             // 연속 열린 3은 양 끝 중 아무 곳이나 바로 막음.
@@ -906,10 +921,10 @@ public class MinimaxGomokuAI : IGomokuAI
         }
 
         if (IsEmpty(previousX, previousY) &&
-            IsBlackStone(startX, startY) &&
-            IsBlackStone(x1, y1) &&
+            IsOpponentStone(startX, startY) &&
+            IsOpponentStone(x1, y1) &&
             IsEmpty(x2, y2) &&
-            IsBlackStone(x3, y3) &&
+            IsOpponentStone(x3, y3) &&
             IsEmpty(x4, y4))
         {
             // 벌어진 열린 3은 틈을 우선 막고, 필요하면 양 끝도 차단 후보로 봄.
@@ -919,10 +934,10 @@ public class MinimaxGomokuAI : IGomokuAI
         }
 
         if (IsEmpty(previousX, previousY) &&
-            IsBlackStone(startX, startY) &&
+            IsOpponentStone(startX, startY) &&
             IsEmpty(x1, y1) &&
-            IsBlackStone(x2, y2) &&
-            IsBlackStone(x3, y3) &&
+            IsOpponentStone(x2, y2) &&
+            IsOpponentStone(x3, y3) &&
             IsEmpty(x4, y4))
         {
             // 반대 형태의 벌어진 열린 3도 같은 방식으로 즉시 차단함.
@@ -945,7 +960,7 @@ public class MinimaxGomokuAI : IGomokuAI
     {
         defenseMove = GomokuMove.Invalid("Easy open three defense not found");
 
-        if (!IsLegalMove(blockX, blockY, StoneColor.White))
+        if (!IsLegalMove(blockX, blockY, _aiColor))
         {
             return false;
         }
@@ -1124,7 +1139,7 @@ public class MinimaxGomokuAI : IGomokuAI
         }
 
         // 첫 수는 플레이어 첫 돌 근처에서만 고르되 evaluator로 가장 좋은 수를 선택함.
-        SortCandidates(nearbyMoves, StoneColor.White);
+        SortCandidates(nearbyMoves, _aiColor);
         GomokuMove bestMove = nearbyMoves[0];
         return new GomokuMove(bestMove.X, bestMove.Y, bestMove.Score, "Opening response");
     }
@@ -1139,8 +1154,8 @@ public class MinimaxGomokuAI : IGomokuAI
     {
         playerX = -1;
         playerY = -1;
-        int blackStoneCount = 0;
-        int whiteStoneCount = 0;
+        int opponentStoneCount = 0;
+        int aiStoneCount = 0;
 
         for (int x = 0; x < _boardSize; x++)
         {
@@ -1153,19 +1168,22 @@ public class MinimaxGomokuAI : IGomokuAI
                     continue;
                 }
 
-                if (stoneData.Color == StoneColor.Black)
+                if (stoneData.Color == _opponentColor)
                 {
-                    blackStoneCount++;
+                    opponentStoneCount++;
                     playerX = x;
                     playerY = y;
                     continue;
                 }
 
-                whiteStoneCount++;
+                if (stoneData.Color == _aiColor)
+                {
+                    aiStoneCount++;
+                }
             }
         }
 
-        return blackStoneCount == 1 && whiteStoneCount == 0;
+        return opponentStoneCount == 1 && aiStoneCount == 0;
     }
 
     /// <summary>
@@ -1189,13 +1207,13 @@ public class MinimaxGomokuAI : IGomokuAI
 
                 int targetX = originX + deltaX;
                 int targetY = originY + deltaY;
-                if (!IsLegalMove(targetX, targetY, StoneColor.White))
+                if (!IsLegalMove(targetX, targetY, _aiColor))
                 {
                     continue;
                 }
 
                 _evaluateMoveCallCount++;
-                int score = _evaluator.EvaluateMove(_logic, _boardSize, targetX, targetY, StoneColor.White);
+                int score = _evaluator.EvaluateMove(_logic, _boardSize, targetX, targetY, _aiColor, _aiColor);
                 nearbyMoves.Add(new GomokuMove(targetX, targetY, score, "Opening neighbor"));
             }
         }
@@ -1287,10 +1305,10 @@ public class MinimaxGomokuAI : IGomokuAI
             }
 
             ThreatAnalysis threatAnalysis;
-            PlaceTemporary(candidate.X, candidate.Y, StoneColor.Black);
+            PlaceTemporary(candidate.X, candidate.Y, _opponentColor);
             try
             {
-                threatAnalysis = AnalyzeThreatAt(candidate.X, candidate.Y, StoneColor.Black);
+                threatAnalysis = AnalyzeThreatAt(candidate.X, candidate.Y, _opponentColor);
             }
             finally
             {
@@ -1312,7 +1330,7 @@ public class MinimaxGomokuAI : IGomokuAI
             LogAiDebug($"EnsureMinimaxDefenseCandidates added ({candidate.X},{candidate.Y}) reason={reason} baseScore={candidate.Score} boostedScore={candidate.Score + bonusScore}");
         }
 
-        SortCandidates(searchCandidates, StoneColor.White);
+        SortCandidates(searchCandidates, _aiColor);
         LogAiDebug($"Search candidates after guarantees={FormatCandidateList(searchCandidates)}");
 
         if (searchCandidates.Count > MaxCandidateCount)
@@ -1343,12 +1361,12 @@ public class MinimaxGomokuAI : IGomokuAI
             }
 
             candidates[i] = promotedDefense;
-            SortCandidates(candidates, StoneColor.White);
+            SortCandidates(candidates, _aiColor);
             return;
         }
 
         candidates.Add(promotedDefense);
-        SortCandidates(candidates, StoneColor.White);
+        SortCandidates(candidates, _aiColor);
 
         if (candidates.Count > MaxCandidateCount)
         {
@@ -1413,7 +1431,7 @@ public class MinimaxGomokuAI : IGomokuAI
 
         // 루트 보드는 동일 탐색 안에서만 고정되므로 EvaluateMove 결과를 안전하게 재사용함.
         _evaluateMoveCallCount++;
-        int score = _evaluator.EvaluateMove(_logic, _boardSize, x, y, color);
+        int score = _evaluator.EvaluateMove(_logic, _boardSize, x, y, color, _aiColor);
         _rootEvaluationCache[cacheKey] = score;
         return score;
     }
@@ -1441,7 +1459,7 @@ public class MinimaxGomokuAI : IGomokuAI
     {
         _lightweightEvaluationCallCount++;
         ThreatAnalysis ownThreat = AnalyzeThreatAt(x, y, color);
-        StoneColor opponentColor = color == StoneColor.White ? StoneColor.Black : StoneColor.White;
+        StoneColor opponentColor = GetOppositeColor(color);
         ThreatAnalysis opponentThreat = AnalyzeThreatAt(x, y, opponentColor);
         int center = _boardSize / 2;
         int centerDistance = System.Math.Abs(x - center) + System.Math.Abs(y - center);
@@ -1452,7 +1470,7 @@ public class MinimaxGomokuAI : IGomokuAI
                     GetThreatOrderingBonus(opponentThreat) / DefenseOrderingBonusDivisor +
                     centerBonus;
 
-        return color == StoneColor.White ? score : -score;
+        return color == _aiColor ? score : -score;
     }
 
     /// <summary>
@@ -1546,15 +1564,15 @@ public class MinimaxGomokuAI : IGomokuAI
     }
 
     /// <summary>
-    /// 지정 좌표가 실제 흑돌인지 확인함.
+    /// 지정 좌표가 실제 상대 돌인지 확인함.
     /// </summary>
     /// <param name="x">검사할 X 좌표.</param>
     /// <param name="y">검사할 Y 좌표.</param>
-    /// <returns>실제 흑돌 여부.</returns>
-    private bool IsBlackStone(int x, int y)
+    /// <returns>실제 상대 돌 여부.</returns>
+    private bool IsOpponentStone(int x, int y)
     {
         return _logic.IsInside(x, y) &&
-               _logic.Board[x, y].Color == StoneColor.Black &&
+               _logic.Board[x, y].Color == _opponentColor &&
                !_logic.Board[x, y].IsFake;
     }
 
@@ -1571,7 +1589,7 @@ public class MinimaxGomokuAI : IGomokuAI
     /// </summary>
     private void SortCandidates(List<GomokuMove> candidates, StoneColor color)
     {
-        if (color == StoneColor.Black)
+        if (color == _opponentColor)
         {
             // 백돌 AI 평가 기준에서 흑돌 응수는 낮은 점수가 더 위협적인 수임.
             candidates.Sort((left, right) => left.Score.CompareTo(right.Score));
@@ -1607,12 +1625,53 @@ public class MinimaxGomokuAI : IGomokuAI
             return false;
         }
 
-        if (color == StoneColor.Black && _logic.IsForbidden(x, y, color))
+        if (color == StoneColor.Black && IsForbiddenAfterTemporaryPlacement(x, y, color))
         {
             return false;
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// 흑돌을 실제 착수와 같은 상태로 임시 배치한 뒤 금수 여부를 확인함.
+    /// </summary>
+    /// <param name="x">검사할 X 좌표.</param>
+    /// <param name="y">검사할 Y 좌표.</param>
+    /// <param name="color">검사할 돌 색상.</param>
+    /// <returns>임시 착수 후 금수 여부.</returns>
+    private bool IsForbiddenAfterTemporaryPlacement(int x, int y, StoneColor color)
+    {
+        if (color != StoneColor.Black)
+        {
+            return false;
+        }
+
+        // OmokuLogic.PlaceStone과 같은 순서로 둔 뒤 금수 여부를 검사함.
+        PlaceTemporary(x, y, color);
+        try
+        {
+            if (_logic.CheckWin(x, y, color))
+            {
+                return false;
+            }
+
+            return _logic.IsForbidden(x, y, color);
+        }
+        finally
+        {
+            RestoreTemporary(x, y);
+        }
+    }
+
+    /// <summary>
+    /// 지정한 돌 색상의 반대 색상을 반환함.
+    /// </summary>
+    /// <param name="color">기준 돌 색상.</param>
+    /// <returns>반대 돌 색상.</returns>
+    private static StoneColor GetOppositeColor(StoneColor color)
+    {
+        return color == StoneColor.Black ? StoneColor.White : StoneColor.Black;
     }
 
     /// <summary>
@@ -1746,7 +1805,12 @@ public class MinimaxGomokuAI : IGomokuAI
     /// <returns>시간 초과 시 적용할 착수 후보.</returns>
     private GomokuMove GetBestMoveSoFarOrFallback()
     {
-        return _bestMoveSoFar.IsValid ? _bestMoveSoFar : FindFallbackMove();
+        if (_bestMoveSoFar.IsValid && IsLegalMove(_bestMoveSoFar.X, _bestMoveSoFar.Y, _aiColor))
+        {
+            return _bestMoveSoFar;
+        }
+
+        return FindFallbackMove();
     }
 
     /// <summary>
@@ -1798,7 +1862,7 @@ public class MinimaxGomokuAI : IGomokuAI
     private GomokuMove FindFallbackMove()
     {
         int center = _boardSize / 2;
-        if (_logic.IsInside(center, center) && _logic.Board[center, center].Color == StoneColor.None)
+        if (IsLegalMove(center, center, _aiColor))
         {
             return new GomokuMove(center, center, 0, "Center fallback");
         }
@@ -1807,7 +1871,7 @@ public class MinimaxGomokuAI : IGomokuAI
         {
             for (int y = 0; y < _boardSize; y++)
             {
-                if (_logic.Board[x, y].Color == StoneColor.None)
+                if (IsLegalMove(x, y, _aiColor))
                 {
                     return new GomokuMove(x, y, 0, "First empty fallback");
                 }
@@ -1817,10 +1881,14 @@ public class MinimaxGomokuAI : IGomokuAI
         return GomokuMove.Invalid("No empty position");
     }
 
+    /// <summary>
+    /// 상대의 미래 복합 위협 완성점을 직접 막을 AI 수를 찾음.
+    /// </summary>
+    /// <returns>복합 위협 차단 수, 없으면 Invalid.</returns>
     private GomokuMove FindPlayerFutureComboBlockMove()
 {
     // 위협 스캔용 상위 후보만 검사해 미래 복합 위협 완성점을 찾음.
-    List<GomokuMove> playerFinishers = GenerateCandidates(StoneColor.Black, CandidateGenerationMode.ThreatScan, true);
+    List<GomokuMove> playerFinishers = GenerateCandidates(_opponentColor, CandidateGenerationMode.ThreatScan, true);
 
     GomokuMove bestBlock = GomokuMove.Invalid("Player future combo block not found");
     int bestThreatScore = 0;
@@ -1830,7 +1898,7 @@ public class MinimaxGomokuAI : IGomokuAI
         GomokuMove finisher = playerFinishers[i];
 
         // 플레이어가 실제로 둘 수 있는 자리인지 확인
-        if (!IsLegalMove(finisher.X, finisher.Y, StoneColor.Black))
+        if (!IsLegalMove(finisher.X, finisher.Y, _opponentColor))
         {
             continue;
         }
@@ -1843,16 +1911,16 @@ public class MinimaxGomokuAI : IGomokuAI
             _boardSize,
             finisher.X,
             finisher.Y,
-            StoneColor.Black))
+            _opponentColor))
         {
             threatScore = System.Math.Max(threatScore, BlockedFourOpenThreeRiskPenalty);
         }
 
         // 2️⃣ 실제 패턴 분석 (열린4, 열린3 등)
-        PlaceTemporary(finisher.X, finisher.Y, StoneColor.Black);
+        PlaceTemporary(finisher.X, finisher.Y, _opponentColor);
         try
         {
-            ThreatAnalysis analysis = AnalyzeThreatAt(finisher.X, finisher.Y, StoneColor.Black);
+            ThreatAnalysis analysis = AnalyzeThreatAt(finisher.X, finisher.Y, _opponentColor);
 
             if (analysis.OpenFourCount > 0)
             {
@@ -1884,7 +1952,7 @@ public class MinimaxGomokuAI : IGomokuAI
         }
 
         // AI가 그 칸에 둘 수 있어야 실제 방어 가능
-        if (!IsLegalMove(finisher.X, finisher.Y, StoneColor.White))
+        if (!IsLegalMove(finisher.X, finisher.Y, _aiColor))
         {
             continue;
         }

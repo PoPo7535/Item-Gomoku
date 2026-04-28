@@ -35,7 +35,20 @@ public class GomokuBoardEvaluator
     /// </summary>
     public int Evaluate(OmokuLogic logic, int boardSize)
     {
+        return Evaluate(logic, boardSize, StoneColor.White);
+    }
+
+    /// <summary>
+    /// 현재 보드를 지정한 AI 색상 관점의 점수로 평가함.
+    /// </summary>
+    /// <param name="logic">현재 보드 상태.</param>
+    /// <param name="boardSize">보드 크기.</param>
+    /// <param name="perspectiveColor">양수 점수로 평가할 기준 색상.</param>
+    /// <returns>기준 색상 관점의 보드 점수.</returns>
+    public int Evaluate(OmokuLogic logic, int boardSize, StoneColor perspectiveColor)
+    {
         int score = 0;
+        StoneColor normalizedPerspectiveColor = NormalizePerspectiveColor(perspectiveColor);
 
         for (int x = 0; x < boardSize; x++)
         {
@@ -47,8 +60,8 @@ public class GomokuBoardEvaluator
                     continue;
                 }
 
-                int colorWeight = color == StoneColor.White ? 1 : -1;
-                score += colorWeight * EvaluateStone(logic, boardSize, x, y, color);
+                int colorWeight = color == normalizedPerspectiveColor ? 1 : -1;
+                score += colorWeight * EvaluateStone(logic, boardSize, x, y, color, normalizedPerspectiveColor);
             }
         }
 
@@ -60,6 +73,21 @@ public class GomokuBoardEvaluator
     /// </summary>
     public int EvaluateMove(OmokuLogic logic, int boardSize, int x, int y, StoneColor color)
     {
+        return EvaluateMove(logic, boardSize, x, y, color, StoneColor.White);
+    }
+
+    /// <summary>
+    /// 특정 좌표에 수를 두고 지정한 AI 색상 관점의 보드 점수를 평가함.
+    /// </summary>
+    /// <param name="logic">현재 보드 상태.</param>
+    /// <param name="boardSize">보드 크기.</param>
+    /// <param name="x">평가할 착수 X 좌표.</param>
+    /// <param name="y">평가할 착수 Y 좌표.</param>
+    /// <param name="color">평가할 착수 색상.</param>
+    /// <param name="perspectiveColor">양수 점수로 평가할 기준 색상.</param>
+    /// <returns>착수 후 기준 색상 관점의 보드 점수.</returns>
+    public int EvaluateMove(OmokuLogic logic, int boardSize, int x, int y, StoneColor color, StoneColor perspectiveColor)
+    {
         if (!logic.IsInside(x, y) || logic.Board[x, y].Color != StoneColor.None)
         {
             return int.MinValue;
@@ -68,7 +96,7 @@ public class GomokuBoardEvaluator
         logic.Board[x, y] = new StoneData { Color = color, IsFake = false };
         try
         {
-            return Evaluate(logic, boardSize);
+            return Evaluate(logic, boardSize, perspectiveColor);
         }
         finally
         {
@@ -108,7 +136,7 @@ public class GomokuBoardEvaluator
     /// <summary>
     /// 특정 돌이 만드는 모든 방향 패턴 점수를 계산함.
     /// </summary>
-    private int EvaluateStone(OmokuLogic logic, int boardSize, int x, int y, StoneColor color)
+    private int EvaluateStone(OmokuLogic logic, int boardSize, int x, int y, StoneColor color, StoneColor perspectiveColor)
     {
         int score = 0;
         CollectThreatPatternCounts(logic, boardSize, x, y, color, out int openThreeCount, out int blockedFourCount, out int openFourCount);
@@ -123,17 +151,17 @@ public class GomokuBoardEvaluator
                 continue;
             }
 
-            score += EvaluateLine(logic, boardSize, x, y, DirectionX[i], DirectionY[i], color);
+            score += EvaluateLine(logic, boardSize, x, y, DirectionX[i], DirectionY[i], color, perspectiveColor);
         }
 
-        score += GetComboThreatBonus(color, openThreeCount, blockedFourCount, openFourCount);
+        score += GetComboThreatBonus(color, openThreeCount, blockedFourCount, openFourCount, perspectiveColor);
         return score;
     }
 
     /// <summary>
     /// 한 방향의 연속 돌과 열린 끝 개수를 바탕으로 패턴 점수를 계산함.
     /// </summary>
-    private int EvaluateLine(OmokuLogic logic, int boardSize, int x, int y, int directionX, int directionY, StoneColor color)
+    private int EvaluateLine(OmokuLogic logic, int boardSize, int x, int y, int directionX, int directionY, StoneColor color, StoneColor perspectiveColor)
     {
         int count = 0;
         int currentX = x;
@@ -161,7 +189,7 @@ public class GomokuBoardEvaluator
 
         // 열린 끝 개수에 따라 공격/방어 가치가 크게 달라짐.
         int patternScore = ScorePattern(count, openEnds);
-        return patternScore + GetAttackBonus(count, openEnds, color);
+        return patternScore + GetAttackBonus(count, openEnds, color, perspectiveColor);
     }
 
     /// <summary>
@@ -209,9 +237,9 @@ public class GomokuBoardEvaluator
     /// <param name="openEnds">열린 끝 개수.</param>
     /// <param name="color">현재 패턴의 돌 색상.</param>
     /// <returns>공격 성향을 강화할 추가 점수.</returns>
-    private int GetAttackBonus(int count, int openEnds, StoneColor color)
+    private int GetAttackBonus(int count, int openEnds, StoneColor color, StoneColor perspectiveColor)
     {
-        if (color != StoneColor.White)
+        if (color != perspectiveColor)
         {
             return 0;
         }
@@ -353,9 +381,9 @@ public class GomokuBoardEvaluator
     /// <param name="blockedFourCount">막힌 4 개수.</param>
     /// <param name="openFourCount">열린 4 개수.</param>
     /// <returns>복합 위협 보너스 점수.</returns>
-    private int GetComboThreatBonus(StoneColor color, int openThreeCount, int blockedFourCount, int openFourCount)
+    private int GetComboThreatBonus(StoneColor color, int openThreeCount, int blockedFourCount, int openFourCount, StoneColor perspectiveColor)
     {
-        if (color != StoneColor.White)
+        if (color != perspectiveColor)
         {
             return 0;
         }
@@ -405,5 +433,15 @@ public class GomokuBoardEvaluator
         return logic.IsInside(x, y) &&
                logic.Board[x, y].Color == color &&
                !logic.Board[x, y].IsFake;
+    }
+
+    /// <summary>
+    /// 평가 기준 색상이 None이면 기존 백돌 관점으로 보정함.
+    /// </summary>
+    /// <param name="perspectiveColor">외부에서 전달된 평가 기준 색상.</param>
+    /// <returns>유효한 평가 기준 색상.</returns>
+    private static StoneColor NormalizePerspectiveColor(StoneColor perspectiveColor)
+    {
+        return perspectiveColor == StoneColor.Black ? StoneColor.Black : StoneColor.White;
     }
 }
