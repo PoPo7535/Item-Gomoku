@@ -1163,6 +1163,63 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1177159579
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1177159581}
+  - component: {fileID: 1177159580}
+  m_Layer: 0
+  m_Name: GameObject
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1177159580
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1177159579}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c3affdb389a4604597e3d8ec9f17520, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoundManager
+  bgmSource: {fileID: 0}
+  bgm: {fileID: 0}
+  effectSource: {fileID: 0}
+  click: {fileID: 0}
+  placement: {fileID: 0}
+  sounds:
+    Dictionary:
+    - key: 123
+      value: {fileID: 8300000, guid: 212dc1e678c76874e873e0dafc2b6c90, type: 3}
+    - key: 45
+      value: {fileID: 8300000, guid: e82de39f58aed6943891f55751884f8e, type: 3}
+    - key: 333
+      value: {fileID: 8300000, guid: 0182f610cc88501448f2c6892510ce8a, type: 3}
+--- !u!4 &1177159581
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1177159579}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1617.0854, y: 510.17316, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1300575980
 GameObject:
   m_ObjectHideFlags: 0
@@ -1532,6 +1589,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0e0e1981da1199143a66493b4fa0acd8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::App
+  PlayMode: 0
 --- !u!4 &1506289929
 Transform:
   m_ObjectHideFlags: 0
@@ -2311,3 +2369,4 @@ SceneRoots:
   - {fileID: 980233453}
   - {fileID: 1506289929}
   - {fileID: 1300575984}
+  - {fileID: 1177159581}

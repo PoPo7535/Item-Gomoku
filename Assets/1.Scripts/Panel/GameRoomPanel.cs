@@ -1,16 +1,19 @@
+using System;
 using Fusion;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
 {
     [SerializeField] private Button readyButton;
-    [SerializeField] private TMP_Text readyText;
     [SerializeField] private Button shutdownButton;
+    [SerializeField] private TMP_Text readyText;
     [SerializeField] private TMP_Text playerText1;
     [SerializeField] private TMP_Text playerText2;
-    
+    [SerializeField] private Slider timerSlider;
+    [SerializeField] private TMP_Text timerText;
     [SerializeField] private ItemSelectPanel itemSelectPanel;
     private bool _ready = false;
 
@@ -19,6 +22,17 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
         InspectorInit();
         UpdatePlayers();
         App.I.Runner.SessionInfo.Name.Log();
+    }
+
+    public void LateUpdate()
+    {
+        if (GomokuManager.I.TickTimer.ExpiredOrNotRunning(App.I.Runner))
+            return;
+        var time = GomokuManager.I.TickTimer.RemainingTime(App.I.Runner);
+        if (time == null) 
+            return;
+        timerText.text = $"{time:0.0}";
+        timerSlider.value = (float)time/ GomokuManager.I.TurnTimeLimit;
     }
 
     private void InspectorInit()

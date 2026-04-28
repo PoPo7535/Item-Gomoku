@@ -5,7 +5,6 @@ using UnityEngine.UI;
 public class ItemSelectPanel : MonoBehaviour
 {
     [SerializeField] private CanvasGroup cg;
-    [SerializeField] private GomokuManager gomokuManager;
     [SerializeField] private ItemPanel itemPanel;
     [SerializeField] private ItemToggle itemPrefab;
     private ItemToggle[] _toggles;
@@ -56,7 +55,7 @@ public class ItemSelectPanel : MonoBehaviour
         okBtn.onClick.AddListener(() =>
         {
             ActiveCg(false);
-            gomokuManager.StartGame();
+            GomokuManager.I.StartGame();
             var items = GetSelectItem();
             items.Length.Log();
             itemPanel.Set(items);
