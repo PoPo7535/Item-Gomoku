@@ -5198,7 +5198,7 @@ MonoBehaviour:
   GeneratedPoints: {fileID: 898107167}
   _IsBlackTurn:
     _value: 1
-  TurnTimeLimit: 10
+  TurnTimeLimit: 30
   isSpawned: 0
 --- !u!4 &1912329768
 Transform:
