@@ -233,11 +233,16 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
     public void Reset()
     {   
         IsPlaying = false;
+
+        TickTimer = TickTimer.None;
+
         _logic = new OmokuLogic();
         _stoneObjects = new GameObject[LineCount, LineCount];
         IsBlackTurn = true;
+
         _lastX = 0; 
         _lastZ = 0;
+
         _blackHistory.Clear();
         _whiteHistory.Clear();
 
@@ -323,10 +328,12 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// </summary>
     private void UpdateTurnTimer()
     {
+        if (!IsPlaying) return; 
+        if (!Object.HasStateAuthority) return;
+
         if (TickTimer.ExpiredOrNotRunning(App.I.Runner))
         {
             Debug.Log("시간 초과로 턴 변경");
-
             ChangeTurn();
         }
     }
@@ -424,8 +431,12 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// [UI 연결용] 게임 시작 버튼 클릭 시 호출.
     /// </summary>
     public void StartGame()
-    {
+    {   
+        
         if (IsPlaying) return;
-        IsPlaying = true; 
+
+        IsPlaying = true;
+
+        StartTurnTimer();
     }
 }
