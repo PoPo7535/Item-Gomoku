@@ -1,22 +1,8 @@
 using UnityEngine;
+using Utility;
 
-public class SoundManager : MonoBehaviour
+public class SoundManager : Singleton<SoundManager>
 {
-    private static SoundManager _instance;
-    public static SoundManager Instance
-    {
-        get
-        {
-            if(_instance == null)
-            {
-                GameObject SoundManager = new GameObject("SoundManager");
-                _instance = SoundManager.AddComponent<SoundManager>();
-                DontDestroyOnLoad(SoundManager);
-            }
-            return _instance;
-        }
-    }
-
     [Header("BGM")]
     [SerializeField] private AudioSource bgmSource;
     [SerializeField] private AudioClip bgm;
@@ -26,16 +12,22 @@ public class SoundManager : MonoBehaviour
     [SerializeField] private AudioClip click;
     [SerializeField] private AudioClip placement;
 
+    [SerializeField] private SerializableDic<string, AudioClip> sounds;
+    
+    // 사운드 재생할 오브젝트 생성 ->
+    // 사운드 재생 후 삭제, or 오브젝트 풀
+    // 오디어 믹서
+    
+    public void PlaySound(string key)
+    {
+        if (sounds.TryGetValue(key, out AudioClip clip))
+        {
+            PlayEffectSound(clip);
+        }
+    }
     private void Awake()
     {
-        if(_instance != null && _instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
-        _instance = this;
-        DontDestroyOnLoad(gameObject);
+        base.Awake();
         InitializeBGM();
     }
 
@@ -84,7 +76,7 @@ public class SoundManager : MonoBehaviour
 
         effectSource.PlayOneShot(clip);
     }
-
-    public void PlayClick()     => PlayEffectSound(click);
-    public void PlayPlacement() => PlayEffectSound(placement);
+    
+    // public void PlayClick()     => PlayEffectSound(click);
+    // public void PlayPlacement() => PlayEffectSound(placement);
 }
