@@ -9,6 +9,7 @@ using Stopwatch = System.Diagnostics.Stopwatch;
 public class MinimaxGomokuAI : IGomokuAI
 {
     private const bool EnableAiDebugLog = false;
+    private const bool EnableAiStatsLog = false;
 
     /// <summary>
     /// 특정 좌표의 위협 형태를 정리한 결과임.
@@ -51,6 +52,11 @@ public class MinimaxGomokuAI : IGomokuAI
     private const int HardFutureRouteRiskPenalty = 550000;
     private const int NormalForcedComboResponsePenalty = 8000000;
     private const int HardForcedComboResponsePenalty = 9500000;
+    private const int OpenFourOrderingBonus = 800000;
+    private const int BlockedFourOrderingBonus = 250000;
+    private const int OpenThreeOrderingBonus = 45000;
+    private const int CompositeThreatOrderingBonus = 180000;
+    private const int DefenseOrderingBonusDivisor = 2;
 
     private static readonly int[] DirectionX = { 1, 0, 1, 1 };
     private static readonly int[] DirectionY = { 0, 1, 1, -1 };
@@ -62,6 +68,17 @@ public class MinimaxGomokuAI : IGomokuAI
     private Stopwatch _searchStopwatch;
     private double _maxSearchTimeSeconds;
     private GomokuMove _bestMoveSoFar;
+    private readonly Dictionary<int, int> _rootEvaluationCache = new Dictionary<int, int>();
+    private int _generatedCandidateCallCount;
+    private int _rootGeneratedCandidateCount;
+    private int _searchNodeGeneratedCandidateCount;
+    private int _threatScanGeneratedCandidateCount;
+    private int _evaluateMoveCallCount;
+    private int _rootEvaluationCacheHitCount;
+    private int _lightweightEvaluationCallCount;
+    private int _analyzeThreatCallCount;
+    private int _minimaxNodeCount;
+    private int _pruningCount;
 
     /// <summary>
     /// 오목 AI를 생성함.
@@ -114,13 +131,17 @@ public class MinimaxGomokuAI : IGomokuAI
         {
             GomokuMove move = FindBestMoveCore(searchDepth);
             double elapsedSeconds = GetElapsedSearchSeconds();
-            return move.IsValid
+            GomokuAISearchResult result = move.IsValid
                 ? GomokuAISearchResult.Completed(move, elapsedSeconds)
                 : GomokuAISearchResult.NoMove(move.Reason, elapsedSeconds);
+            LogSearchStats(result.Status, result.Move);
+            return result;
         }
         catch (SearchTimeoutException)
         {
-            return GomokuAISearchResult.TimedOut(GetBestMoveSoFarOrFallback(), GetElapsedSearchSeconds());
+            GomokuAISearchResult result = GomokuAISearchResult.TimedOut(GetBestMoveSoFarOrFallback(), GetElapsedSearchSeconds());
+            LogSearchStats(result.Status, result.Move);
+            return result;
         }
         finally
         {
@@ -364,6 +385,7 @@ public class MinimaxGomokuAI : IGomokuAI
     private int Minimax(int depth, bool isAiTurn, int alpha, int beta, GomokuMove lastMove, StoneColor lastColor)
     {
         ThrowIfCancellationRequested();
+        _minimaxNodeCount++;
 
         if (lastMove.IsValid && _logic.CheckWin(lastMove.X, lastMove.Y, lastColor))
         {
@@ -420,6 +442,7 @@ public class MinimaxGomokuAI : IGomokuAI
 
             if (beta <= alpha)
             {
+                _pruningCount++;
                 // 더 나은 결과가 나올 수 없는 분기는 가지치기함.
                 break;
             }
@@ -457,6 +480,7 @@ public class MinimaxGomokuAI : IGomokuAI
 
             if (beta <= alpha)
             {
+                _pruningCount++;
                 // 플레이어가 더 나쁜 결과를 강제할 수 있는 분기는 중단함.
                 break;
             }
@@ -935,6 +959,7 @@ public class MinimaxGomokuAI : IGomokuAI
     /// </summary>
     private ThreatAnalysis AnalyzeThreatAt(int x, int y, StoneColor color)
     {
+        _analyzeThreatCallCount++;
         ThreatAnalysis analysis = new ThreatAnalysis();
 
         for (int i = 0; i < DirectionX.Length; i++)
@@ -1169,6 +1194,7 @@ public class MinimaxGomokuAI : IGomokuAI
                     continue;
                 }
 
+                _evaluateMoveCallCount++;
                 int score = _evaluator.EvaluateMove(_logic, _boardSize, targetX, targetY, StoneColor.White);
                 nearbyMoves.Add(new GomokuMove(targetX, targetY, score, "Opening neighbor"));
             }
@@ -1211,6 +1237,7 @@ public class MinimaxGomokuAI : IGomokuAI
             candidates.RemoveRange(candidateLimit, candidates.Count - candidateLimit);
         }
 
+        RecordGeneratedCandidates(mode, candidates.Count);
         return candidates;
     }
 
@@ -1362,10 +1389,45 @@ public class MinimaxGomokuAI : IGomokuAI
     {
         if (mode == CandidateGenerationMode.RootEvaluation)
         {
-            return _evaluator.EvaluateMove(_logic, _boardSize, x, y, color);
+            return EvaluateRootCandidateScore(x, y, color);
         }
 
         return EvaluateLightweightCandidateScore(x, y, color);
+    }
+
+    /// <summary>
+    /// 루트 보드 기준 후보 평가를 탐색 1회 동안만 캐싱해 중복 전체 평가를 줄임.
+    /// </summary>
+    /// <param name="x">후보 X 좌표.</param>
+    /// <param name="y">후보 Y 좌표.</param>
+    /// <param name="color">후보 돌 색상.</param>
+    /// <returns>루트 후보 평가 점수.</returns>
+    private int EvaluateRootCandidateScore(int x, int y, StoneColor color)
+    {
+        int cacheKey = GetRootEvaluationCacheKey(x, y, color);
+        if (_rootEvaluationCache.TryGetValue(cacheKey, out int cachedScore))
+        {
+            _rootEvaluationCacheHitCount++;
+            return cachedScore;
+        }
+
+        // 루트 보드는 동일 탐색 안에서만 고정되므로 EvaluateMove 결과를 안전하게 재사용함.
+        _evaluateMoveCallCount++;
+        int score = _evaluator.EvaluateMove(_logic, _boardSize, x, y, color);
+        _rootEvaluationCache[cacheKey] = score;
+        return score;
+    }
+
+    /// <summary>
+    /// 루트 후보 평가 캐시에 사용할 좌표와 색상 기반 키를 생성함.
+    /// </summary>
+    /// <param name="x">후보 X 좌표.</param>
+    /// <param name="y">후보 Y 좌표.</param>
+    /// <param name="color">후보 돌 색상.</param>
+    /// <returns>캐시 키.</returns>
+    private int GetRootEvaluationCacheKey(int x, int y, StoneColor color)
+    {
+        return ((x * _boardSize) + y) * 8 + (int)color;
     }
 
     /// <summary>
@@ -1377,14 +1439,53 @@ public class MinimaxGomokuAI : IGomokuAI
     /// <returns>정렬에 사용할 경량 후보 점수.</returns>
     private int EvaluateLightweightCandidateScore(int x, int y, StoneColor color)
     {
+        _lightweightEvaluationCallCount++;
         ThreatAnalysis ownThreat = AnalyzeThreatAt(x, y, color);
         StoneColor opponentColor = color == StoneColor.White ? StoneColor.Black : StoneColor.White;
         ThreatAnalysis opponentThreat = AnalyzeThreatAt(x, y, opponentColor);
         int center = _boardSize / 2;
         int centerDistance = System.Math.Abs(x - center) + System.Math.Abs(y - center);
-        int score = ownThreat.Score + opponentThreat.Score / 2 - centerDistance;
+        int centerBonus = _boardSize - centerDistance;
+        int score = ownThreat.Score +
+                    GetThreatOrderingBonus(ownThreat) +
+                    opponentThreat.Score / 2 +
+                    GetThreatOrderingBonus(opponentThreat) / DefenseOrderingBonusDivisor +
+                    centerBonus;
 
         return color == StoneColor.White ? score : -score;
+    }
+
+    /// <summary>
+    /// 후보 정렬용 위협 형태 보너스를 계산함.
+    /// </summary>
+    /// <param name="analysis">후보 좌표의 위협 분석 결과.</param>
+    /// <returns>정렬 우선순위를 높일 보너스 점수.</returns>
+    private int GetThreatOrderingBonus(ThreatAnalysis analysis)
+    {
+        int bonus = 0;
+
+        if (analysis.OpenFourCount > 0)
+        {
+            bonus += OpenFourOrderingBonus;
+        }
+
+        if (analysis.BlockedFourCount > 0)
+        {
+            bonus += BlockedFourOrderingBonus;
+        }
+
+        if (analysis.OpenThreeCount > 0)
+        {
+            bonus += OpenThreeOrderingBonus * analysis.OpenThreeCount;
+        }
+
+        if (analysis.BlockedFourCount > 0 && analysis.OpenThreeCount > 0)
+        {
+            // 복합 위협은 단일 열린 3보다 먼저 탐색되도록 추가 보정함.
+            bonus += CompositeThreatOrderingBonus;
+        }
+
+        return bonus;
     }
 
     /// <summary>
@@ -1555,6 +1656,7 @@ public class MinimaxGomokuAI : IGomokuAI
         _maxSearchTimeSeconds = System.Math.Max(0d, maxSearchTimeSeconds);
         _searchStopwatch = _maxSearchTimeSeconds > 0d ? Stopwatch.StartNew() : null;
         _bestMoveSoFar = GomokuMove.Invalid("Best move not evaluated yet");
+        ResetSearchCachesAndStats();
     }
 
     /// <summary>
@@ -1562,8 +1664,71 @@ public class MinimaxGomokuAI : IGomokuAI
     /// </summary>
     private void EndSearch()
     {
+        _rootEvaluationCache.Clear();
         _searchStopwatch = null;
         _maxSearchTimeSeconds = 0d;
+    }
+
+    /// <summary>
+    /// 탐색 1회에만 유효한 캐시와 계측 값을 초기화함.
+    /// </summary>
+    private void ResetSearchCachesAndStats()
+    {
+        _rootEvaluationCache.Clear();
+        _generatedCandidateCallCount = 0;
+        _rootGeneratedCandidateCount = 0;
+        _searchNodeGeneratedCandidateCount = 0;
+        _threatScanGeneratedCandidateCount = 0;
+        _evaluateMoveCallCount = 0;
+        _rootEvaluationCacheHitCount = 0;
+        _lightweightEvaluationCallCount = 0;
+        _analyzeThreatCallCount = 0;
+        _minimaxNodeCount = 0;
+        _pruningCount = 0;
+    }
+
+    /// <summary>
+    /// 후보 생성 결과를 모드별로 계측함.
+    /// </summary>
+    /// <param name="mode">후보 생성 모드.</param>
+    /// <param name="candidateCount">최종 후보 개수.</param>
+    private void RecordGeneratedCandidates(CandidateGenerationMode mode, int candidateCount)
+    {
+        _generatedCandidateCallCount++;
+        switch (mode)
+        {
+            case CandidateGenerationMode.RootEvaluation:
+                _rootGeneratedCandidateCount += candidateCount;
+                break;
+            case CandidateGenerationMode.SearchNode:
+                _searchNodeGeneratedCandidateCount += candidateCount;
+                break;
+            case CandidateGenerationMode.ThreatScan:
+                _threatScanGeneratedCandidateCount += candidateCount;
+                break;
+        }
+    }
+
+    /// <summary>
+    /// 탐색 성능 계측 값을 조건부로 출력함.
+    /// </summary>
+    /// <param name="status">탐색 종료 상태.</param>
+    /// <param name="move">최종 선택된 후보 수.</param>
+    private void LogSearchStats(GomokuAISearchResultStatus status, GomokuMove move)
+    {
+        if (!EnableAiStatsLog)
+        {
+            return;
+        }
+
+        // ThreadPool 탐색 중 Unity 콘솔 API 의존을 피하기 위해 .NET 디버그 출력만 사용함.
+        System.Diagnostics.Debug.WriteLine(
+            $"[MinimaxGomokuAI] status={status}, move={FormatMove(move)}, elapsed={GetElapsedSearchSeconds():0.000}s, " +
+            $"candidateCalls={_generatedCandidateCallCount}, rootCandidates={_rootGeneratedCandidateCount}, " +
+            $"searchNodeCandidates={_searchNodeGeneratedCandidateCount}, threatScanCandidates={_threatScanGeneratedCandidateCount}, " +
+            $"evaluateMoveCalls={_evaluateMoveCallCount}, rootCacheHits={_rootEvaluationCacheHitCount}, " +
+            $"lightweightCalls={_lightweightEvaluationCallCount}, threatAnalyses={_analyzeThreatCallCount}, " +
+            $"nodes={_minimaxNodeCount}, prunes={_pruningCount}");
     }
 
     /// <summary>
