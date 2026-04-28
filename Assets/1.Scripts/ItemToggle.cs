@@ -5,9 +5,10 @@ public class ItemToggle : MonoBehaviour
 {
     public Toggle toggle;
     [SerializeField] private Image image;
-
-    public void Set(Sprite sprite)
+    [HideInInspector] public GomokuItem gomokuItem;
+    public void Set(GomokuItem gomokuItem)
     {
-        image.sprite = sprite;
+        this.gomokuItem = gomokuItem;
+        image.sprite = this.gomokuItem.sprite;
     }
 }
