@@ -6,11 +6,17 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using Utility;
 
-
+public enum GamePlayMode 
+{
+    Single,
+    AI,
+    Multi
+}
 public class App : SimulationSingleton<App>
 {
     private NetworkRunner _runner;
     private NetworkEvents _runnerEvent;
+    public GamePlayMode PlayMode;
     private new void Awake()
     {
         base.Awake();
