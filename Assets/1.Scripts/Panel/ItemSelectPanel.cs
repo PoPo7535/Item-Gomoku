@@ -1,13 +1,16 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class ItemSelectPanel : MonoBehaviour
 {
     [SerializeField] private CanvasGroup cg;
+    [SerializeField] private GomokuManager gomokuManager;
+    [SerializeField] private ItemPanel itemPanel;
     [SerializeField] private ItemToggle itemPrefab;
-    [SerializeField] private GomokuItem[] itemScriptableObjects;
+    private ItemToggle[] _toggles;
+    [SerializeField] private GomokuItem[] itemSO;
     [SerializeField] private Transform itemParent;
-    [SerializeField, ReadOnly] private Toggle[] toggles;
     [SerializeField] private Button okBtn;
     private const int SelectMaxCount = 3;
     private int _currentSelectCount = 0;
@@ -20,15 +23,31 @@ public class ItemSelectPanel : MonoBehaviour
     }
     public void ActiveCg(bool isActive) => cg.ActiveCG(isActive);
 
+    public GomokuItem[] GetSelectItem()
+    {
+        var items = new GomokuItem[SelectMaxCount];
+        var count = 0;
+        foreach (var itemToggle in _toggles)
+        {
+            if (itemToggle.toggle.isOn)
+            {
+                items[count] = itemToggle.gomokuItem;
+                itemToggle.toggle.isOn = false;
+                ++count;
+            }
+        }
+
+        return items;
+    }
+    
     private void IntItems()
     {
-        toggles = new Toggle[itemScriptableObjects.Length];
-        for (var i = 0; i < itemScriptableObjects.Length; i++)
+        _toggles = new ItemToggle[itemSO.Length];
+        for (var i = 0; i < itemSO.Length; i++)
         {
-            var itemScriptable = itemScriptableObjects[i];
             var itemToggle = Instantiate(itemPrefab, itemParent);
-            toggles[i] = itemToggle.toggle;
-            itemToggle.Set(itemScriptable.sprite);
+            _toggles[i] = itemToggle;
+            itemToggle.Set(itemSO[i]);
         }
     }
 
@@ -37,24 +56,30 @@ public class ItemSelectPanel : MonoBehaviour
         okBtn.onClick.AddListener(() =>
         {
             ActiveCg(false);
+            gomokuManager.StartGame();
+            var items = GetSelectItem();
+            items.Length.Log();
+            itemPanel.Set(items);
         });
     }
     
     private void SetToggleEvent()
     {
         okBtn.interactable = false;
-        foreach (var toggle in toggles)
+        foreach (var item in _toggles)
         {
-            toggle.onValueChanged.AddListener((isOn) =>
+            item.toggle.onValueChanged.AddListener((isOn) =>
             {
+                var block = item.toggle.colors;
+                block.normalColor = isOn ? new Color32(150, 150, 150, 255) : Color.white;
+                item.toggle.colors = block;
                 if (isOn)
                     ++_currentSelectCount;
                 else
                     --_currentSelectCount;
-                _currentSelectCount.Log();
                 if (_currentSelectCount > SelectMaxCount)
                 {
-                    toggle.isOn = false;
+                    item.toggle.isOn = false;
                     return;
                 }
                 ActiveInteractable(_currentSelectCount != SelectMaxCount);
@@ -65,14 +90,14 @@ public class ItemSelectPanel : MonoBehaviour
         {
             if (active)
             {
-                foreach (var toggle in toggles)
-                    toggle.interactable = true;
+                foreach (var item in _toggles)
+                    item.toggle.interactable = true;
                 okBtn.interactable = false;
             }
             else
             {
-                foreach (var toggle in toggles)
-                    toggle.interactable = toggle.isOn;
+                foreach (var item in _toggles)
+                    item.toggle.interactable = item.toggle.isOn;
                 okBtn.interactable = true;
             }
         }
