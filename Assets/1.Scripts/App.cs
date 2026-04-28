@@ -90,9 +90,9 @@ public class App : SimulationSingleton<App>
 
     public float TickTimerRemainingTime(TickTimer tickTimer)
     {
-        if (tickTimer.ExpiredOrNotRunning(Runner))
+        if (tickTimer.ExpiredOrNotRunning(_networkRunner))
             return 0f;
-        var time = tickTimer.RemainingTime(Runner);
+        var time = tickTimer.RemainingTime(_networkRunner);
         if (time == null) 
             return 0f;
         return (float)time;

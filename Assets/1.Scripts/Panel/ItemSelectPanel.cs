@@ -6,43 +6,68 @@ using UnityEngine.UI;
 public class ItemSelectPanel : NetworkBehaviour
 {
     [SerializeField] private CanvasGroup cg;
-    private ItemToggle[] _toggles;
     [Header("아이템")]
     [SerializeField] private ItemPanel itemPanel;
     [SerializeField] private GomokuItem[] itemSO;
     [SerializeField] private ItemToggle itemPrefab;
+    private ItemToggle[] _toggles;
     [SerializeField] private Transform itemParent;
+    private const int SelectMaxCount = 3;
+    private int _currentSelectCount = 0;
     
     [Header("타이머")]
     [SerializeField] private Slider timerSlider;
     [SerializeField] private TMP_Text timerText;
-    [Networked] public TickTimer Timer { get; set; }
+    [Networked] private TickTimer Timer { get; set; }
     public float timeLimit = 30f;
-    
+    [Networked, OnChangedRender(nameof(TryActiveCg))] private NetworkBool ClientIsSelect { get; set; }
+    [Networked, OnChangedRender(nameof(TryActiveCg))] private NetworkBool HostIsSelect { get; set; }
+    private void TryActiveCg()
+    {
+        if (ClientIsSelect && HostIsSelect)
+        {
+            ActiveCg(false);
+            GomokuManager.I.StartGame();
+        }
+    }
+
     [Space]
     [SerializeField] private Button okBtn;
-    private const int SelectMaxCount = 3;
-    private int _currentSelectCount = 0;
     
     private void Start()
     {
-        IntItems();
+        SetItems();
         SetToggleEvent();
         SetButtonEvent();
     }
+   
     public void LateUpdate()
     {
+        if (Timer.Expired(App.I.Runner))
+        {
+            CheckTimeOut();
+            return;
+        }
+
         var time = App.I.TickTimerRemainingTime(Timer);
         timerText.text = $"{time:0.0}";
-        timerSlider.value = time/ timeLimit;
+        timerSlider.value = time / timeLimit;
     }
-
     public void ActiveCg(bool isActive)
     {
+        if (isActive)
+        {
+            ClientIsSelect = false;
+            HostIsSelect = false;
+        }
         cg.ActiveCG(isActive);
         Timer = isActive ? TickTimer.CreateFromSeconds(App.I.Runner, timeLimit) : TickTimer.None;
     }
-
+    [Rpc(RpcSources.All,RpcTargets.All,HostMode = RpcHostMode.SourceIsHostPlayer)]
+    private void Rpc_Ready()
+    {
+        ClientIsSelect = true;
+    }
     private GomokuItem[] GetSelectItem()
     {
         var items = new GomokuItem[SelectMaxCount];
@@ -59,28 +84,23 @@ public class ItemSelectPanel : NetworkBehaviour
 
         return items;
     }
-    
-    private void IntItems()
-    {
-        _toggles = new ItemToggle[itemSO.Length];
-        for (var i = 0; i < itemSO.Length; i++)
-        {
-            var itemToggle = Instantiate(itemPrefab, itemParent);
-            _toggles[i] = itemToggle;
-            itemToggle.Set(itemSO[i]);
-        }
-    }
 
-    private void SetButtonEvent()
+    private void CheckTimeOut()
     {
-        okBtn.onClick.AddListener(() =>
+        var check = false;
+        while (_currentSelectCount < SelectMaxCount)
         {
-            ActiveCg(false);
-            GomokuManager.I.StartGame();
-            var items = GetSelectItem();
-            items.Length.Log();
-            itemPanel.Set(items);
-        });
+            var randomValue = Random.Range(0, _toggles.Length - 1);
+            if (false == _toggles[randomValue].toggle.isOn)
+            {
+                _toggles[randomValue].toggle.isOn = true;
+            }
+
+            check = true;
+        }
+
+        if (check)
+            okBtn.onClick.Invoke();
     }
     
     private void SetToggleEvent()
@@ -120,6 +140,30 @@ public class ItemSelectPanel : NetworkBehaviour
                     item.toggle.interactable = item.toggle.isOn;
                 okBtn.interactable = true;
             }
+        }
+    }
+    private void SetButtonEvent()
+    {
+        okBtn.onClick.AddListener(()=>
+        {
+            var items = GetSelectItem();
+            itemPanel.Set(items);
+            if (false == Object.HasStateAuthority)
+                Rpc_Ready();
+            else
+                HostIsSelect = true;
+            Timer = TickTimer.None;
+        });
+    }
+
+    private void SetItems()
+    {
+        _toggles = new ItemToggle[itemSO.Length];
+        for (var i = 0; i < itemSO.Length; i++)
+        {
+            var itemToggle = Instantiate(itemPrefab, itemParent);
+            _toggles[i] = itemToggle;
+            itemToggle.Set(itemSO[i]);
         }
     }
 }

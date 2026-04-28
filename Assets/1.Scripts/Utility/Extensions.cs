@@ -47,6 +47,11 @@ public static class Extensions
                 _complete?.Invoke();
             });
     }
+
+    public static bool IsActive(this CanvasGroup _cg)
+    {
+        return _cg.blocksRaycasts;
+    }
     public static string GenerateBase36(int length)
     {
         const string chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";

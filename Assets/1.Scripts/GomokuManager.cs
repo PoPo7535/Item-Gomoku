@@ -114,7 +114,7 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
         {
             if (GameViewImage == null || BoardCamera == null) return;
             var resultRay = CalculateRay();
-            PlaceStone(resultRay.pos, resultRay.x, resultRay.z);
+            PlaceStone(resultRay.pos, IsBlackTurn, resultRay.x, resultRay.z);
         }
 
         if (Input.GetMouseButtonDown(1)) 
@@ -125,12 +125,12 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
             if (IsBlackTurn)
             {
                 if (Object.HasStateAuthority)
-                    Rpc_PlaceStone(resultRay.pos, resultRay.x, resultRay.z);
+                    Rpc_PlaceStone(resultRay.pos, IsBlackTurn, resultRay.x, resultRay.z);
             }
             else
             {
                 if (false == Object.HasStateAuthority)
-                    Rpc_PlaceStone(resultRay.pos, resultRay.x, resultRay.z);
+                    Rpc_PlaceStone(resultRay.pos, IsBlackTurn, resultRay.x, resultRay.z);
             }
         }
 }
@@ -140,18 +140,18 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
         
     }
     [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
-    private void Rpc_PlaceStone(Vector3 pos, int x, int z)
+    private void Rpc_PlaceStone(Vector3 pos, bool isBlackTurn, int x, int z)
     {
-        PlaceStone(pos, x, z);
+        PlaceStone(pos, isBlackTurn, x, z);
     }
     /// <summary>
     /// 클릭한 위치에 돌 생성
     /// </summary>
-    private void PlaceStone(Vector3 pos, int x, int z)
+    private void PlaceStone(Vector3 pos, bool isBlackTurn, int x, int z)
     {
         if (GameViewImage == null || BoardCamera == null) return;
 
-        StoneColor currentColor = IsBlackTurn ? StoneColor.Black : StoneColor.White;
+        StoneColor currentColor = isBlackTurn ? StoneColor.Black : StoneColor.White;
 
         // 오목 로직 착수
         if (_logic.PlaceStone(x, z, currentColor))
@@ -162,11 +162,11 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
             UpdateAndShowLastPlace(x, z);
             //전체기록 저장
             string posText = $"{x},{z}";
-            if (IsBlackTurn) _blackHistory.Add(posText);
+            if (isBlackTurn) _blackHistory.Add(posText);
             else _whiteHistory.Add(posText);
 
             // 돌 생성
-            GameObject prefab = IsBlackTurn ? BlackStonePrefab : WhiteStonePrefab;
+            GameObject prefab = isBlackTurn ? BlackStonePrefab : WhiteStonePrefab;
             GameObject stone = Instantiate(prefab, spawnPos, Quaternion.identity);
             stone.tag = "Stone"; 
 
