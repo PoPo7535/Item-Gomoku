@@ -143,7 +143,7 @@ public class GomokuBoardView : MonoBehaviour
     /// </summary>
     public void ClearBoard()
     {
-        // 1. 배열을 통한 삭제 (빠름)
+        
         if (_stoneObjects != null)
         {
             for (int x = 0; x < LineCount; x++)
@@ -159,8 +159,31 @@ public class GomokuBoardView : MonoBehaviour
             }
         }
 
-        // 2. 혹시 모를 잔여 돌 삭제 (안전)
         GameObject[] stones = GameObject.FindGameObjectsWithTag("Stone");
         foreach (var s in stones) Destroy(s);
+    }
+    /// <summary>
+    /// 좌표 기반으로 돌 강제 착수
+    /// 예: 14,14 위치에 현재 턴 돌 놓기
+    ///  BoardView.PlaceStoneByCoord(14, 14, IsBlackTurn);
+    /// </summary>
+    public void PlaceStoneByCoord(int x, int z, bool isBlackTurn)
+    {
+        // 범위 체크만 여기서 해도 OK (선택)
+        if (x < 0 || x >= LineCount || z < 0 || z >= LineCount)
+        {
+            Debug.LogWarning($"잘못된 좌표: {x}, {z}");
+            return;
+        }
+
+        // 좌표 → 월드 위치 변환
+        Vector3 pos = new Vector3(
+            StartPos.x + (x * Interval),
+            StartPos.y,
+            StartPos.z + (z * Interval)
+        );
+
+        // 핵심: 로직으로 넘김 (여기서 모든 처리됨)
+        GomokuManager.I.PlaceStoneProcess(pos, x, z, isBlackTurn);
     }
 }

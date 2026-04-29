@@ -40,6 +40,7 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
             IsBlackTurn = true;
             TickTimer = TickTimer.None;
         }
+  
 
         ResetGame();
 
@@ -55,7 +56,7 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
 
         // 게임시작과 Spawned이거실행안댔으면 리턴
         if (!_isSpawned || !IsPlaying) return;
-   
+
 
         UpdateTurnTimer();
 
@@ -83,24 +84,28 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
             if (currentTurn == _myColor)
                 Rpc_RequestPlaceStone(result.pos, result.x, result.z, IsBlackTurn);
         }
-    }
 
+    }
+    /// <summary>
+    /// 네트워크용 착수 요청 
+    /// </summary>
     [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
     private void Rpc_RequestPlaceStone(Vector3 pos, int x, int z, bool isBlack)
     {
         PlaceStoneProcess(pos, x, z, isBlack);
     }
-
-    private void PlaceStoneProcess(Vector3 pos, int x, int z, bool isBlackStone)
-    {
+    /// <summary>
+    /// 최종 돌 착수
+    /// (로직 적용 → 렌더링 → 기록 저장 → 승리 체크 → 턴 변경)
+    /// </summary>
+    public void PlaceStoneProcess(Vector3 pos, int x, int z, bool isBlackStone)
+    {   
         if (pos == Vector3.zero) return;
         StoneColor color = isBlackStone ? StoneColor.Black : StoneColor.White;
 
         if (_logic.PlaceStone(x, z, color))
         {
-            BoardView.SpawnStone(x, z, isBlackStone, pos);
-
-            
+            BoardView.SpawnStone(x, z, isBlackStone, pos);            
             UpdateAndShowLastPlace(x, z, isBlackStone);
             string posText = $"{x},{z}";
             if (isBlackStone) _blackHistory.Add(posText);
@@ -151,7 +156,7 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
     }
 
     public void StartGame()
-    {
+    {   
         if (App.I.PlayMode == GamePlayMode.Multi && !Object.HasStateAuthority) return;
         IsPlaying = true;
         StartTurnTimer();
