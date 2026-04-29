@@ -186,4 +186,16 @@ public class GomokuBoardView : MonoBehaviour
         // 핵심: 로직으로 넘김 (여기서 모든 처리됨)
         GomokuManager.I.PlaceStoneProcess(pos, x, z, isBlackTurn);
     }
+    /// <summary>
+    /// 특정 좌표(x,z)에 있는 오브젝트 돌만 삭제
+    /// </summary>
+    public void RemoveStone(int x, int z)
+    {
+        if (_stoneObjects[x, z] != null)
+        {
+            Destroy(_stoneObjects[x, z]);
+            _stoneObjects[x, z] = null;
+        }
+    }
+
 }

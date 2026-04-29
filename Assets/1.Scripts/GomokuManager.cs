@@ -17,7 +17,7 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
     [Networked] public NetworkBool IsPlaying { get; set; }
     [Networked] public TickTimer TickTimer { get; set; }
 
-    private OmokuLogic _logic;
+    public OmokuLogic _logic;
 
     // 이 클라이언트가 조작할 수 있는 돌 색상 (멀티/싱글 구분용 로컬 값)
     private StoneColor _myColor; 
@@ -28,7 +28,7 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
     private readonly List<string> _whiteHistory = new(); 
     private int _lastX; 
     private int _lastZ; 
-
+    
     public override void Spawned()
     {
         _isSpawned = true;
@@ -40,10 +40,7 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
             IsBlackTurn = true;
             TickTimer = TickTimer.None;
         }
-  
-
         ResetGame();
-
         //내가 클릭해서 둘 수 있는 돌 색 호스트는 흑 클라는 백 색지정
         if (App.I.PlayMode == GamePlayMode.Multi)
             _myColor = Object.HasStateAuthority ? StoneColor.Black : StoneColor.White;
@@ -144,6 +141,17 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
         Debug.Log("백돌 기보: " + string.Join(" -> ", _whiteHistory));
     }
     /// <summary>
+    /// 특정 좌표 돌 삭제
+    /// </summary>
+    public void RemoveStoneProcess(int x, int z)
+    {
+        // 1. 로직 제거
+        _logic.Board[x, z].Color = StoneColor.None;
+
+        // 2. 뷰 제거
+        BoardView.RemoveStone(x, z);
+    }
+    /// <summary>
     /// 게임 초기화
     /// </summary>
     public void ResetGame()
@@ -193,4 +201,5 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
     {   //ExpiredOrNotRunning 이거 시간이 다댔는지 확인함 다되면 true
         if (Object.HasStateAuthority && TickTimer.ExpiredOrNotRunning(App.I.Runner))ChangeTurn(); 
     }
-}
+
+}   
