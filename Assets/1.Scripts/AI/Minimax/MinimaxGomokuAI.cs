@@ -2,85 +2,72 @@
 using System.Threading;
 using UnityEngine;
 using Stopwatch = System.Diagnostics.Stopwatch;
+using ThreatAnalysis = MinimaxThreatAnalysis;
 
 /// <summary>
 /// 오목 AI의 후보 생성과 minimax 의사결정을 담당함.
 /// </summary>
-public class MinimaxGomokuAI : IGomokuAI
+public partial class MinimaxGomokuAI : IGomokuAI
 {
+    // AI 디버그/성능 로그 출력 여부임.
     private const bool EnableAiDebugLog = false;
     private const bool EnableAiStatsLog = false;
 
-    /// <summary>
-    /// 특정 좌표의 위협 형태를 정리한 결과임.
-    /// </summary>
-    private struct ThreatAnalysis
-    {
-        public int Score;
-        public int OpenThreeCount;
-        public int BlockedFourCount;
-        public int OpenFourCount;
-    }
-
-    /// <summary>
-    /// 후보 생성 목적에 따라 평가 비용과 후보 상한을 구분함.
-    /// </summary>
-    private enum CandidateGenerationMode
-    {
-        RootEvaluation,
-        SearchNode,
-        ThreatScan
-    }
-
+    // 탐색 제한 시간을 넘겼을 때 내부 흐름만 빠져나오기 위한 예외임.
     private sealed class SearchTimeoutException : System.Exception
     {
     }
 
+    // 승패와 주요 위협 패턴의 기본 점수표임.
     private const int WinScore = 10000000;
     private const int OpenFourThreatScore = 900000;
     private const int BlockedFourThreatScore = 300000;
     private const int OpenThreeThreatScore = 50000;
+
+    // 후보 생성 범위와 모드별 후보 제한 개수임.
     private const int CandidateRadius = 2;
     private const int MaxCandidateCount = 18;
     private const int SearchNodeCandidateCount = 10;
     private const int ThreatScanCandidateCount = 24;
     private const int NormalPreciseRiskCandidateCount = 6;
     private const int HardPreciseRiskCandidateCount = 8;
+
+    // 상대의 복합 위협과 미래 루트를 피하기 위한 위험 보정값임.
     private const int BlockedFourOpenThreeRiskPenalty = 600000;
     private const int NormalStructuralRiskPenaltyBonus = 400000;
     private const int NormalFutureRouteRiskPenalty = 350000;
     private const int HardFutureRouteRiskPenalty = 550000;
     private const int NormalForcedComboResponsePenalty = 8000000;
     private const int HardForcedComboResponsePenalty = 9500000;
+
+    // 후보 정렬 시 위협 형태를 먼저 보게 만드는 ordering 보너스임.
     private const int OpenFourOrderingBonus = 800000;
     private const int BlockedFourOrderingBonus = 250000;
     private const int OpenThreeOrderingBonus = 45000;
     private const int CompositeThreatOrderingBonus = 180000;
     private const int DefenseOrderingBonusDivisor = 2;
 
+    // 오목 라인 판정에 사용하는 4방향 벡터임.
     private static readonly int[] DirectionX = { 1, 0, 1, 1 };
     private static readonly int[] DirectionY = { 0, 1, 1, -1 };
 
+    // 탐색이 참조하는 보드/평가기/위협 분석기와 색상 정보임.
     private readonly OmokuLogic _logic;
     private readonly GomokuBoardEvaluator _evaluator;
+    private readonly MinimaxThreatAnalyzer _threatAnalyzer;
     private readonly int _boardSize;
     private readonly StoneColor _aiColor;
     private readonly StoneColor _opponentColor;
+
+    // 탐색 1회마다 바뀌는 취소/시간 제한/best-so-far 상태임.
     private CancellationToken _cancellationToken;
     private Stopwatch _searchStopwatch;
     private double _maxSearchTimeSeconds;
     private GomokuMove _bestMoveSoFar;
+
+    // 루트 후보 평가 캐시와 탐색 성능 계측값임.
     private readonly Dictionary<int, int> _rootEvaluationCache = new Dictionary<int, int>();
-    private int _generatedCandidateCallCount;
-    private int _rootGeneratedCandidateCount;
-    private int _searchNodeGeneratedCandidateCount;
-    private int _threatScanGeneratedCandidateCount;
-    private int _evaluateMoveCallCount;
-    private int _rootEvaluationCacheHitCount;
-    private int _lightweightEvaluationCallCount;
-    private int _analyzeThreatCallCount;
-    private int _minimaxNodeCount;
-    private int _pruningCount;
+    private readonly MinimaxSearchStats _stats = new MinimaxSearchStats();
 
     /// <summary>
     /// 오목 AI를 생성함.
@@ -101,6 +88,7 @@ public class MinimaxGomokuAI : IGomokuAI
         _logic = logic;
         _boardSize = boardSize;
         _evaluator = new GomokuBoardEvaluator();
+        _threatAnalyzer = new MinimaxThreatAnalyzer(_logic, OpenFourThreatScore, BlockedFourThreatScore, OpenThreeThreatScore);
         _aiColor = aiColor == StoneColor.Black ? StoneColor.Black : StoneColor.White;
         _opponentColor = GetOppositeColor(_aiColor);
     }
@@ -400,7 +388,7 @@ public class MinimaxGomokuAI : IGomokuAI
     private int Minimax(int depth, bool isAiTurn, int alpha, int beta, GomokuMove lastMove, StoneColor lastColor)
     {
         ThrowIfCancellationRequested();
-        _minimaxNodeCount++;
+        _stats.MinimaxNodeCount++;
 
         if (lastMove.IsValid && _logic.CheckWin(lastMove.X, lastMove.Y, lastColor))
         {
@@ -457,7 +445,7 @@ public class MinimaxGomokuAI : IGomokuAI
 
             if (beta <= alpha)
             {
-                _pruningCount++;
+                _stats.PruningCount++;
                 // 더 나은 결과가 나올 수 없는 분기는 가지치기함.
                 break;
             }
@@ -495,7 +483,7 @@ public class MinimaxGomokuAI : IGomokuAI
 
             if (beta <= alpha)
             {
-                _pruningCount++;
+                _stats.PruningCount++;
                 // 플레이어가 더 나쁜 결과를 강제할 수 있는 분기는 중단함.
                 break;
             }
@@ -974,32 +962,8 @@ public class MinimaxGomokuAI : IGomokuAI
     /// </summary>
     private ThreatAnalysis AnalyzeThreatAt(int x, int y, StoneColor color)
     {
-        _analyzeThreatCallCount++;
-        ThreatAnalysis analysis = new ThreatAnalysis();
-
-        for (int i = 0; i < DirectionX.Length; i++)
-        {
-            int count = CountLine(x, y, DirectionX[i], DirectionY[i], color);
-            int openEnds = CountOpenEnds(x, y, DirectionX[i], DirectionY[i], color);
-
-            if (count >= 4 && openEnds == 2)
-            {
-                analysis.OpenFourCount++;
-                analysis.Score = System.Math.Max(analysis.Score, OpenFourThreatScore);
-            }
-            else if (count >= 4 && openEnds == 1)
-            {
-                analysis.BlockedFourCount++;
-                analysis.Score = System.Math.Max(analysis.Score, BlockedFourThreatScore);
-            }
-            else if (count == 3 && openEnds == 2)
-            {
-                analysis.OpenThreeCount++;
-                analysis.Score = System.Math.Max(analysis.Score, OpenThreeThreatScore);
-            }
-        }
-
-        return analysis;
+        _stats.AnalyzeThreatCallCount++;
+        return _threatAnalyzer.AnalyzeThreatAt(x, y, color);
     }
 
     /// <summary>
@@ -1087,194 +1051,6 @@ public class MinimaxGomokuAI : IGomokuAI
 
         // blocked four + open three 완성 루트를 끊는 핵심 칸은 한 단계 위협으로 승격함.
         return System.Math.Min(basePriority + 1, 4);
-    }
-
-    /// <summary>
-    /// Hard 위협 방어 후보 간 우선순위를 반환함.
-    /// </summary>
-    /// <param name="analysis">현재 위협 분석 결과.</param>
-    /// <param name="isHardDifficulty">Hard 난이도 여부.</param>
-    /// <returns>클수록 먼저 차단해야 하는 위협 우선순위.</returns>
-    private int GetHardThreatPriority(ThreatAnalysis analysis, bool isHardDifficulty)
-    {
-        if (!isHardDifficulty)
-        {
-            return 0;
-        }
-
-        // Hard에서는 복합 위협을 일반 막힌 4보다 먼저 차단해야 함.
-        if (analysis.BlockedFourCount > 0 && analysis.OpenThreeCount > 0)
-        {
-            return 4;
-        }
-
-        if (analysis.OpenFourCount > 0)
-        {
-            return 3;
-        }
-
-        if (analysis.BlockedFourCount > 0)
-        {
-            return 2;
-        }
-
-        return 1;
-    }
-
-    /// <summary>
-    /// AI 첫 착수 상황이면 플레이어 첫 돌 주변에서 opening 수를 선택함.
-    /// </summary>
-    /// <returns>opening 규칙으로 고른 첫 수, 없으면 Invalid.</returns>
-    private GomokuMove FindOpeningMove()
-    {
-        if (!IsAiFirstMoveState(out int playerX, out int playerY))
-        {
-            return GomokuMove.Invalid("Opening not applicable");
-        }
-
-        List<GomokuMove> nearbyMoves = CollectAdjacentOpeningMoves(playerX, playerY);
-        if (nearbyMoves.Count == 0)
-        {
-            return GomokuMove.Invalid("Opening candidates not found");
-        }
-
-        // 첫 수는 플레이어 첫 돌 근처에서만 고르되 evaluator로 가장 좋은 수를 선택함.
-        SortCandidates(nearbyMoves, _aiColor);
-        GomokuMove bestMove = nearbyMoves[0];
-        return new GomokuMove(bestMove.X, bestMove.Y, bestMove.Score, "Opening response");
-    }
-
-    /// <summary>
-    /// 현재 보드가 흑돌 1개, 백돌 0개인 AI 첫 착수 상태인지 확인함.
-    /// </summary>
-    /// <param name="playerX">플레이어 첫 돌 X 좌표.</param>
-    /// <param name="playerY">플레이어 첫 돌 Y 좌표.</param>
-    /// <returns>AI 첫 착수 상태 여부.</returns>
-    private bool IsAiFirstMoveState(out int playerX, out int playerY)
-    {
-        playerX = -1;
-        playerY = -1;
-        int opponentStoneCount = 0;
-        int aiStoneCount = 0;
-
-        for (int x = 0; x < _boardSize; x++)
-        {
-            ThrowIfCancellationRequested();
-            for (int y = 0; y < _boardSize; y++)
-            {
-                StoneData stoneData = _logic.Board[x, y];
-                if (stoneData.IsFake || stoneData.Color == StoneColor.None)
-                {
-                    continue;
-                }
-
-                if (stoneData.Color == _opponentColor)
-                {
-                    opponentStoneCount++;
-                    playerX = x;
-                    playerY = y;
-                    continue;
-                }
-
-                if (stoneData.Color == _aiColor)
-                {
-                    aiStoneCount++;
-                }
-            }
-        }
-
-        return opponentStoneCount == 1 && aiStoneCount == 0;
-    }
-
-    /// <summary>
-    /// 플레이어 첫 돌 주변 8방향의 유효 opening 후보를 수집함.
-    /// </summary>
-    /// <param name="originX">플레이어 첫 돌 X 좌표.</param>
-    /// <param name="originY">플레이어 첫 돌 Y 좌표.</param>
-    /// <returns>유효한 인접 opening 후보 목록.</returns>
-    private List<GomokuMove> CollectAdjacentOpeningMoves(int originX, int originY)
-    {
-        List<GomokuMove> nearbyMoves = new List<GomokuMove>();
-
-        for (int deltaX = -1; deltaX <= 1; deltaX++)
-        {
-            for (int deltaY = -1; deltaY <= 1; deltaY++)
-            {
-                if (deltaX == 0 && deltaY == 0)
-                {
-                    continue;
-                }
-
-                int targetX = originX + deltaX;
-                int targetY = originY + deltaY;
-                if (!IsLegalMove(targetX, targetY, _aiColor))
-                {
-                    continue;
-                }
-
-                _evaluateMoveCallCount++;
-                int score = _evaluator.EvaluateMove(_logic, _boardSize, targetX, targetY, _aiColor, _aiColor);
-                nearbyMoves.Add(new GomokuMove(targetX, targetY, score, "Opening neighbor"));
-            }
-        }
-
-        return nearbyMoves;
-    }
-
-    /// <summary>
-    /// 기존 돌 주변 반경 안에서 후보 수를 생성함.
-    /// </summary>
-    private List<GomokuMove> GenerateCandidates(StoneColor color, CandidateGenerationMode mode, bool limitCandidates)
-    {
-        List<GomokuMove> candidates = new List<GomokuMove>();
-        bool hasStone = false;
-
-        for (int x = 0; x < _boardSize; x++)
-        {
-            for (int y = 0; y < _boardSize; y++)
-            {
-                if (_logic.Board[x, y].Color != StoneColor.None)
-                {
-                    hasStone = true;
-                    AddNearbyCandidates(candidates, x, y, color, mode);
-                }
-            }
-        }
-
-        if (!hasStone)
-        {
-            int center = _boardSize / 2;
-            candidates.Add(new GomokuMove(center, center, 0, "Center fallback"));
-        }
-
-        SortCandidates(candidates, color);
-
-        int candidateLimit = GetCandidateLimit(mode);
-        if (limitCandidates && candidates.Count > candidateLimit)
-        {
-            candidates.RemoveRange(candidateLimit, candidates.Count - candidateLimit);
-        }
-
-        RecordGeneratedCandidates(mode, candidates.Count);
-        return candidates;
-    }
-
-    /// <summary>
-    /// 후보 생성 모드에 맞는 후보 상한을 반환함.
-    /// </summary>
-    /// <param name="mode">후보 생성 모드.</param>
-    /// <returns>후보 목록에 유지할 최대 개수.</returns>
-    private int GetCandidateLimit(CandidateGenerationMode mode)
-    {
-        switch (mode)
-        {
-            case CandidateGenerationMode.SearchNode:
-                return SearchNodeCandidateCount;
-            case CandidateGenerationMode.ThreatScan:
-                return ThreatScanCandidateCount;
-            default:
-                return MaxCandidateCount;
-        }
     }
 
     /// <summary>
@@ -1375,195 +1151,6 @@ public class MinimaxGomokuAI : IGomokuAI
     }
 
     /// <summary>
-    /// 특정 돌 주변의 빈 좌표를 후보 목록에 추가함.
-    /// </summary>
-    private void AddNearbyCandidates(List<GomokuMove> candidates, int originX, int originY, StoneColor color, CandidateGenerationMode mode)
-    {
-        for (int x = originX - CandidateRadius; x <= originX + CandidateRadius; x++)
-        {
-            ThrowIfCancellationRequested();
-            for (int y = originY - CandidateRadius; y <= originY + CandidateRadius; y++)
-            {
-                if (!IsLegalMove(x, y, color) || ContainsMove(candidates, x, y))
-                {
-                    continue;
-                }
-
-                int score = EvaluateCandidateScore(x, y, color, mode);
-                candidates.Add(new GomokuMove(x, y, score, "Nearby candidate"));
-            }
-        }
-    }
-
-    /// <summary>
-    /// 후보 생성 모드에 맞는 후보 점수를 계산함.
-    /// </summary>
-    /// <param name="x">후보 X 좌표.</param>
-    /// <param name="y">후보 Y 좌표.</param>
-    /// <param name="color">후보 돌 색상.</param>
-    /// <param name="mode">후보 생성 모드.</param>
-    /// <returns>정렬에 사용할 후보 점수.</returns>
-    private int EvaluateCandidateScore(int x, int y, StoneColor color, CandidateGenerationMode mode)
-    {
-        if (mode == CandidateGenerationMode.RootEvaluation)
-        {
-            return EvaluateRootCandidateScore(x, y, color);
-        }
-
-        return EvaluateLightweightCandidateScore(x, y, color);
-    }
-
-    /// <summary>
-    /// 루트 보드 기준 후보 평가를 탐색 1회 동안만 캐싱해 중복 전체 평가를 줄임.
-    /// </summary>
-    /// <param name="x">후보 X 좌표.</param>
-    /// <param name="y">후보 Y 좌표.</param>
-    /// <param name="color">후보 돌 색상.</param>
-    /// <returns>루트 후보 평가 점수.</returns>
-    private int EvaluateRootCandidateScore(int x, int y, StoneColor color)
-    {
-        int cacheKey = GetRootEvaluationCacheKey(x, y, color);
-        if (_rootEvaluationCache.TryGetValue(cacheKey, out int cachedScore))
-        {
-            _rootEvaluationCacheHitCount++;
-            return cachedScore;
-        }
-
-        // 루트 보드는 동일 탐색 안에서만 고정되므로 EvaluateMove 결과를 안전하게 재사용함.
-        _evaluateMoveCallCount++;
-        int score = _evaluator.EvaluateMove(_logic, _boardSize, x, y, color, _aiColor);
-        _rootEvaluationCache[cacheKey] = score;
-        return score;
-    }
-
-    /// <summary>
-    /// 루트 후보 평가 캐시에 사용할 좌표와 색상 기반 키를 생성함.
-    /// </summary>
-    /// <param name="x">후보 X 좌표.</param>
-    /// <param name="y">후보 Y 좌표.</param>
-    /// <param name="color">후보 돌 색상.</param>
-    /// <returns>캐시 키.</returns>
-    private int GetRootEvaluationCacheKey(int x, int y, StoneColor color)
-    {
-        return ((x * _boardSize) + y) * 8 + (int)color;
-    }
-
-    /// <summary>
-    /// 전체 보드 평가 없이 지역 위협과 중앙 근접도만으로 후보 점수를 계산함.
-    /// </summary>
-    /// <param name="x">후보 X 좌표.</param>
-    /// <param name="y">후보 Y 좌표.</param>
-    /// <param name="color">후보 돌 색상.</param>
-    /// <returns>정렬에 사용할 경량 후보 점수.</returns>
-    private int EvaluateLightweightCandidateScore(int x, int y, StoneColor color)
-    {
-        _lightweightEvaluationCallCount++;
-        ThreatAnalysis ownThreat = AnalyzeThreatAt(x, y, color);
-        StoneColor opponentColor = GetOppositeColor(color);
-        ThreatAnalysis opponentThreat = AnalyzeThreatAt(x, y, opponentColor);
-        int center = _boardSize / 2;
-        int centerDistance = System.Math.Abs(x - center) + System.Math.Abs(y - center);
-        int centerBonus = _boardSize - centerDistance;
-        int score = ownThreat.Score +
-                    GetThreatOrderingBonus(ownThreat) +
-                    opponentThreat.Score / 2 +
-                    GetThreatOrderingBonus(opponentThreat) / DefenseOrderingBonusDivisor +
-                    centerBonus;
-
-        return color == _aiColor ? score : -score;
-    }
-
-    /// <summary>
-    /// 후보 정렬용 위협 형태 보너스를 계산함.
-    /// </summary>
-    /// <param name="analysis">후보 좌표의 위협 분석 결과.</param>
-    /// <returns>정렬 우선순위를 높일 보너스 점수.</returns>
-    private int GetThreatOrderingBonus(ThreatAnalysis analysis)
-    {
-        int bonus = 0;
-
-        if (analysis.OpenFourCount > 0)
-        {
-            bonus += OpenFourOrderingBonus;
-        }
-
-        if (analysis.BlockedFourCount > 0)
-        {
-            bonus += BlockedFourOrderingBonus;
-        }
-
-        if (analysis.OpenThreeCount > 0)
-        {
-            bonus += OpenThreeOrderingBonus * analysis.OpenThreeCount;
-        }
-
-        if (analysis.BlockedFourCount > 0 && analysis.OpenThreeCount > 0)
-        {
-            // 복합 위협은 단일 열린 3보다 먼저 탐색되도록 추가 보정함.
-            bonus += CompositeThreatOrderingBonus;
-        }
-
-        return bonus;
-    }
-
-    /// <summary>
-    /// 특정 방향 양쪽의 연속 돌 개수를 합산함.
-    /// </summary>
-    private int CountLine(int x, int y, int directionX, int directionY, StoneColor color)
-    {
-        return 1 +
-               CountSameColor(x, y, directionX, directionY, color) +
-               CountSameColor(x, y, -directionX, -directionY, color);
-    }
-
-    /// <summary>
-    /// 특정 방향 양쪽 끝의 열린 상태 개수를 계산함.
-    /// </summary>
-    private int CountOpenEnds(int x, int y, int directionX, int directionY, StoneColor color)
-    {
-        int forwardCount = CountSameColor(x, y, directionX, directionY, color);
-        int backwardCount = CountSameColor(x, y, -directionX, -directionY, color);
-        int openEnds = 0;
-
-        int forwardX = x + (forwardCount + 1) * directionX;
-        int forwardY = y + (forwardCount + 1) * directionY;
-        if (IsEmpty(forwardX, forwardY))
-        {
-            openEnds++;
-        }
-
-        int backwardX = x - (backwardCount + 1) * directionX;
-        int backwardY = y - (backwardCount + 1) * directionY;
-        if (IsEmpty(backwardX, backwardY))
-        {
-            openEnds++;
-        }
-
-        return openEnds;
-    }
-
-    /// <summary>
-    /// 특정 방향으로 같은 색 돌이 몇 개 이어지는지 계산함.
-    /// </summary>
-    private int CountSameColor(int x, int y, int directionX, int directionY, StoneColor color)
-    {
-        int count = 0;
-        int currentX = x + directionX;
-        int currentY = y + directionY;
-
-        while (_logic.IsInside(currentX, currentY) &&
-               _logic.Board[currentX, currentY].Color == color &&
-               !_logic.Board[currentX, currentY].IsFake)
-        {
-            count++;
-            currentX += directionX;
-            currentY += directionY;
-        }
-
-        return count;
-    }
-
-    /// <summary>
     /// 지정 좌표가 실제 상대 돌인지 확인함.
     /// </summary>
     /// <param name="x">검사할 X 좌표.</param>
@@ -1581,396 +1168,7 @@ public class MinimaxGomokuAI : IGomokuAI
     /// </summary>
     private bool IsEmpty(int x, int y)
     {
-        return _logic.IsInside(x, y) && _logic.Board[x, y].Color == StoneColor.None;
+        return _threatAnalyzer.IsEmpty(x, y);
     }
-
-    /// <summary>
-    /// 후보 수를 평가 점수와 색상 역할 기준으로 정렬함.
-    /// </summary>
-    private void SortCandidates(List<GomokuMove> candidates, StoneColor color)
-    {
-        if (color == _opponentColor)
-        {
-            // 백돌 AI 평가 기준에서 흑돌 응수는 낮은 점수가 더 위협적인 수임.
-            candidates.Sort((left, right) => left.Score.CompareTo(right.Score));
-            return;
-        }
-
-        candidates.Sort((left, right) => right.Score.CompareTo(left.Score));
-    }
-
-    /// <summary>
-    /// 후보 목록에 같은 좌표가 이미 있는지 확인함.
-    /// </summary>
-    private bool ContainsMove(List<GomokuMove> candidates, int x, int y)
-    {
-        for (int i = 0; i < candidates.Count; i++)
-        {
-            if (candidates[i].X == x && candidates[i].Y == y)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// 해당 색상이 지정 좌표에 둘 수 있는지 확인함.
-    /// </summary>
-    private bool IsLegalMove(int x, int y, StoneColor color)
-    {
-        if (!_logic.IsInside(x, y) || _logic.Board[x, y].Color != StoneColor.None)
-        {
-            return false;
-        }
-
-        if (color == StoneColor.Black && IsForbiddenAfterTemporaryPlacement(x, y, color))
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// 흑돌을 실제 착수와 같은 상태로 임시 배치한 뒤 금수 여부를 확인함.
-    /// </summary>
-    /// <param name="x">검사할 X 좌표.</param>
-    /// <param name="y">검사할 Y 좌표.</param>
-    /// <param name="color">검사할 돌 색상.</param>
-    /// <returns>임시 착수 후 금수 여부.</returns>
-    private bool IsForbiddenAfterTemporaryPlacement(int x, int y, StoneColor color)
-    {
-        if (color != StoneColor.Black)
-        {
-            return false;
-        }
-
-        // OmokuLogic.PlaceStone과 같은 순서로 둔 뒤 금수 여부를 검사함.
-        PlaceTemporary(x, y, color);
-        try
-        {
-            if (_logic.CheckWin(x, y, color))
-            {
-                return false;
-            }
-
-            return _logic.IsForbidden(x, y, color);
-        }
-        finally
-        {
-            RestoreTemporary(x, y);
-        }
-    }
-
-    /// <summary>
-    /// 지정한 돌 색상의 반대 색상을 반환함.
-    /// </summary>
-    /// <param name="color">기준 돌 색상.</param>
-    /// <returns>반대 돌 색상.</returns>
-    private static StoneColor GetOppositeColor(StoneColor color)
-    {
-        return color == StoneColor.Black ? StoneColor.White : StoneColor.Black;
-    }
-
-    /// <summary>
-    /// 탐색용 임시 돌을 보드에 배치함.
-    /// </summary>
-    private void PlaceTemporary(int x, int y, StoneColor color)
-    {
-        _logic.Board[x, y] = new StoneData { Color = color, IsFake = false };
-    }
-
-    /// <summary>
-    /// 탐색용 임시 돌을 보드에서 제거함.
-    /// </summary>
-    private void RestoreTemporary(int x, int y)
-    {
-        _logic.Board[x, y] = new StoneData { Color = StoneColor.None, IsFake = false };
-    }
-
-    /// <summary>
-    /// AI 디버그 로그를 조건부로 출력함.
-    /// </summary>
-    /// <param name="message">출력할 로그 메시지.</param>
-    private void LogAiDebug(string message)
-    {
-        if (!EnableAiDebugLog)
-        {
-            return;
-        }
-
-        Debug.Log($"[MinimaxGomokuAI] {message}");
-    }
-
-    /// <summary>
-    /// AI 탐색 상태와 제한 시간을 초기화함.
-    /// </summary>
-    /// <param name="cancellationToken">외부 탐색 취소 토큰.</param>
-    /// <param name="maxSearchTimeSeconds">탐색 시간 제한 초 단위 값.</param>
-    private void BeginSearch(CancellationToken cancellationToken, double maxSearchTimeSeconds)
-    {
-        _cancellationToken = cancellationToken;
-        _maxSearchTimeSeconds = System.Math.Max(0d, maxSearchTimeSeconds);
-        _searchStopwatch = _maxSearchTimeSeconds > 0d ? Stopwatch.StartNew() : null;
-        _bestMoveSoFar = GomokuMove.Invalid("Best move not evaluated yet");
-        ResetSearchCachesAndStats();
-    }
-
-    /// <summary>
-    /// AI 탐색 상태를 정리함.
-    /// </summary>
-    private void EndSearch()
-    {
-        _rootEvaluationCache.Clear();
-        _searchStopwatch = null;
-        _maxSearchTimeSeconds = 0d;
-    }
-
-    /// <summary>
-    /// 탐색 1회에만 유효한 캐시와 계측 값을 초기화함.
-    /// </summary>
-    private void ResetSearchCachesAndStats()
-    {
-        _rootEvaluationCache.Clear();
-        _generatedCandidateCallCount = 0;
-        _rootGeneratedCandidateCount = 0;
-        _searchNodeGeneratedCandidateCount = 0;
-        _threatScanGeneratedCandidateCount = 0;
-        _evaluateMoveCallCount = 0;
-        _rootEvaluationCacheHitCount = 0;
-        _lightweightEvaluationCallCount = 0;
-        _analyzeThreatCallCount = 0;
-        _minimaxNodeCount = 0;
-        _pruningCount = 0;
-    }
-
-    /// <summary>
-    /// 후보 생성 결과를 모드별로 계측함.
-    /// </summary>
-    /// <param name="mode">후보 생성 모드.</param>
-    /// <param name="candidateCount">최종 후보 개수.</param>
-    private void RecordGeneratedCandidates(CandidateGenerationMode mode, int candidateCount)
-    {
-        _generatedCandidateCallCount++;
-        switch (mode)
-        {
-            case CandidateGenerationMode.RootEvaluation:
-                _rootGeneratedCandidateCount += candidateCount;
-                break;
-            case CandidateGenerationMode.SearchNode:
-                _searchNodeGeneratedCandidateCount += candidateCount;
-                break;
-            case CandidateGenerationMode.ThreatScan:
-                _threatScanGeneratedCandidateCount += candidateCount;
-                break;
-        }
-    }
-
-    /// <summary>
-    /// 탐색 성능 계측 값을 조건부로 출력함.
-    /// </summary>
-    /// <param name="status">탐색 종료 상태.</param>
-    /// <param name="move">최종 선택된 후보 수.</param>
-    private void LogSearchStats(GomokuAISearchResultStatus status, GomokuMove move)
-    {
-        if (!EnableAiStatsLog)
-        {
-            return;
-        }
-
-        // ThreadPool 탐색 중 Unity 콘솔 API 의존을 피하기 위해 .NET 디버그 출력만 사용함.
-        System.Diagnostics.Debug.WriteLine(
-            $"[MinimaxGomokuAI] status={status}, move={FormatMove(move)}, elapsed={GetElapsedSearchSeconds():0.000}s, " +
-            $"candidateCalls={_generatedCandidateCallCount}, rootCandidates={_rootGeneratedCandidateCount}, " +
-            $"searchNodeCandidates={_searchNodeGeneratedCandidateCount}, threatScanCandidates={_threatScanGeneratedCandidateCount}, " +
-            $"evaluateMoveCalls={_evaluateMoveCallCount}, rootCacheHits={_rootEvaluationCacheHitCount}, " +
-            $"lightweightCalls={_lightweightEvaluationCallCount}, threatAnalyses={_analyzeThreatCallCount}, " +
-            $"nodes={_minimaxNodeCount}, prunes={_pruningCount}");
-    }
-
-    /// <summary>
-    /// 현재 탐색에 걸린 시간을 초 단위로 반환함.
-    /// </summary>
-    /// <returns>탐색 경과 시간.</returns>
-    private double GetElapsedSearchSeconds()
-    {
-        return _searchStopwatch != null ? _searchStopwatch.Elapsed.TotalSeconds : 0d;
-    }
-
-    /// <summary>
-    /// 시간 초과 시 사용할 best-so-far 또는 안전한 fallback 후보를 반환함.
-    /// </summary>
-    /// <returns>시간 초과 시 적용할 착수 후보.</returns>
-    private GomokuMove GetBestMoveSoFarOrFallback()
-    {
-        if (_bestMoveSoFar.IsValid && IsLegalMove(_bestMoveSoFar.X, _bestMoveSoFar.Y, _aiColor))
-        {
-            return _bestMoveSoFar;
-        }
-
-        return FindFallbackMove();
-    }
-
-    /// <summary>
-    /// 현재 AI 탐색 취소 요청이 들어왔는지 확인함.
-    /// </summary>
-    private void ThrowIfCancellationRequested()
-    {
-        _cancellationToken.ThrowIfCancellationRequested();
-        if (_searchStopwatch != null && _searchStopwatch.Elapsed.TotalSeconds >= _maxSearchTimeSeconds)
-        {
-            throw new SearchTimeoutException();
-        }
-    }
-
-    /// <summary>
-    /// 단일 후보 수를 로그용 문자열로 변환함.
-    /// </summary>
-    /// <param name="move">변환할 후보 수.</param>
-    /// <returns>좌표와 점수, 사유를 포함한 문자열.</returns>
-    private string FormatMove(GomokuMove move)
-    {
-        return $"({move.X},{move.Y}) score={move.Score} reason={move.Reason}";
-    }
-
-    /// <summary>
-    /// 후보 목록을 로그용 문자열로 변환함.
-    /// </summary>
-    /// <param name="moves">변환할 후보 목록.</param>
-    /// <returns>후보 목록 요약 문자열.</returns>
-    private string FormatCandidateList(List<GomokuMove> moves)
-    {
-        if (moves == null || moves.Count == 0)
-        {
-            return "[]";
-        }
-
-        List<string> formattedMoves = new List<string>(moves.Count);
-        for (int i = 0; i < moves.Count; i++)
-        {
-            formattedMoves.Add(FormatMove(moves[i]));
-        }
-
-        return string.Join(" | ", formattedMoves);
-    }
-
-    /// <summary>
-    /// 후보가 없을 때 사용할 중앙 또는 첫 빈 좌표를 반환함.
-    /// </summary>
-    private GomokuMove FindFallbackMove()
-    {
-        int center = _boardSize / 2;
-        if (IsLegalMove(center, center, _aiColor))
-        {
-            return new GomokuMove(center, center, 0, "Center fallback");
-        }
-
-        for (int x = 0; x < _boardSize; x++)
-        {
-            for (int y = 0; y < _boardSize; y++)
-            {
-                if (IsLegalMove(x, y, _aiColor))
-                {
-                    return new GomokuMove(x, y, 0, "First empty fallback");
-                }
-            }
-        }
-
-        return GomokuMove.Invalid("No empty position");
-    }
-
-    /// <summary>
-    /// 상대의 미래 복합 위협 완성점을 직접 막을 AI 수를 찾음.
-    /// </summary>
-    /// <returns>복합 위협 차단 수, 없으면 Invalid.</returns>
-    private GomokuMove FindPlayerFutureComboBlockMove()
-{
-    // 위협 스캔용 상위 후보만 검사해 미래 복합 위협 완성점을 찾음.
-    List<GomokuMove> playerFinishers = GenerateCandidates(_opponentColor, CandidateGenerationMode.ThreatScan, true);
-
-    GomokuMove bestBlock = GomokuMove.Invalid("Player future combo block not found");
-    int bestThreatScore = 0;
-
-    for (int i = 0; i < playerFinishers.Count; i++)
-    {
-        GomokuMove finisher = playerFinishers[i];
-
-        // 플레이어가 실제로 둘 수 있는 자리인지 확인
-        if (!IsLegalMove(finisher.X, finisher.Y, _opponentColor))
-        {
-            continue;
-        }
-
-        int threatScore = 0;
-
-        // 1️⃣ 막힌4 + 열린3 복합 위협 검사
-        if (_evaluator.CreatesBlockedFourOpenThreeThreat(
-            _logic,
-            _boardSize,
-            finisher.X,
-            finisher.Y,
-            _opponentColor))
-        {
-            threatScore = System.Math.Max(threatScore, BlockedFourOpenThreeRiskPenalty);
-        }
-
-        // 2️⃣ 실제 패턴 분석 (열린4, 열린3 등)
-        PlaceTemporary(finisher.X, finisher.Y, _opponentColor);
-        try
-        {
-            ThreatAnalysis analysis = AnalyzeThreatAt(finisher.X, finisher.Y, _opponentColor);
-
-            if (analysis.OpenFourCount > 0)
-            {
-                threatScore = System.Math.Max(threatScore, OpenFourThreatScore);
-            }
-            else if (analysis.BlockedFourCount > 0 && analysis.OpenThreeCount > 0)
-            {
-                threatScore = System.Math.Max(threatScore, BlockedFourOpenThreeRiskPenalty);
-            }
-            else if (analysis.BlockedFourCount > 0)
-            {
-                threatScore = System.Math.Max(threatScore, BlockedFourThreatScore);
-            }
-            else if (analysis.OpenThreeCount >= 2)
-            {
-                threatScore = System.Math.Max(threatScore, BlockedFourOpenThreeRiskPenalty);
-            }
-        }
-        finally
-        {
-            // 반드시 원상복구
-            RestoreTemporary(finisher.X, finisher.Y);
-        }
-
-        // 위협이 없으면 패스
-        if (threatScore <= 0)
-        {
-            continue;
-        }
-
-        // AI가 그 칸에 둘 수 있어야 실제 방어 가능
-        if (!IsLegalMove(finisher.X, finisher.Y, _aiColor))
-        {
-            continue;
-        }
-
-        // 가장 위험한 칸 선택
-        if (!bestBlock.IsValid || threatScore > bestThreatScore)
-        {
-            bestThreatScore = threatScore;
-
-            bestBlock = new GomokuMove(
-                finisher.X,
-                finisher.Y,
-                threatScore,
-                "Block player future combo finisher");
-        }
-    }
-
-    return bestBlock;
-}
 
 }
