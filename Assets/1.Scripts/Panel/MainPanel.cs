@@ -4,19 +4,31 @@ using UnityEngine.UI;
 //
 public class MainPanel : MonoBehaviour
 {
-    public Button _button1;
-    public Button _button2;
+    public Button singlePlayBtn;
+    public Button makeRoomBtn;
+    public Button findRoomBtn;
+    public Button fastGameBtn;
 
     private void Awake()
     {
-        _button1.onClick.AddListener(() =>
+        singlePlayBtn.onClick.AddListener(() =>
         {
-            App.I.CreateRoom(GameMode.Single);
+            App.I.CreateRoom(GameMode.Single, true);
             App.I.PlayMode = GamePlayMode.Single;
         });
-        _button2.onClick.AddListener(() =>
+        makeRoomBtn.onClick.AddListener(() =>
         {
-            App.I.CreateRoom(GameMode.AutoHostOrClient);
+            App.I.CreateRoom(GameMode.Host, false);
+            App.I.PlayMode = GamePlayMode.Multi;
+        });
+        findRoomBtn.onClick.AddListener(() =>
+        {
+            App.I.JoinRoom("1");
+            App.I.PlayMode = GamePlayMode.Multi;
+        });
+        fastGameBtn.onClick.AddListener(() =>
+        {
+            App.I.CreateRoom(GameMode.AutoHostOrClient, true);
             App.I.PlayMode = GamePlayMode.Multi;
         });
     }

@@ -32,13 +32,9 @@ public class App : SimulationSingleton<App>
         });
     }
 
-    public void FastRoom()
+    public void CreateRoom(GameMode gameMode, bool isVisible)
     {
-        CreateGame(GameMode.AutoHostOrClient, null, true);
-    }
-    public void CreateRoom(GameMode gameMode)
-    {
-        CreateGame(gameMode, null, true);
+        CreateGame(gameMode, null, isVisible);
     }
     public void JoinRoom(string roomCode)
     {
