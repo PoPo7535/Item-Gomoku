@@ -122,7 +122,9 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
         }
     }
 
-    // --- 기록 관련 함수들 ---
+    /// <summary>
+    /// 최근 기록 보기
+    /// </summary>
     public void UpdateAndShowLastPlace(int x, int z, bool isBlack)
     {
         _lastX = x; _lastZ = z;
@@ -131,12 +133,17 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
         Debug.Log($"<color=orange>[턴 교체]</color> {nextPlayer} 차례 (상대 {lastPlayer}의 마지막 수: {x}, {z})");
     }
 
+    /// <summary>
+    /// 전체 기록 보기
+    /// </summary>
     public void ShowFullLog()
     {
         Debug.Log("흑돌 기보: " + string.Join(" -> ", _blackHistory));
         Debug.Log("백돌 기보: " + string.Join(" -> ", _whiteHistory));
     }
-
+    /// <summary>
+    /// 게임 초기화
+    /// </summary>
     public void ResetGame()
     {
         if (Object.HasStateAuthority)
@@ -154,23 +161,33 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
         BoardView.UpdateGhostStone(Vector3.zero, false, false);
         Debug.Log("게임 리셋 및 기록 초기화 완료");
     }
-
+    /// <summary>
+    /// 게임 시작 UI 버튼용
+    /// </summary>
     public void StartGame()
     {   
         if (App.I.PlayMode == GamePlayMode.Multi && !Object.HasStateAuthority) return;
         IsPlaying = true;
         StartTurnTimer();
     }
-
+    /// <summary>
+    /// 턴변경
+    /// </summary>
     public void ChangeTurn() 
     { 
         IsBlackTurn = !IsBlackTurn; 
         StartTurnTimer(); 
     }
+    /// <summary>
+    /// 타이머 시작
+    /// </summary>
     private void StartTurnTimer() 
     {   //CreateFromSeconds 시간생성 TurnTimeLimit 이거만큼
         if (Object.HasStateAuthority)TickTimer = TickTimer.CreateFromSeconds(App.I.Runner, TurnTimeLimit); 
     }
+    /// <summary>
+    /// 타이머 종료
+    /// </summary>
     private void UpdateTurnTimer() 
     {   //ExpiredOrNotRunning 이거 시간이 다댔는지 확인함 다되면 true
         if (Object.HasStateAuthority && TickTimer.ExpiredOrNotRunning(App.I.Runner))ChangeTurn(); 
