@@ -26,9 +26,9 @@ public class App : SimulationSingleton<App>
         _runnerEvent.OnShutdown.AddListener((r, response) =>
         {
             SceneManager.LoadScene(0);
-            PopUp.I.Open(
+            PopUpPanel.I.Open(
                 response.ToString(), 
-                () => { PopUp.I.Close();}, "확인");
+                () => { PopUpPanel.I.Close();}, "확인");
         });
     }
 
@@ -46,7 +46,7 @@ public class App : SimulationSingleton<App>
     }
     private async void CreateGame(GameMode gameMode, string roomCode, bool isVisible)
     {
-        PopUp.I.Open("연결 중 . . .");
+        PopUpPanel.I.Open("연결 중 . . .");
         
         var startTask = StartGame(
             gameMode,
@@ -55,12 +55,12 @@ public class App : SimulationSingleton<App>
         
         await startTask;
         if (startTask.Result.Ok)
-            PopUp.I.Close();
+            PopUpPanel.I.Close();
         else
         {
-            PopUp.I.Open(
+            PopUpPanel.I.Open(
                 startTask.Result.ErrorMessage, 
-                () => { PopUp.I.Close();}, "확인");
+                () => { PopUpPanel.I.Close();}, "확인");
         }
     }
 
