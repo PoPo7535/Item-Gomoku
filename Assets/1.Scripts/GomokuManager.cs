@@ -98,6 +98,7 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
     {
         if (false == isSpawned)
             return;
+
         if (!IsPlaying) 
         {
             // 게임 중이 아닐 땐 고스트 끄기
@@ -105,7 +106,9 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
             WhiteGhostObj.SetActive(false);
             return;
         }
+
         UpdateTurnTimer();
+        
         //돌 미리보기
         var result = CalculateRay();
         HandleGhostStone(result);
