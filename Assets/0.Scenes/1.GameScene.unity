@@ -2859,11 +2859,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6ba90282ea56ed9498d806b7fd2a22cd, type: 3}
---- !u!1 &997951397 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 4744781026894999395, guid: 6ba90282ea56ed9498d806b7fd2a22cd, type: 3}
-  m_PrefabInstance: {fileID: 997951396}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &997951398 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5373649332709275097, guid: 6ba90282ea56ed9498d806b7fd2a22cd, type: 3}
@@ -4088,6 +4083,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1488261170}
+  - component: {fileID: 1488261171}
   m_Layer: 0
   m_Name: GomokuBoardView
   m_TagString: Untagged
@@ -4110,6 +4106,28 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1488261171
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1488261169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfa2a6bef545157419d57ab015036da0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GomokuBoardView
+  BlackStonePrefab: {fileID: 0}
+  WhiteStonePrefab: {fileID: 0}
+  BlackGhostObj: {fileID: 0}
+  WhiteGhostObj: {fileID: 0}
+  GameViewImage: {fileID: 0}
+  BoardCamera: {fileID: 0}
+  LineCount: 15
+  Interval: 0
+  StartPos: {x: 0, y: 0, z: 0}
+  GeneratedPoints: {fileID: 898107167}
 --- !u!1 &1516219335
 GameObject:
   m_ObjectHideFlags: 0
@@ -4611,11 +4629,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 578e8ed6fbc564c47bf4c478aa076bfc, type: 3}
---- !u!1 &1614458920 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 6137473338564080170, guid: 578e8ed6fbc564c47bf4c478aa076bfc, type: 3}
-  m_PrefabInstance: {fileID: 1614458919}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &1614458921 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6802546324789700752, guid: 578e8ed6fbc564c47bf4c478aa076bfc, type: 3}
@@ -5217,20 +5230,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 233d7816bc218ae4486cbd0b52842f22, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GomokuManager
-  BlackStonePrefab: {fileID: 1471949938043805457, guid: 87303f3d373acae45afc767e87e217d6, type: 3}
-  WhiteStonePrefab: {fileID: 8892691702012031676, guid: 8114b2505a1af144bbc2602a5b0a4797, type: 3}
-  BlackGhostObj: {fileID: 1614458920}
-  WhiteGhostObj: {fileID: 997951397}
-  GameViewImage: {fileID: 1614487142}
-  BoardCamera: {fileID: 2146248141}
-  LineCount: 15
-  Interval: 0.57
-  StartPos: {x: -4, y: 2.5, z: 26}
-  GeneratedPoints: {fileID: 898107167}
+  BoardView: {fileID: 1488261171}
+  TurnTimeLimit: 10
   _IsBlackTurn:
     _value: 1
-  TurnTimeLimit: 10
-  isSpawned: 0
+  _IsPlaying:
+    _value: 0
 --- !u!4 &1912329768
 Transform:
   m_ObjectHideFlags: 0
