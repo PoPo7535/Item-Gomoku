@@ -139,6 +139,7 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
     {
         
     }
+    
     [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
     private void Rpc_PlaceStone(Vector3 pos, bool isBlackTurn, int x, int z)
     {
