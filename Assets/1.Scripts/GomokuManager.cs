@@ -4,7 +4,7 @@ using Fusion;
 using UnityEngine;
 using UnityEngine.UI;
 using Utility;
-
+//테스트
 public class GomokuManager : LocalFusionSingleton<GomokuManager>
 {
     [Header("프리팹 설정")]
