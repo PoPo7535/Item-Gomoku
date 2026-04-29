@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
 using UnityEngine.UI;
+using Utility;
 
-public class GomokuManager : NetworkBehaviour
+public class GomokuManager : LocalFusionSingleton<GomokuManager>
 {
     [Header("프리팹 설정")]
     public GameObject BlackStonePrefab;
@@ -31,17 +32,19 @@ public class GomokuManager : NetworkBehaviour
 
     private GameObject[,] _stoneObjects; //실제 돌 오브젝트 담는 공간 
     private OmokuLogic _logic; // 여기에 실제 돌 데이터 담김        
-    public bool _isBlackTurn = true;  //턴여부 true면 흑 false면 백
+    [Networked] public NetworkBool IsBlackTurn { get; set; } = true;// 게임시작여부
+
     // 현재 클라이언트 기준 조작 가능한 돌 색상
     private StoneColor _myColor;
-    [Networked] public NetworkBool _isPlaying { get; set; } // 게임시작여부
+    [Networked] private NetworkBool IsPlaying { get; set; } // 게임시작여부
     [Header("턴 제한 시간")]
-    public float TurnTimeLimit = 10f;
+    public float TurnTimeLimit = 30f;
 
-    private float _turnTimer;
-
+    [Networked] public TickTimer TickTimer { get; set; }
+    public bool isSpawned = false;
     public override void Spawned()
     {
+        isSpawned = true;
         // 포인트 생성 및 게임 초기화
         CreateClickPoints();
         Reset();
@@ -92,8 +95,10 @@ public class GomokuManager : NetworkBehaviour
     }
 
     private void Update()
-    {   
-        if (!_isPlaying) 
+    {
+        if (false == isSpawned)
+            return;
+        if (!IsPlaying) 
         {
             // 게임 중이 아닐 땐 고스트 끄기
             BlackGhostObj.SetActive(false);
@@ -109,7 +114,7 @@ public class GomokuManager : NetworkBehaviour
         {
             if (GameViewImage == null || BoardCamera == null) return;
             var resultRay = CalculateRay();
-            PlaceStone(resultRay.pos, resultRay.x, resultRay.z);
+            PlaceStone(resultRay.pos, IsBlackTurn, resultRay.x, resultRay.z);
         }
 
         if (Input.GetMouseButtonDown(1)) 
@@ -117,32 +122,36 @@ public class GomokuManager : NetworkBehaviour
             if (GameViewImage == null || BoardCamera == null) return;
             var resultRay = CalculateRay();
             
-            if (_isBlackTurn)
+            if (IsBlackTurn)
             {
                 if (Object.HasStateAuthority)
-                    Rpc_PlaceStone(resultRay.pos, resultRay.x, resultRay.z);
+                    Rpc_PlaceStone(resultRay.pos, IsBlackTurn, resultRay.x, resultRay.z);
             }
             else
             {
                 if (false == Object.HasStateAuthority)
-                    Rpc_PlaceStone(resultRay.pos, resultRay.x, resultRay.z);
+                    Rpc_PlaceStone(resultRay.pos, IsBlackTurn, resultRay.x, resultRay.z);
             }
         }
 }
 
-    [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
-    private void Rpc_PlaceStone(Vector3 pos, int x, int z)
+    public override void FixedUpdateNetwork()
     {
-        PlaceStone(pos, x, z);
+        
+    }
+    [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
+    private void Rpc_PlaceStone(Vector3 pos, bool isBlackTurn, int x, int z)
+    {
+        PlaceStone(pos, isBlackTurn, x, z);
     }
     /// <summary>
     /// 클릭한 위치에 돌 생성
     /// </summary>
-    private void PlaceStone(Vector3 pos, int x, int z)
+    private void PlaceStone(Vector3 pos, bool isBlackTurn, int x, int z)
     {
         if (GameViewImage == null || BoardCamera == null) return;
 
-        StoneColor currentColor = _isBlackTurn ? StoneColor.Black : StoneColor.White;
+        StoneColor currentColor = isBlackTurn ? StoneColor.Black : StoneColor.White;
 
         // 오목 로직 착수
         if (_logic.PlaceStone(x, z, currentColor))
@@ -153,11 +162,11 @@ public class GomokuManager : NetworkBehaviour
             UpdateAndShowLastPlace(x, z);
             //전체기록 저장
             string posText = $"{x},{z}";
-            if (_isBlackTurn) _blackHistory.Add(posText);
+            if (isBlackTurn) _blackHistory.Add(posText);
             else _whiteHistory.Add(posText);
 
             // 돌 생성
-            GameObject prefab = _isBlackTurn ? BlackStonePrefab : WhiteStonePrefab;
+            GameObject prefab = isBlackTurn ? BlackStonePrefab : WhiteStonePrefab;
             GameObject stone = Instantiate(prefab, spawnPos, Quaternion.identity);
             stone.tag = "Stone"; 
 
@@ -223,13 +232,17 @@ public class GomokuManager : NetworkBehaviour
     /// </summary>
     public void Reset()
     {   
-        _isPlaying = false;
+        IsPlaying = false;
+
+        TickTimer = TickTimer.None;
+
         _logic = new OmokuLogic();
         _stoneObjects = new GameObject[LineCount, LineCount];
-        _isBlackTurn = true;
-        StartTurnTimer();
+        IsBlackTurn = true;
+
         _lastX = 0; 
         _lastZ = 0;
+
         _blackHistory.Clear();
         _whiteHistory.Clear();
 
@@ -245,14 +258,14 @@ public class GomokuManager : NetworkBehaviour
     /// </summary>
     public void ForcePlaceStone(int x, int z)
     {   
-        if (!_isPlaying) return;
+        if (!IsPlaying) return;
         // 1. 바둑판 범위를 벗어났는지 확인
         if (x < 0 || x >= LineCount || z < 0 || z >= LineCount)
         {
             Debug.LogError($"<color=red>[좌표 착수 실패]</color> 잘못된 인덱스입니다! x: {x}, z: {z}");
             return;
         }
-        StoneColor color = _isBlackTurn ? StoneColor.Black : StoneColor.White;
+        StoneColor color = IsBlackTurn ? StoneColor.Black : StoneColor.White;
 
         // 2. 로직 배열에 착수 시도 (이미 돌이 있거나 흑돌 금수 자리면 false를 반환하여 막아줌)
         if (_logic.PlaceStone(x, z, color))
@@ -298,7 +311,7 @@ public class GomokuManager : NetworkBehaviour
     /// </summary>
     public void ChangeTurn()
     {
-        _isBlackTurn = !_isBlackTurn;
+        IsBlackTurn = !IsBlackTurn;
         StartTurnTimer();
     }
     /// <summary>
@@ -306,19 +319,21 @@ public class GomokuManager : NetworkBehaviour
     /// </summary>
     private void StartTurnTimer()
     {
-        _turnTimer = TurnTimeLimit;
+        if (false == Object.HasStateAuthority)
+            return;
+        TickTimer = TickTimer.CreateFromSeconds(App.I.Runner, TurnTimeLimit);
     }
     /// <summary>
     /// 시간이 0 이하가 되면 자동으로 턴을 변경
     /// </summary>
     private void UpdateTurnTimer()
     {
-        _turnTimer -= Time.deltaTime;
+        if (!IsPlaying) return; 
+        if (!Object.HasStateAuthority) return;
 
-        if (_turnTimer <= 0f)
+        if (TickTimer.ExpiredOrNotRunning(App.I.Runner))
         {
             Debug.Log("시간 초과로 턴 변경");
-
             ChangeTurn();
         }
     }
@@ -328,7 +343,7 @@ public class GomokuManager : NetworkBehaviour
     /// </summary>
     public void RemoveStone(int x, int z)
     {   
-        if (!_isPlaying) return;
+        if (!IsPlaying) return;
 
         if (_stoneObjects[x, z] != null)
         {
@@ -340,7 +355,7 @@ public class GomokuManager : NetworkBehaviour
     /// <summary>
     /// 턴알려주기
     /// </summary>
-    public string GetCurrentTurnText() => _isBlackTurn ? "흑돌 턴" : "백돌 턴";
+    public string GetCurrentTurnText() => IsBlackTurn ? "흑돌 턴" : "백돌 턴";
 
     /// <summary>
     /// 게임하는동안 최근 착수 위치 알리기
@@ -348,8 +363,8 @@ public class GomokuManager : NetworkBehaviour
     public void UpdateAndShowLastPlace(int x, int z)
     {
         _lastX = x; _lastZ = z;
-        string lastPlayer = _isBlackTurn ? "흑돌" : "백돌";
-        string nextPlayer = _isBlackTurn ? "백돌" : "흑돌";
+        string lastPlayer = IsBlackTurn ? "흑돌" : "백돌";
+        string nextPlayer = IsBlackTurn ? "백돌" : "흑돌";
         Debug.Log($"<color=orange>[턴 교체]</color> {nextPlayer} 차례 (상대 {lastPlayer}의 마지막 수: {x}, {z})");
     }
     /// <summary>
@@ -383,7 +398,7 @@ public class GomokuManager : NetworkBehaviour
         if (result.pos == Vector3.zero) return;
         if (_logic.Board[result.x, result.z].Color != StoneColor.None) return;
 
-        StoneColor currentTurn = _isBlackTurn ? StoneColor.Black : StoneColor.White;
+        StoneColor currentTurn = IsBlackTurn ? StoneColor.Black : StoneColor.White;
 
         GameObject target = null;
 
@@ -391,7 +406,7 @@ public class GomokuManager : NetworkBehaviour
         {
             case GamePlayMode.Single:
                 // 둘 다 보여주기
-                target = _isBlackTurn ? BlackGhostObj : WhiteGhostObj;
+                target = IsBlackTurn ? BlackGhostObj : WhiteGhostObj;
                 break;
 
             case GamePlayMode.AI: // 여긴 추가해야함
@@ -416,8 +431,12 @@ public class GomokuManager : NetworkBehaviour
     /// [UI 연결용] 게임 시작 버튼 클릭 시 호출.
     /// </summary>
     public void StartGame()
-    {
-        if (_isPlaying) return;
-        _isPlaying = true; 
+    {   
+        
+        if (IsPlaying) return;
+
+        IsPlaying = true;
+
+        StartTurnTimer();
     }
 }

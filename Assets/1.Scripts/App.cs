@@ -14,13 +14,13 @@ public enum GamePlayMode
 }
 public class App : SimulationSingleton<App>
 {
-    private NetworkRunner _runner;
+    private NetworkRunner _networkRunner;
     private NetworkEvents _runnerEvent;
     public GamePlayMode PlayMode;
     private new void Awake()
     {
         base.Awake();
-        _runner = gameObject.GetComponent<NetworkRunner>();
+        _networkRunner = gameObject.GetComponent<NetworkRunner>();
         _runnerEvent = gameObject.GetComponent<NetworkEvents>();
         _runnerEvent.OnShutdown.RemoveAllListeners();
         _runnerEvent.OnShutdown.AddListener((r, response) =>
@@ -79,12 +79,22 @@ public class App : SimulationSingleton<App>
             Scene = sceneInfo,
             MatchmakingMode = MatchmakingMode.SerialMatching,
         };
-        var hostStartTask = _runner.StartGame(startArgs);
+        var hostStartTask = _networkRunner.StartGame(startArgs);
         return hostStartTask;
     }
 
     public void GameQuit()
     {
         Runner.Shutdown();
+    }
+
+    public float TickTimerRemainingTime(TickTimer tickTimer)
+    {
+        if (tickTimer.ExpiredOrNotRunning(_networkRunner))
+            return 0f;
+        var time = tickTimer.RemainingTime(_networkRunner);
+        if (time == null) 
+            return 0f;
+        return (float)time;
     }
 }

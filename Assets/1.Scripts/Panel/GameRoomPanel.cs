@@ -1,24 +1,34 @@
+using System;
 using Fusion;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
 {
     [SerializeField] private Button readyButton;
-    [SerializeField] private TMP_Text readyText;
     [SerializeField] private Button shutdownButton;
+    [SerializeField] private TMP_Text readyText;
     [SerializeField] private TMP_Text playerText1;
     [SerializeField] private TMP_Text playerText2;
-    
+    [SerializeField] private Slider timerSlider;
+    [SerializeField] private TMP_Text timerText;
     [SerializeField] private ItemSelectPanel itemSelectPanel;
-    private bool _ready = false;
+    private bool _clientReady = false;
 
     public override void Spawned()
     {
         InspectorInit();
         UpdatePlayers();
         App.I.Runner.SessionInfo.Name.Log();
+    }
+
+    public void LateUpdate()
+    {
+        var time = App.I.TickTimerRemainingTime(GomokuManager.I.TickTimer);
+        timerText.text = $"{time:0.0}";
+        timerSlider.value = time/ GomokuManager.I.TurnTimeLimit;
     }
 
     private void InspectorInit()
@@ -29,7 +39,7 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
             if (Object.HasStateAuthority)
                 RPC_GameStart();
             else
-                RPC_Ready(false == _ready);
+                RPC_Ready(false == _clientReady);
         });
         readyText.text = Object.HasStateAuthority ? "게임시작" : "준비";
         readyButton.interactable = false == Object.HasStateAuthority;
@@ -43,10 +53,10 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
     [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
     private void RPC_Ready(bool ready, RpcInfo info = default)
     {
-        _ready = ready;
+        _clientReady = ready;
         if (false == Object.HasStateAuthority)
             return;
-        readyButton.interactable = _ready;
+        readyButton.interactable = _clientReady;
     }
 
     private void UpdatePlayers()
@@ -69,6 +79,6 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
     public void PlayerLeft(PlayerRef player)
     {
         UpdatePlayers();
-        _ready = false;
+        _clientReady = false;
     }
 }
