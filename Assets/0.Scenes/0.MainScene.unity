@@ -1266,18 +1266,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SoundManager
   bgmSource: {fileID: 0}
-  bgm: {fileID: 0}
-  bgmGroup: {fileID: 0}
+  bgm: {fileID: 8300000, guid: e82de39f58aed6943891f55751884f8e, type: 3}
+  bgmGroup: {fileID: 4212469525803591198, guid: 3a1b5c70bf07fb742ab9b59ad3c8b90b, type: 2}
   effectSource: {fileID: 0}
   sounds:
     Dictionary:
-    - key: 123
-      value: {fileID: 8300000, guid: 212dc1e678c76874e873e0dafc2b6c90, type: 3}
-    - key: 45
-      value: {fileID: 8300000, guid: e82de39f58aed6943891f55751884f8e, type: 3}
-    - key: 333
+    - key: click
+      value: {fileID: 8300000, guid: 986f5da5271cc534b90249df9034f865, type: 3}
+    - key: placement
       value: {fileID: 8300000, guid: 0182f610cc88501448f2c6892510ce8a, type: 3}
-  sfxGroup: {fileID: 0}
+    - key: error
+      value: {fileID: 8300000, guid: ddbefa6c308e9194895365851df94152, type: 3}
+  sfxGroup: {fileID: -8071323255793865170, guid: 3a1b5c70bf07fb742ab9b59ad3c8b90b, type: 2}
 --- !u!4 &1177159581
 Transform:
   m_ObjectHideFlags: 0

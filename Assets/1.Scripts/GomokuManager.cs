@@ -168,7 +168,8 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
             // 돌 생성
             GameObject prefab = isBlackTurn ? BlackStonePrefab : WhiteStonePrefab;
             GameObject stone = Instantiate(prefab, spawnPos, Quaternion.identity);
-            stone.tag = "Stone"; 
+            stone.tag = "Stone";
+            SoundManager.I.PlaySound("placement");
 
                 
             _stoneObjects[x, z] = stone;
