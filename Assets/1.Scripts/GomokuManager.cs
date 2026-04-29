@@ -69,18 +69,20 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
         // 자기턴 돌 색상지정
         StoneColor currentTurn = IsBlackTurn ? StoneColor.Black : StoneColor.White;
 
-        // 멀티플레이에서는 자신의 턴이 아닐 경우 입력 및 착수 시도 차단
+        // 멀티플레이에서는 자신의 턴이 아닐 경우 입력 및 착수 시도 차단 결정
         if (App.I.PlayMode == GamePlayMode.Multi && currentTurn != _myColor) canPlace = false;
 
         //돌 미리보기 canPlace = fales면안보임
         BoardView.UpdateGhostStone(result.pos, canPlace, IsBlackTurn);
 
+        // 싱글.AI 입력
         if (Input.GetMouseButtonDown(0) && App.I.PlayMode == GamePlayMode.Single)
             PlaceStoneProcess(result.pos, result.x, result.z, IsBlackTurn);
         
+        // 멀티 입력
         if (Input.GetMouseButtonDown(0) && App.I.PlayMode == GamePlayMode.Multi)
         {   
-            //실제로 여기서차단함
+            //자기턴 아닌 입력은 여기서 차단
             if (currentTurn == _myColor)
                 Rpc_RequestPlaceStone(result.pos, result.x, result.z, IsBlackTurn);
         }
@@ -151,7 +153,6 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
             IsPlaying = false;
             TickTimer = TickTimer.None;
         }
-
         IsBlackTurn = true;
         _logic = new OmokuLogic();
         _blackHistory.Clear();
