@@ -193,6 +193,14 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
         BoardView.RemoveStone(x, z);
     }
     /// <summary>
+    /// [네트워크용] 게임 초기화
+    /// </summary>
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    private void RPC_GameEnd()
+    {
+        ResetGame();
+    }
+    /// <summary>
     /// 게임 초기화
     /// </summary>
     public void ResetGame()
@@ -222,11 +230,6 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (App.I.PlayMode == GamePlayMode.Multi && !Object.HasStateAuthority) return;
         IsPlaying = true;
         StartTurnTimer();
-    }
-    [Rpc(RpcSources.All, RpcTargets.All)]
-    private void RPC_GameEnd()
-    {
-        ResetGame();
     }
     /// <summary>
     /// 게임 재시작 UI 버튼용
