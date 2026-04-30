@@ -49,42 +49,17 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
     }
 
     private void Update()
-    {   
-
-        // 게임시작과 Spawned이거실행안댔으면 리턴
+    {
         if (!_isSpawned || !IsPlaying) return;
-
 
         UpdateTurnTimer();
 
-        // 보드뷰에서 마우스좌표 + 칸좌표 가져옴
-        var result = BoardView.GetBoardPosition();
+        var result = BoardView.GetBoardPosition(); // 보드판 좌표 받아오기
 
-        // 둘수있는자리면 true 아니면 fales
-        bool canPlace = result.pos != Vector3.zero && _logic.Board[result.x, result.z].Color == StoneColor.None;
-
-        // 자기턴 돌 색상지정
-        StoneColor currentTurn = IsBlackTurn ? StoneColor.Black : StoneColor.White;
-
-        // 멀티플레이에서는 자신의 턴이 아닐 경우 입력 및 착수 시도 차단 결정
-        if (App.I.PlayMode == GamePlayMode.Multi && currentTurn != _myColor) canPlace = false;
-
-        //돌 미리보기 canPlace = fales면안보임
-        BoardView.UpdateGhostStone(result.pos, canPlace, IsBlackTurn);
-
-        // 싱글.AI 입력
-        if (Input.GetMouseButtonDown(0) && App.I.PlayMode == GamePlayMode.Single)
-            PlaceStoneProcess(result.pos, result.x, result.z, IsBlackTurn);
-        
-        // 멀티 입력
-        if (Input.GetMouseButtonDown(0) && App.I.PlayMode == GamePlayMode.Multi)
-        {   
-            //자기턴 아닌 입력은 여기서 차단
-            if (currentTurn == _myColor)
-                Rpc_RequestPlaceStone(result.pos, result.x, result.z, IsBlackTurn);
-        }
- 
+        HandleGhost(result); // 돌미리보기
+        HandleInput(result); // 각 모드 입력처리
     }
+    
     /// <summary>
     /// 네트워크용 착수 요청 
     /// </summary>
@@ -119,6 +94,73 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
             }
             ChangeTurn();
         }
+    }
+    /// <summary>
+    /// 현재 마우스 위치에서 착수 가능 여부를 판단하고 돌 미리보기 표시
+    /// </summary>
+    private void HandleGhost((Vector3 pos, int x, int z) result)
+    {
+        bool canPlace = result.pos != Vector3.zero &&
+                        _logic.Board[result.x, result.z].Color == StoneColor.None;
+
+        StoneColor currentTurn = IsBlackTurn ? StoneColor.Black : StoneColor.White;
+
+        if (App.I.PlayMode == GamePlayMode.Multi && currentTurn != _myColor)
+            canPlace = false;
+
+        BoardView.UpdateGhostStone(result.pos, canPlace, IsBlackTurn);
+    }
+    /// <summary>
+    /// 현재 플레이 모드에 따라 입력 처리 분기 (싱글 / 멀티 / AI)
+    /// </summary>
+    private void HandleInput((Vector3 pos, int x, int z) result)
+    {
+        if (!Input.GetMouseButtonDown(0)) return;
+
+        switch (App.I.PlayMode)
+        {
+            case GamePlayMode.Single:
+                HandleSingleInput(result);
+                break;
+
+            case GamePlayMode.Multi:
+                HandleMultiInput(result);
+                break;
+
+            case GamePlayMode.AI:
+                HandleAIInput(result);
+                break;
+        }
+    }
+    /// <summary>
+    /// 싱글입력 처리
+    /// </summary>
+    private void HandleSingleInput((Vector3 pos, int x, int z) result)
+    {
+        PlaceStoneProcess(result.pos, result.x, result.z, IsBlackTurn);
+    }
+    /// <summary>
+    /// 멀티 입력처리
+    /// </summary>
+    private void HandleMultiInput((Vector3 pos, int x, int z) result)
+    {
+        StoneColor currentTurn = IsBlackTurn ? StoneColor.Black : StoneColor.White;
+
+        if (currentTurn != _myColor) return;
+
+        Rpc_RequestPlaceStone(result.pos, result.x, result.z, IsBlackTurn);
+    }
+    /// <summary>
+    /// AI 입력처리 
+    /// </summary>
+    private void HandleAIInput((Vector3 pos, int x, int z) result)
+    {
+        // 플레이어만 입력
+        if (!IsBlackTurn) return;
+
+        PlaceStoneProcess(result.pos, result.x, result.z, true);
+
+        // AI는 여기서 턴바꾸고 행동하는거 추가해야함
     }
 
     /// <summary>
