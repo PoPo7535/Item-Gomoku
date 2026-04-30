@@ -3297,8 +3297,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SoundManager
   bgmSource: {fileID: 0}
   bgm: {fileID: 8300000, guid: e82de39f58aed6943891f55751884f8e, type: 3}
-  bgmGroup: {fileID: 0}
-  effectSource: {fileID: 0}
+  bgmGroup: {fileID: 4212469525803591198, guid: 3a1b5c70bf07fb742ab9b59ad3c8b90b, type: 2}
+  sfxSource: {fileID: 0}
   sounds:
     Dictionary:
     - key: click
@@ -3319,7 +3319,7 @@ MonoBehaviour:
       value: {fileID: 8300000, guid: c83ff286ee032414282d88b279ba3dc7, type: 3}
     - key: notice2
       value: {fileID: 8300000, guid: 329275b92bf368e4cbfa7910f96415c8, type: 3}
-  sfxGroup: {fileID: 0}
+  sfxGroup: {fileID: -8071323255793865170, guid: 3a1b5c70bf07fb742ab9b59ad3c8b90b, type: 2}
 --- !u!4 &1177159581
 Transform:
   m_ObjectHideFlags: 0

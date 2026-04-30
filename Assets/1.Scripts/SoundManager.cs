@@ -13,7 +13,7 @@ public class SoundManager : Singleton<SoundManager>
     [SerializeField] private AudioSource sfxSource;
     [SerializeField] private SerializableDic<string, AudioClip> sounds;
     [SerializeField] private AudioMixerGroup sfxGroup;
-    
+
     // 사운드 재생할 오브젝트 생성 ->
     // 사운드 재생 후 삭제, or 오브젝트 풀
     // 오디오 믹서
@@ -36,15 +36,15 @@ public class SoundManager : Singleton<SoundManager>
         if(bgmSource == null)
         {
             bgmSource = gameObject.AddComponent<AudioSource>();
+            bgmSource.outputAudioMixerGroup = bgmGroup;
             bgmSource.loop = true;
         }
 
         if(sfxSource == null)
         {
-            sfxSource = gameObject.AddComponent<AudioSource>();  
+            sfxSource = gameObject.AddComponent<AudioSource>();
+            sfxSource.outputAudioMixerGroup = sfxGroup;
         }
-        bgmSource.outputAudioMixerGroup = bgmGroup;
-        sfxSource.outputAudioMixerGroup = sfxGroup;
 
         PlayBGM();
     }
@@ -81,7 +81,6 @@ public class SoundManager : Singleton<SoundManager>
             return;
         }
     }
-
     // public void PlayClick()     => PlayEffectSound(click);
     // public void PlayPlacement() => PlayEffectSound(placement);
 }
