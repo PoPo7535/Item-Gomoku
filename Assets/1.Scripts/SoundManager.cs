@@ -10,7 +10,7 @@ public class SoundManager : Singleton<SoundManager>
     [SerializeField] private AudioMixerGroup bgmGroup;
 
     [Header(":: SFX")]
-    [SerializeField] private AudioSource effectSource;
+    [SerializeField] private AudioSource sfxSource;
     [SerializeField] private SerializableDic<string, AudioClip> sounds;
     [SerializeField] private AudioMixerGroup sfxGroup;
     
@@ -36,15 +36,15 @@ public class SoundManager : Singleton<SoundManager>
         if(bgmSource == null)
         {
             bgmSource = gameObject.AddComponent<AudioSource>();
-            bgmSource.outputAudioMixerGroup = bgmGroup;
             bgmSource.loop = true;
         }
 
-        if(effectSource == null)
+        if(sfxSource == null)
         {
-            effectSource = gameObject.AddComponent<AudioSource>();
-            effectSource.outputAudioMixerGroup = sfxGroup;
+            sfxSource = gameObject.AddComponent<AudioSource>();  
         }
+        bgmSource.outputAudioMixerGroup = bgmGroup;
+        sfxSource.outputAudioMixerGroup = sfxGroup;
 
         PlayBGM();
     }
@@ -73,7 +73,7 @@ public class SoundManager : Singleton<SoundManager>
     {
         if (sounds.TryGetValue(key, out AudioClip clip))
         {
-            effectSource.PlayOneShot(clip);
+            sfxSource.PlayOneShot(clip);
         }
         else
         {
