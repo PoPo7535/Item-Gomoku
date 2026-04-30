@@ -21,7 +21,7 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
     {
         InspectorInit();
         UpdatePlayers();
-
+        SetupGameStartButton();
         App.I.Runner.SessionInfo.Name.Log();
     }
 
@@ -83,7 +83,8 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
         _clientReady = false;
     }
     public void SetupGameStartButton() //추가
-    {
+    {   
+        if (App.I.PlayMode == GamePlayMode.Multi) return;
         readyButton.interactable = true;
         readyText.text = "게임시작";
 
