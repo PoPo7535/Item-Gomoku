@@ -71,18 +71,21 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (pos == Vector3.zero) return;
         StoneColor color = isBlackStone ? StoneColor.Black : StoneColor.White;
 
+        // 착수 가능 여부 검사(금수 포함) 후 오목로직 보드에 반영
         if (_logic.PlaceStone(x, z, color))
         {
-            BoardView.SpawnStone(x, z, isBlackStone, pos);            
-            UpdateAndShowLastPlace(x, z, isBlackStone);
+            BoardView.SpawnStone(x, z, isBlackStone, pos); // 돌 생성       
+            UpdateAndShowLastPlace(x, z, isBlackStone); // 최근위치 알려주기
+
+            //전체 기록 저장
             string posText = $"{x},{z}";
             if (isBlackStone) _blackHistory.Add(posText);
             else _whiteHistory.Add(posText);
 
+            // 승리체크
             if (_logic.CheckWin(x, z, color))
             {
                 Debug.Log($"<color=cyan>★ 승리! {color} ★</color>");
-                
                 ResetGame();
                 return;
             }
@@ -149,7 +152,7 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// </summary>
     private void HandleAIInput((Vector3 pos, int x, int z) result)
     {
-        // 플레이어만 입력
+        // 플레이어만 입력 근데지금 흑고정이라 선택하게하면 바꿔야함여기
         if (!IsBlackTurn) return;
 
         PlaceStoneProcess(result.pos, result.x, result.z, true);
