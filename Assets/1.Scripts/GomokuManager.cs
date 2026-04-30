@@ -218,6 +218,7 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
     public void StartGame()
     {   
         if (App.I.PlayMode == GamePlayMode.Multi && !Object.HasStateAuthority) return;
+        ResetGame();
         IsPlaying = true;
         StartTurnTimer();
     }
