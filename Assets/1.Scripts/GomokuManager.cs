@@ -227,9 +227,7 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// </summary>
     public void RestartGame()
     {
-        if (App.I.PlayMode == GamePlayMode.Multi && !Object.HasStateAuthority)
-            return;
-
+        if (App.I.PlayMode == GamePlayMode.Multi && !Object.HasStateAuthority) return;
         ResetGame(); 
         IsPlaying = true;
         StartTurnTimer();
