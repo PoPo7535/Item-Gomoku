@@ -30,9 +30,11 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
     private int _lastZ; 
     
     public override void Spawned()
-    {
+    {   
+        //얘는 Spawned 실행되기전 Update실행 막기위함
         _isSpawned = true;
-        if (BoardView != null) BoardView.Init();
+
+        if (BoardView != null) BoardView.Init();//보드판 셋팅
         
         ResetGame();
         //내가 클릭해서 둘 수 있는 돌 색 호스트는 흑 클라는 백 색지정
