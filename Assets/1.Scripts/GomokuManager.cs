@@ -88,7 +88,7 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
             if (_logic.CheckWin(x, z, color))
             {
                 Debug.Log($"<color=cyan>★ 승리! {color} ★</color>");
-                ResetGame();
+                RPC_GameEnd();
                 return;
             }
             ChangeTurn();
@@ -193,16 +193,25 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
         BoardView.RemoveStone(x, z);
     }
     /// <summary>
+    /// [네트워크용] 게임 초기화
+    /// </summary>
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    private void RPC_GameEnd()
+    {
+        ResetGame();
+    }
+    /// <summary>
     /// 게임 초기화
     /// </summary>
     public void ResetGame()
     {   
-        //호스트만 초기화 그럼 모든클라 다동기화댐
+        //호스트만 초기화 
         if (Object.HasStateAuthority)
         {
             IsPlaying = false;
             TickTimer = TickTimer.None;
         }
+       
         IsBlackTurn = true;
         _logic = new OmokuLogic();
         _blackHistory.Clear();
@@ -227,9 +236,7 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// </summary>
     public void RestartGame()
     {
-        if (App.I.PlayMode == GamePlayMode.Multi && !Object.HasStateAuthority)
-            return;
-
+        if (App.I.PlayMode == GamePlayMode.Multi && !Object.HasStateAuthority) return;
         ResetGame(); 
         IsPlaying = true;
         StartTurnTimer();
