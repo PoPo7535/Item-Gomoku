@@ -159,7 +159,7 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
 
         PlaceStoneProcess(result.pos, result.x, result.z, true);
 
-        // AI는 여기서 턴바꾸고 행동하는거 추가해야함
+        // AI는 여기서 행동하는거 추가해야함
     }
 
     /// <summary>
