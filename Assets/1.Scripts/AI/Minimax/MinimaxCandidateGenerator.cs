@@ -195,6 +195,18 @@ public partial class MinimaxGomokuAI
             bonus += BrokenThreeOrderingBonus * analysis.BrokenThreeCount;
         }
 
+        if (analysis.OpenTwoDirectionCount > 0)
+        {
+            // 열린 2는 공격 잠재력만 약하게 반영하고 pre-check로 승격하지 않음.
+            bonus += OpenTwoOrderingBonus * analysis.OpenTwoDirectionCount;
+        }
+
+        if (analysis.OpenTwoDirectionCount >= 2)
+        {
+            // 서로 다른 방향의 열린 2는 단일 열린 2보다 조금 더 우대함.
+            bonus += DoubleOpenTwoOrderingBonus;
+        }
+
         if (analysis.BlockedFourCount > 0 && analysis.OpenThreeCount > 0)
         {
             // 복합 위협은 단일 열린 3보다 먼저 탐색되도록 추가 보정함.

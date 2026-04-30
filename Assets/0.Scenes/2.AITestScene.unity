@@ -5052,7 +5052,7 @@ MonoBehaviour:
   _aiStoneColor: 1
   _aiAlgorithmType: 0
   _aiDifficulty: 5
-  _maxAiSearchTimeSeconds: 5
+  _maxAiSearchTimeSeconds: 7
 --- !u!4 &1181881346
 Transform:
   m_ObjectHideFlags: 0

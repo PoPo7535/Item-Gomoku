@@ -9,6 +9,7 @@ public class GomokuBoardEvaluator
     {
         None,
         OpenThree,
+        OpenTwo,
         BlockedThree,
         BrokenThree,
         GappedFour,
@@ -28,6 +29,7 @@ public class GomokuBoardEvaluator
     private const int AttackMomentumBonus = 2500;
     private const int ForcedWinThreatBonus = 30000;
     private const int DoubleOpenThreeComboBonus = 18000;
+    private const int DoubleOpenTwoComboBonus = 800;
     private const int BlockedFourOpenThreeComboBonus = 130000;
     private const int OpenFourOpenThreeComboBonus = 90000;
 
@@ -128,7 +130,7 @@ public class GomokuBoardEvaluator
         logic.Board[x, y] = new StoneData { Color = color, IsFake = false };
         try
         {
-            CollectThreatPatternCounts(logic, boardSize, x, y, color, out int openThreeCount, out int blockedFourCount, out _);
+            CollectThreatPatternCounts(logic, boardSize, x, y, color, out int openThreeCount, out int blockedFourCount, out _, out _);
             return blockedFourCount > 0 && openThreeCount > 0;
         }
         finally
@@ -143,7 +145,7 @@ public class GomokuBoardEvaluator
     private int EvaluateStone(OmokuLogic logic, int boardSize, int x, int y, StoneColor color, StoneColor perspectiveColor)
     {
         int score = 0;
-        CollectThreatPatternCounts(logic, boardSize, x, y, color, out int openThreeCount, out int blockedFourCount, out int openFourCount);
+        CollectThreatPatternCounts(logic, boardSize, x, y, color, out int openThreeCount, out int blockedFourCount, out int openFourCount, out int openTwoDirectionCount);
 
         for (int i = 0; i < DirectionX.Length; i++)
         {
@@ -158,7 +160,7 @@ public class GomokuBoardEvaluator
             score += EvaluateLine(logic, boardSize, x, y, DirectionX[i], DirectionY[i], color, perspectiveColor);
         }
 
-        score += GetComboThreatBonus(color, openThreeCount, blockedFourCount, openFourCount, perspectiveColor);
+        score += GetComboThreatBonus(color, openThreeCount, blockedFourCount, openFourCount, openTwoDirectionCount, perspectiveColor);
         return score;
     }
 
@@ -309,11 +311,13 @@ public class GomokuBoardEvaluator
     /// <param name="openThreeCount">열린 3 개수.</param>
     /// <param name="blockedFourCount">막힌 4 개수.</param>
     /// <param name="openFourCount">열린 4 개수.</param>
-    private void CollectThreatPatternCounts(OmokuLogic logic, int boardSize, int x, int y, StoneColor color, out int openThreeCount, out int blockedFourCount, out int openFourCount)
+    /// <param name="openTwoDirectionCount">열린 2가 만들어진 방향 수.</param>
+    private void CollectThreatPatternCounts(OmokuLogic logic, int boardSize, int x, int y, StoneColor color, out int openThreeCount, out int blockedFourCount, out int openFourCount, out int openTwoDirectionCount)
     {
         openThreeCount = 0;
         blockedFourCount = 0;
         openFourCount = 0;
+        openTwoDirectionCount = 0;
 
         for (int i = 0; i < DirectionX.Length; i++)
         {
@@ -329,6 +333,11 @@ public class GomokuBoardEvaluator
             if (patternType == ThreatPatternType.OpenThree)
             {
                 openThreeCount++;
+            }
+            else if (patternType == ThreatPatternType.OpenTwo)
+            {
+                // 열린 2는 방향 수만 세서 낮은 복합 잠재력으로 사용함.
+                openTwoDirectionCount++;
             }
             else if (patternType == ThreatPatternType.BlockedFour)
             {
@@ -413,6 +422,17 @@ public class GomokuBoardEvaluator
         if (count == 3 && openEnds == 1)
         {
             return ThreatPatternType.BlockedThree;
+        }
+
+        if (gappedPatternType == ThreatPatternType.BrokenThree)
+        {
+            // 끊어진 3은 단순 열린 2보다 강한 개발 위협으로 우선 유지함.
+            return ThreatPatternType.BrokenThree;
+        }
+
+        if (count == 2 && openEnds == 2)
+        {
+            return ThreatPatternType.OpenTwo;
         }
 
         return gappedPatternType;
@@ -661,8 +681,9 @@ public class GomokuBoardEvaluator
     /// <param name="openThreeCount">열린 3 개수.</param>
     /// <param name="blockedFourCount">막힌 4 개수.</param>
     /// <param name="openFourCount">열린 4 개수.</param>
+    /// <param name="openTwoDirectionCount">열린 2가 만들어진 방향 수.</param>
     /// <returns>복합 위협 보너스 점수.</returns>
-    private int GetComboThreatBonus(StoneColor color, int openThreeCount, int blockedFourCount, int openFourCount, StoneColor perspectiveColor)
+    private int GetComboThreatBonus(StoneColor color, int openThreeCount, int blockedFourCount, int openFourCount, int openTwoDirectionCount, StoneColor perspectiveColor)
     {
         if (color != perspectiveColor)
         {
@@ -685,6 +706,12 @@ public class GomokuBoardEvaluator
         {
             // 열린 3 두 개는 이중 위협으로 이어질 가능성이 높아 별도 우대함.
             return DoubleOpenThreeComboBonus;
+        }
+
+        if (openTwoDirectionCount >= 2)
+        {
+            // 열린 2 두 방향은 낮은 장기 잠재력으로만 작게 보정함.
+            return DoubleOpenTwoComboBonus;
         }
 
         return 0;

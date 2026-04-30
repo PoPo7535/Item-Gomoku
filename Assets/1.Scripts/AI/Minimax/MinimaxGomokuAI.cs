@@ -25,6 +25,7 @@ public partial class MinimaxGomokuAI : IGomokuAI
     private const int OpenThreeThreatScore = 50000;
     private const int GappedFourThreatScore = 250000;
     private const int BrokenThreeThreatScore = 30000;
+    private const int OpenTwoThreatScore = 6000;
 
     // 후보 생성 범위와 모드별 후보 제한 개수임.
     private const int CandidateRadius = 2;
@@ -39,6 +40,8 @@ public partial class MinimaxGomokuAI : IGomokuAI
     private const int CompositeThreatOrderingBonus = 180000;
     private const int GappedFourOrderingBonus = 200000;
     private const int BrokenThreeOrderingBonus = 25000;
+    private const int OpenTwoOrderingBonus = 5000;
+    private const int DoubleOpenTwoOrderingBonus = 18000;
     private const int DefenseOrderingBonusDivisor = 2;
 
     // 탐색이 참조하는 보드/평가기/위협 분석기와 색상 정보임.
@@ -84,7 +87,8 @@ public partial class MinimaxGomokuAI : IGomokuAI
             BlockedFourThreatScore,
             OpenThreeThreatScore,
             GappedFourThreatScore,
-            BrokenThreeThreatScore);
+            BrokenThreeThreatScore,
+            OpenTwoThreatScore);
         _aiColor = aiColor == StoneColor.Black ? StoneColor.Black : StoneColor.White;
         _opponentColor = GetOppositeColor(_aiColor);
     }

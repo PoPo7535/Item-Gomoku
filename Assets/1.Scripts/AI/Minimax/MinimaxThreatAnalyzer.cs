@@ -12,6 +12,7 @@ internal sealed class MinimaxThreatAnalyzer
     private readonly int _openThreeThreatScore;
     private readonly int _gappedFourThreatScore;
     private readonly int _brokenThreeThreatScore;
+    private readonly int _openTwoThreatScore;
 
     /// <summary>
     /// 지역 위협 분석기를 생성함.
@@ -22,13 +23,15 @@ internal sealed class MinimaxThreatAnalyzer
     /// <param name="openThreeThreatScore">열린 3 위협 점수.</param>
     /// <param name="gappedFourThreatScore">끊어진 4 위협 점수.</param>
     /// <param name="brokenThreeThreatScore">끊어진 3 위협 점수.</param>
+    /// <param name="openTwoThreatScore">열린 2 잠재력 점수.</param>
     public MinimaxThreatAnalyzer(
         OmokuLogic logic,
         int openFourThreatScore,
         int blockedFourThreatScore,
         int openThreeThreatScore,
         int gappedFourThreatScore,
-        int brokenThreeThreatScore)
+        int brokenThreeThreatScore,
+        int openTwoThreatScore)
     {
         _logic = logic;
         _openFourThreatScore = openFourThreatScore;
@@ -36,6 +39,7 @@ internal sealed class MinimaxThreatAnalyzer
         _openThreeThreatScore = openThreeThreatScore;
         _gappedFourThreatScore = gappedFourThreatScore;
         _brokenThreeThreatScore = brokenThreeThreatScore;
+        _openTwoThreatScore = openTwoThreatScore;
     }
 
     /// <summary>
@@ -68,6 +72,12 @@ internal sealed class MinimaxThreatAnalyzer
             {
                 analysis.OpenThreeCount++;
                 analysis.Score = System.Math.Max(analysis.Score, _openThreeThreatScore);
+            }
+            else if (count == 2 && openEnds == 2)
+            {
+                // 열린 2는 강제 수가 아니라 낮은 잠재력으로만 반영함.
+                analysis.OpenTwoDirectionCount++;
+                analysis.Score = System.Math.Max(analysis.Score, _openTwoThreatScore);
             }
 
             AnalyzeWindowThreats(x, y, DirectionX[i], DirectionY[i], color, ref analysis);
