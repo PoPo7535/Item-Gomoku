@@ -34,12 +34,6 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
         _isSpawned = true;
         if (BoardView != null) BoardView.Init();
         
-        if (Object.HasStateAuthority)
-        {
-            IsPlaying = false;
-            IsBlackTurn = true;
-            TickTimer = TickTimer.None;
-        }
         ResetGame();
         //내가 클릭해서 둘 수 있는 돌 색 호스트는 흑 클라는 백 색지정
         if (App.I.PlayMode == GamePlayMode.Multi)
