@@ -497,11 +497,7 @@ public partial class MinimaxGomokuAI : IGomokuAI
             return 2;
         }
 
-        if (analysis.OpenThreeCount > 0)
-        {
-            return 1;
-        }
-
+        // 순수 열린 3은 강제 방어가 아니라 Minimax/평가 경쟁에 맡김.
         return 0;
     }
 
