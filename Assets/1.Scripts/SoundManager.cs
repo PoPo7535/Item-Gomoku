@@ -20,6 +20,12 @@ public class SoundManager : Singleton<SoundManager>
 
     private void Awake()
     {
+        if (FindObjectsOfType<SoundManager>().Length > 1)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         base.Awake();
         Initialize();
     }
@@ -53,6 +59,8 @@ public class SoundManager : Singleton<SoundManager>
             $"[SoundManager] BGM 클립이 연결되지 않았습니다.".Log();
             return;
         }
+
+        if (bgmSource.isPlaying) return;
 
         bgmSource.clip = bgm;
         bgmSource.Play();
