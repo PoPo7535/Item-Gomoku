@@ -2119,6 +2119,8 @@ MonoBehaviour:
   makeRoomBtn: {fileID: 249550242}
   findRoomBtn: {fileID: 324287755}
   fastGameBtn: {fileID: 936464061}
+  nickNameIF: {fileID: 1808752366}
+  roomCodeIF: {fileID: 0}
 --- !u!1 &907654339
 GameObject:
   m_ObjectHideFlags: 0
@@ -3305,6 +3307,18 @@ MonoBehaviour:
       value: {fileID: 8300000, guid: 0182f610cc88501448f2c6892510ce8a, type: 3}
     - key: error
       value: {fileID: 8300000, guid: ddbefa6c308e9194895365851df94152, type: 3}
+    - key: timer
+      value: {fileID: 8300000, guid: e19d98ad738546743a8d6fb4349efef3, type: 3}
+    - key: mistake
+      value: {fileID: 8300000, guid: 7f6d429c526c1e94f830a7a8f07c3015, type: 3}
+    - key: victory1
+      value: {fileID: 8300000, guid: 2559b33097bc9634095d864c39a968f6, type: 3}
+    - key: victory2
+      value: {fileID: 8300000, guid: 8a0893cf4a675fd41b1f7fc24580d93f, type: 3}
+    - key: notice1
+      value: {fileID: 8300000, guid: c83ff286ee032414282d88b279ba3dc7, type: 3}
+    - key: notice2
+      value: {fileID: 8300000, guid: 329275b92bf368e4cbfa7910f96415c8, type: 3}
   sfxGroup: {fileID: 0}
 --- !u!4 &1177159581
 Transform:

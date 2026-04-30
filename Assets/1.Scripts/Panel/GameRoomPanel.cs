@@ -16,11 +16,15 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
     [SerializeField] private TMP_Text timerText;
     [SerializeField] private ItemSelectPanel itemSelectPanel;
     private bool _clientReady = false;
-
+    [Networked, OnChangedRender(nameof(OnChangedNickName1))] private NetworkString<_16> Player1Text { set; get; }
+    private void OnChangedNickName1() => playerText1.text = Player1Text.Value;
+    [Networked, OnChangedRender(nameof(OnChangedNickName2))] private NetworkString<_16> Player2Text { set; get; }
+    private void OnChangedNickName2() => playerText2.text = Player2Text.Value;
     public override void Spawned()
     {
         InspectorInit();
         UpdatePlayers();
+        SetupGameStartButton();
         App.I.Runner.SessionInfo.Name.Log();
     }
 
@@ -81,4 +85,17 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
         UpdatePlayers();
         _clientReady = false;
     }
+    public void SetupGameStartButton() //추가
+    {   
+        if (App.I.PlayMode == GamePlayMode.Multi) return;
+        readyButton.interactable = true;
+        readyText.text = "게임시작";
+
+        readyButton.onClick.RemoveAllListeners();
+        readyButton.onClick.AddListener(() =>
+        {
+            GomokuManager.I.StartGame();
+        }); 
+    }
+ 
 }
