@@ -21,6 +21,7 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
     {
         InspectorInit();
         UpdatePlayers();
+
         App.I.Runner.SessionInfo.Name.Log();
     }
 
@@ -81,4 +82,16 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
         UpdatePlayers();
         _clientReady = false;
     }
+    public void SetupGameStartButton() //추가
+    {
+        readyButton.interactable = true;
+        readyText.text = "게임시작";
+
+        readyButton.onClick.RemoveAllListeners();
+        readyButton.onClick.AddListener(() =>
+        {
+            GomokuManager.I.StartGame();
+        }); 
+    }
+ 
 }
