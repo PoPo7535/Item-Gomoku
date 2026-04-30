@@ -2119,6 +2119,8 @@ MonoBehaviour:
   makeRoomBtn: {fileID: 249550242}
   findRoomBtn: {fileID: 324287755}
   fastGameBtn: {fileID: 936464061}
+  nickNameIF: {fileID: 1808752366}
+  roomCodeIF: {fileID: 0}
 --- !u!1 &907654339
 GameObject:
   m_ObjectHideFlags: 0

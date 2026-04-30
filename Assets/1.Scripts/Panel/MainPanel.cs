@@ -1,14 +1,16 @@
 using Fusion;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 //
 public class MainPanel : MonoBehaviour
 {
-    public Button singlePlayBtn;
-    public Button makeRoomBtn;
-    public Button findRoomBtn;
-    public Button fastGameBtn;
-
+    [SerializeField] private Button singlePlayBtn;
+    [SerializeField] private Button makeRoomBtn;
+    [SerializeField] private Button findRoomBtn;
+    [SerializeField] private Button fastGameBtn;
+    [SerializeField] private TMP_InputField nickNameIF;
+    [SerializeField] private TMP_InputField roomCodeIF;
     private void Awake()
     {
         singlePlayBtn.onClick.AddListener(() =>
