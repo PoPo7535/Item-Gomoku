@@ -194,7 +194,8 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// 게임 초기화
     /// </summary>
     public void ResetGame()
-    {
+    {   
+        //호스트만 초기화 그럼 모든클라 다동기화댐
         if (Object.HasStateAuthority)
         {
             IsPlaying = false;

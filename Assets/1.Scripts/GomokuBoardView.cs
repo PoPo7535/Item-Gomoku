@@ -77,8 +77,6 @@ public class GomokuBoardView : MonoBehaviour
 
         GameObject prefab = isBlack ? BlackStonePrefab : WhiteStonePrefab;
         
-        // 중요: 전달받은 'pos'는 클릭된 포인트의 위치임. 
-        // 모든 클라이언트가 RPC를 통해 동일한 'pos'를 전달받으므로 위치가 일치해야 함.
         Vector3 spawnPos = pos + new Vector3(0, 0.15f, 0); 
         
         GameObject stone = Instantiate(prefab, spawnPos, Quaternion.identity);
