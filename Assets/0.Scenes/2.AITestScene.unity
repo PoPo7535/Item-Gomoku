@@ -5034,11 +5034,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3398c3c5ec92f3e488c9596c4bf1262b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GomokuManager_Test
-  _blackStonePrefab: {fileID: 7260710996652760942, guid: e3918a27c6f212a45bb00c6961101026, type: 3}
-  _whiteStonePrefab: {fileID: 5117338148248406338, guid: abeb61bcbdc0db54c8c6d4c2f23bf275, type: 3}
-  _stoneScale: 30
-  _blackGhostPrefab: {fileID: 8170763499778739533, guid: f24e055540ecb3144af63e701ce85333, type: 3}
-  _whiteGhostPrefab: {fileID: 1547150703683207255, guid: eacd8cccb7a8471479471fbf4ebbbfd5, type: 3}
+  _blackStonePrefab: {fileID: 1471949938043805457, guid: 87303f3d373acae45afc767e87e217d6, type: 3}
+  _whiteStonePrefab: {fileID: 8892691702012031676, guid: 8114b2505a1af144bbc2602a5b0a4797, type: 3}
+  _stoneScale: 0.28
+  _blackGhostPrefab: {fileID: 6137473338564080170, guid: 578e8ed6fbc564c47bf4c478aa076bfc, type: 3}
+  _whiteGhostPrefab: {fileID: 4744781026894999395, guid: 6ba90282ea56ed9498d806b7fd2a22cd, type: 3}
   _boardRoot: {fileID: 604769222}
   _clickCamera: {fileID: 961739752}
   _stoneHeight: 0.1
@@ -5049,7 +5049,10 @@ MonoBehaviour:
   _whiteStoneParent: {fileID: 2008485267}
   _ghostParent: {fileID: 923248253}
   _maxUndoCount: 0
-  _aiDifficulty: 3
+  _aiStoneColor: 1
+  _aiAlgorithmType: 0
+  _aiDifficulty: 5
+  _maxAiSearchTimeSeconds: 5
 --- !u!4 &1181881346
 Transform:
   m_ObjectHideFlags: 0
