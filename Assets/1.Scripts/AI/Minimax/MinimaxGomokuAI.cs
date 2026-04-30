@@ -185,7 +185,14 @@ public partial class MinimaxGomokuAI : IGomokuAI
         {
             LogAiDebug($"Immediate defense selected {FormatMove(immediateDefense)}");
             return immediateDefense;
-        } 
+        }
+
+        GomokuMove openFourAttack = FindOpenFourAttackMove(fullCandidates);
+        if (openFourAttack.IsValid)
+        {
+            LogAiDebug($"Open four attack selected {FormatMove(openFourAttack)}");
+            return openFourAttack;
+        }
 
         GomokuMove threatDefense = FindThreatDefenseMove(fullCandidates);
         if (threatDefense.IsValid)
@@ -396,6 +403,61 @@ public partial class MinimaxGomokuAI : IGomokuAI
         }
 
         return GomokuMove.Invalid(reason + " not found");
+    }
+
+    /// <summary>
+    /// AI가 열린 4를 만들 수 있는 공격 후보를 찾음.
+    /// </summary>
+    /// <param name="candidates">검사할 루트 후보 목록.</param>
+    /// <returns>열린 4를 만드는 최선 공격 후보.</returns>
+    private GomokuMove FindOpenFourAttackMove(List<GomokuMove> candidates)
+    {
+        GomokuMove bestAttack = GomokuMove.Invalid("Open four attack not found");
+        int bestOpenFourCount = 0;
+        int bestThreatScore = int.MinValue;
+        int bestCandidateScore = int.MinValue;
+
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            ThrowIfCancellationRequested();
+            GomokuMove candidate = candidates[i];
+
+            if (!IsLegalMove(candidate.X, candidate.Y, _aiColor))
+            {
+                continue;
+            }
+
+            ThreatAnalysis threatAnalysis;
+
+            // AI 열린 4 공격권은 상대 직접 위협 방어보다 먼저 확보함.
+            PlaceTemporary(candidate.X, candidate.Y, _aiColor);
+            try
+            {
+                threatAnalysis = AnalyzeThreatAt(candidate.X, candidate.Y, _aiColor);
+            }
+            finally
+            {
+                RestoreTemporary(candidate.X, candidate.Y);
+            }
+
+            if (threatAnalysis.OpenFourCount <= 0)
+            {
+                continue;
+            }
+
+            if (!bestAttack.IsValid ||
+                threatAnalysis.OpenFourCount > bestOpenFourCount ||
+                (threatAnalysis.OpenFourCount == bestOpenFourCount && threatAnalysis.Score > bestThreatScore) ||
+                (threatAnalysis.OpenFourCount == bestOpenFourCount && threatAnalysis.Score == bestThreatScore && candidate.Score > bestCandidateScore))
+            {
+                bestOpenFourCount = threatAnalysis.OpenFourCount;
+                bestThreatScore = threatAnalysis.Score;
+                bestCandidateScore = candidate.Score;
+                bestAttack = new GomokuMove(candidate.X, candidate.Y, threatAnalysis.Score, "Open four attack");
+            }
+        }
+
+        return bestAttack;
     }
 
     /// <summary>

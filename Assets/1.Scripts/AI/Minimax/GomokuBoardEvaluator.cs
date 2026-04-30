@@ -10,6 +10,8 @@ public class GomokuBoardEvaluator
         None,
         OpenThree,
         BlockedThree,
+        BrokenThree,
+        GappedFour,
         BlockedFour,
         OpenFour,
         Five
@@ -18,8 +20,10 @@ public class GomokuBoardEvaluator
     private const int FiveScore = 1000000;
     private const int OpenFourScore = 180000;
     private const int BlockedFourScore = 18000;
+    private const int GappedFourScore = 15000;
     private const int OpenThreeScore = 6000;
     private const int BlockedThreeScore = 1200;
+    private const int BrokenThreeScore = 1000;
     private const int TwoScore = 80;
     private const int AttackMomentumBonus = 2500;
     private const int ForcedWinThreatBonus = 30000;
@@ -188,7 +192,9 @@ public class GomokuBoardEvaluator
         }
 
         // 열린 끝 개수에 따라 공격/방어 가치가 크게 달라짐.
-        int patternScore = ScorePattern(count, openEnds);
+        int continuousPatternScore = ScorePattern(count, openEnds);
+        int windowPatternScore = ScoreGappedWindowPattern(logic, boardSize, x, y, directionX, directionY, color);
+        int patternScore = Math.Max(continuousPatternScore, windowPatternScore);
         return patternScore + GetAttackBonus(count, openEnds, color, perspectiveColor);
     }
 
@@ -228,6 +234,33 @@ public class GomokuBoardEvaluator
         }
 
         return Math.Max(1, count);
+    }
+
+    /// <summary>
+    /// 기준 돌을 포함하는 5칸 창에서 끊어진 위협 패턴 점수를 계산함.
+    /// </summary>
+    /// <param name="logic">현재 보드 상태.</param>
+    /// <param name="boardSize">보드 크기.</param>
+    /// <param name="x">기준 X 좌표.</param>
+    /// <param name="y">기준 Y 좌표.</param>
+    /// <param name="directionX">검사 방향 X.</param>
+    /// <param name="directionY">검사 방향 Y.</param>
+    /// <param name="color">검사할 돌 색상.</param>
+    /// <returns>끊어진 위협 패턴 점수.</returns>
+    private int ScoreGappedWindowPattern(OmokuLogic logic, int boardSize, int x, int y, int directionX, int directionY, StoneColor color)
+    {
+        ThreatPatternType windowPattern = GetGappedWindowPatternType(logic, boardSize, x, y, directionX, directionY, color);
+        if (windowPattern == ThreatPatternType.GappedFour)
+        {
+            return GappedFourScore;
+        }
+
+        if (windowPattern == ThreatPatternType.BrokenThree)
+        {
+            return BrokenThreeScore;
+        }
+
+        return 0;
     }
 
     /// <summary>
@@ -305,6 +338,11 @@ public class GomokuBoardEvaluator
             {
                 openFourCount++;
             }
+            else if (patternType == ThreatPatternType.GappedFour)
+            {
+                // 점수는 별도 유지하되 복합 위협 판정에서는 forcing four 계열로 묶음.
+                blockedFourCount++;
+            }
         }
     }
 
@@ -360,6 +398,13 @@ public class GomokuBoardEvaluator
             return ThreatPatternType.BlockedFour;
         }
 
+        ThreatPatternType gappedPatternType = GetGappedWindowPatternType(logic, boardSize, x, y, directionX, directionY, color);
+        if (gappedPatternType == ThreatPatternType.GappedFour)
+        {
+            // XXX_X 계열이 연속 3으로 먼저 소비되지 않도록 gap four를 우선 분류함.
+            return ThreatPatternType.GappedFour;
+        }
+
         if (count == 3 && openEnds == 2)
         {
             return ThreatPatternType.OpenThree;
@@ -370,7 +415,243 @@ public class GomokuBoardEvaluator
             return ThreatPatternType.BlockedThree;
         }
 
-        return ThreatPatternType.None;
+        return gappedPatternType;
+    }
+
+    /// <summary>
+    /// 기준 돌을 포함하는 5칸 창에서 끊어진 위협 패턴 종류를 반환함.
+    /// </summary>
+    /// <param name="logic">현재 보드 상태.</param>
+    /// <param name="boardSize">보드 크기.</param>
+    /// <param name="x">기준 X 좌표.</param>
+    /// <param name="y">기준 Y 좌표.</param>
+    /// <param name="directionX">검사 방향 X.</param>
+    /// <param name="directionY">검사 방향 Y.</param>
+    /// <param name="color">검사할 돌 색상.</param>
+    /// <returns>끊어진 위협 패턴 종류.</returns>
+    private ThreatPatternType GetGappedWindowPatternType(OmokuLogic logic, int boardSize, int x, int y, int directionX, int directionY, StoneColor color)
+    {
+        ThreatPatternType strongestPattern = ThreatPatternType.None;
+
+        for (int offset = -4; offset <= 0; offset++)
+        {
+            if (!TryAnalyzeFiveCellWindow(logic, boardSize, x, y, directionX, directionY, offset, color, out int colorCount, out int emptyCount, out int firstColorIndex, out int lastColorIndex, out int gapIndex, out int internalGapCount))
+            {
+                continue;
+            }
+
+            if (!IsRepresentativeWindowStart(offset, firstColorIndex))
+            {
+                continue;
+            }
+
+            if (colorCount == 4 && emptyCount == 1 && IsInternalGap(gapIndex, firstColorIndex, lastColorIndex))
+            {
+                strongestPattern = ThreatPatternType.GappedFour;
+                continue;
+            }
+
+            if (strongestPattern == ThreatPatternType.None &&
+                colorCount == 3 &&
+                emptyCount == 2 &&
+                internalGapCount == 1 &&
+                HasGapBetweenStones(firstColorIndex, lastColorIndex, gapIndex) &&
+                (HasWindowEndExtension(logic, boardSize, x, y, directionX, directionY, offset) ||
+                 HasWindowExtension(logic, boardSize, x, y, directionX, directionY, offset)))
+            {
+                strongestPattern = ThreatPatternType.BrokenThree;
+            }
+        }
+
+        return strongestPattern;
+    }
+
+    /// <summary>
+    /// 5칸 창 하나가 같은 색 돌과 빈칸만으로 구성되는지 분석함.
+    /// </summary>
+    /// <param name="logic">현재 보드 상태.</param>
+    /// <param name="boardSize">보드 크기.</param>
+    /// <param name="originX">기준 X 좌표.</param>
+    /// <param name="originY">기준 Y 좌표.</param>
+    /// <param name="directionX">검사 방향 X.</param>
+    /// <param name="directionY">검사 방향 Y.</param>
+    /// <param name="offset">기준 좌표에서 창 시작점까지의 offset.</param>
+    /// <param name="color">검사할 돌 색상.</param>
+    /// <param name="colorCount">창 안 같은 색 돌 개수.</param>
+    /// <param name="emptyCount">창 안 빈칸 개수.</param>
+    /// <param name="firstColorIndex">첫 같은 색 돌 위치.</param>
+    /// <param name="lastColorIndex">마지막 같은 색 돌 위치.</param>
+    /// <param name="gapIndex">돌 사이에 있는 빈칸 위치.</param>
+    /// <returns>상대 돌 없이 분석 가능한 창인지 여부.</returns>
+    /// <param name="internalGapCount">돌 사이 내부 빈칸 개수.</param>
+    private bool TryAnalyzeFiveCellWindow(
+        OmokuLogic logic,
+        int boardSize,
+        int originX,
+        int originY,
+        int directionX,
+        int directionY,
+        int offset,
+        StoneColor color,
+        out int colorCount,
+        out int emptyCount,
+        out int firstColorIndex,
+        out int lastColorIndex,
+        out int gapIndex,
+        out int internalGapCount)
+    {
+        colorCount = 0;
+        emptyCount = 0;
+        firstColorIndex = -1;
+        lastColorIndex = -1;
+        gapIndex = -1;
+        internalGapCount = 0;
+
+        for (int index = 0; index < 5; index++)
+        {
+            int targetX = originX + ((offset + index) * directionX);
+            int targetY = originY + ((offset + index) * directionY);
+            StoneColor targetColor = GetWindowCellColor(logic, boardSize, targetX, targetY, color);
+
+            if (targetColor == color)
+            {
+                colorCount++;
+                if (firstColorIndex < 0)
+                {
+                    firstColorIndex = index;
+                }
+
+                lastColorIndex = index;
+                continue;
+            }
+
+            if (targetColor == StoneColor.None)
+            {
+                emptyCount++;
+                continue;
+            }
+
+            return false;
+        }
+
+        if (firstColorIndex >= 0 && lastColorIndex >= 0)
+        {
+            for (int index = firstColorIndex + 1; index < lastColorIndex; index++)
+            {
+                int targetX = originX + ((offset + index) * directionX);
+                int targetY = originY + ((offset + index) * directionY);
+                if (GetWindowCellColor(logic, boardSize, targetX, targetY, color) == StoneColor.None)
+                {
+                    if (gapIndex < 0)
+                    {
+                        gapIndex = index;
+                    }
+
+                    internalGapCount++;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// 현재 기준 좌표가 해당 5칸 window의 대표 시작 돌인지 확인함.
+    /// </summary>
+    /// <param name="offset">기준 좌표에서 창 시작점까지의 offset.</param>
+    /// <param name="firstColorIndex">창 안 첫 같은 색 돌 위치.</param>
+    /// <returns>대표 시작 돌 여부.</returns>
+    private bool IsRepresentativeWindowStart(int offset, int firstColorIndex)
+    {
+        // 같은 gap window가 좌우 run 시작점에서 중복 평가되지 않도록 첫 돌에서만 점수화함.
+        return firstColorIndex >= 0 && offset + firstColorIndex == 0;
+    }
+
+    /// <summary>
+    /// 창 분석용 좌표의 돌 색상을 반환함.
+    /// </summary>
+    /// <param name="logic">현재 보드 상태.</param>
+    /// <param name="boardSize">보드 크기.</param>
+    /// <param name="x">검사할 X 좌표.</param>
+    /// <param name="y">검사할 Y 좌표.</param>
+    /// <param name="color">보드 밖 blocker 보정에 사용할 기준 색상.</param>
+    /// <returns>창 분석용 돌 색상.</returns>
+    private StoneColor GetWindowCellColor(OmokuLogic logic, int boardSize, int x, int y, StoneColor color)
+    {
+        if (!IsInside(boardSize, x, y))
+        {
+            return color == StoneColor.Black ? StoneColor.White : StoneColor.Black;
+        }
+
+        StoneData stoneData = logic.Board[x, y];
+        return stoneData.IsFake ? StoneColor.None : stoneData.Color;
+    }
+
+    /// <summary>
+    /// 4돌 1빈칸 창에서 gap이 돌 사이에 있는지 확인함.
+    /// </summary>
+    /// <param name="gapIndex">빈칸 위치.</param>
+    /// <param name="firstColorIndex">첫 돌 위치.</param>
+    /// <param name="lastColorIndex">마지막 돌 위치.</param>
+    /// <returns>내부 gap 여부.</returns>
+    private bool IsInternalGap(int gapIndex, int firstColorIndex, int lastColorIndex)
+    {
+        return gapIndex > firstColorIndex && gapIndex < lastColorIndex;
+    }
+
+    /// <summary>
+    /// 3돌 창에서 돌 사이에 끊어진 빈칸이 있는지 확인함.
+    /// </summary>
+    /// <param name="firstColorIndex">첫 돌 위치.</param>
+    /// <param name="lastColorIndex">마지막 돌 위치.</param>
+    /// <param name="gapIndex">돌 사이 빈칸 위치.</param>
+    /// <returns>끊어진 3 형태 여부.</returns>
+    private bool HasGapBetweenStones(int firstColorIndex, int lastColorIndex, int gapIndex)
+    {
+        return gapIndex > firstColorIndex && gapIndex < lastColorIndex;
+    }
+
+    /// <summary>
+    /// 5칸 창 내부 양끝 중 하나가 확장 가능한 빈칸인지 확인함.
+    /// </summary>
+    /// <param name="logic">현재 보드 상태.</param>
+    /// <param name="boardSize">보드 크기.</param>
+    /// <param name="originX">기준 X 좌표.</param>
+    /// <param name="originY">기준 Y 좌표.</param>
+    /// <param name="directionX">검사 방향 X.</param>
+    /// <param name="directionY">검사 방향 Y.</param>
+    /// <param name="offset">기준 좌표에서 창 시작점까지의 offset.</param>
+    /// <returns>창 내부 확장 빈칸 존재 여부.</returns>
+    private bool HasWindowEndExtension(OmokuLogic logic, int boardSize, int originX, int originY, int directionX, int directionY, int offset)
+    {
+        int firstX = originX + (offset * directionX);
+        int firstY = originY + (offset * directionY);
+        int lastX = originX + ((offset + 4) * directionX);
+        int lastY = originY + ((offset + 4) * directionY);
+
+        return GetWindowCellColor(logic, boardSize, firstX, firstY, StoneColor.None) == StoneColor.None ||
+               GetWindowCellColor(logic, boardSize, lastX, lastY, StoneColor.None) == StoneColor.None;
+    }
+
+    /// <summary>
+    /// 끊어진 3이 양끝 모두 막힌 죽은 형태가 아닌지 확인함.
+    /// </summary>
+    /// <param name="logic">현재 보드 상태.</param>
+    /// <param name="boardSize">보드 크기.</param>
+    /// <param name="originX">기준 X 좌표.</param>
+    /// <param name="originY">기준 Y 좌표.</param>
+    /// <param name="directionX">검사 방향 X.</param>
+    /// <param name="directionY">검사 방향 Y.</param>
+    /// <param name="offset">기준 좌표에서 창 시작점까지의 offset.</param>
+    /// <returns>확장 가능 여부.</returns>
+    private bool HasWindowExtension(OmokuLogic logic, int boardSize, int originX, int originY, int directionX, int directionY, int offset)
+    {
+        int beforeX = originX + ((offset - 1) * directionX);
+        int beforeY = originY + ((offset - 1) * directionY);
+        int afterX = originX + ((offset + 5) * directionX);
+        int afterY = originY + ((offset + 5) * directionY);
+
+        return IsEmpty(logic, beforeX, beforeY) || IsEmpty(logic, afterX, afterY);
     }
 
     /// <summary>
