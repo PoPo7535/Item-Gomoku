@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
 
-public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
+public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
 {
     [SerializeField] private Button readyButton;
     [SerializeField] private Button shutdownButton;
@@ -22,10 +22,11 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
     private void OnChangedNickName2() => playerText2.text = Player2Text.Value;
     public override void Spawned()
     {
-        InspectorInit();
-        UpdatePlayers();
-        SetupGameStartButton();
         App.I.Runner.SessionInfo.Name.Log();
+
+        InspectorInit();
+        SetupGameStartButton();
+        SetNickName();
     }
 
     public void LateUpdate()
@@ -35,6 +36,15 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
         timerSlider.value = time/ GomokuManager.I.TurnTimeLimit;
     }
 
+    private void SetNickName()
+    {
+        playerText1.text = Player1Text.Value;
+        playerText2.text = Player2Text.Value;
+        if (Object.HasStateAuthority)
+            Player1Text = App.I.nickName;
+        else
+            Rpc_SetNickName(App.I.nickName);
+    }
     private void InspectorInit()
     {
         shutdownButton.onClick.AddListener(() => App.I.GameQuit());
@@ -63,31 +73,22 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerJoined, IPlayerLeft
         readyButton.interactable = _clientReady;
     }
 
-    private void UpdatePlayers()
-    {
-        playerText1.text = string.Empty;
-        playerText2.text = string.Empty;
-        foreach (var playerRef in App.I.Runner.ActivePlayers) 
-        {
-            var isLocalPlayer = playerRef == App.I.Runner.LocalPlayer;
-            var hostClient = Object.HasStateAuthority == isLocalPlayer;
-            var targetText = hostClient ? playerText1 : playerText2;
-            targetText.text = playerRef.ToString();
-        }
-    }
-    public void PlayerJoined(PlayerRef player)
-    {
-        UpdatePlayers();
-    }
-
     public void PlayerLeft(PlayerRef player)
     {
-        UpdatePlayers();
+        Player2Text = null;
         _clientReady = false;
     }
-    public void SetupGameStartButton() //추가
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority, HostMode = RpcHostMode.SourceIsHostPlayer)]
+    private void Rpc_SetNickName(string nickName)
+    {
+        Player2Text = nickName;
+    }
+
+    private void SetupGameStartButton() //추가
     {   
-        if (App.I.PlayMode == GamePlayMode.Multi) return;
+        if (App.I.PlayMode == GamePlayMode.Multi) 
+            return;
         readyButton.interactable = true;
         readyText.text = "게임시작";
 
