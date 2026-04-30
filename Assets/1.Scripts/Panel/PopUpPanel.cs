@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Utility;
 
-public class PopUp : Singleton<PopUp>
+public class PopUpPanel : Singleton<PopUpPanel>
 {
     [SerializeField] private CanvasGroup cg;
     [SerializeField] private TMP_Text text;

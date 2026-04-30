@@ -1,442 +1,247 @@
-using System;
 using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
-using UnityEngine.UI;
 using Utility;
 
+
+// 얘는 오목 규칙 + 턴 + 네트워크 + 게임 진행 전체 흐름 관리하자
 public class GomokuManager : LocalFusionSingleton<GomokuManager>
 {
-    [Header("프리팹 설정")]
-    public GameObject BlackStonePrefab;
-    public GameObject WhiteStonePrefab;
-    [Header("고스트 돌 설정")]
-    public GameObject BlackGhostObj; 
-    public GameObject WhiteGhostObj;
+    [Header("참조 설정")]
+    public GomokuBoardView BoardView;
 
-    [Header("렌더 텍스처 & 카메라 설정")]
-    public RawImage GameViewImage; 
-    public Camera BoardCamera;    
-
-    [Header("자동 포인트 생성 설정")]
-    public int LineCount = 15;
-    public float Interval;   
-    public Vector3 StartPos;         
-    public GameObject GeneratedPoints;  // 생성된 포인트들을 담을 부모
-
-    [Header("--- 기록 관리 ---")]
-    private readonly List<string> _blackHistory = new(); // 전체기록 흑
-    private readonly List<string> _whiteHistory = new(); // 전체기록 백 
-    private int _lastX; // 최근착수 위치 x 기록
-    private int _lastZ; // 최근착수 위치 y 기록
-
-    private GameObject[,] _stoneObjects; //실제 돌 오브젝트 담는 공간 
-    private OmokuLogic _logic; // 여기에 실제 돌 데이터 담김        
-    [Networked] public NetworkBool IsBlackTurn { get; set; } = true;// 게임시작여부
-
-    // 현재 클라이언트 기준 조작 가능한 돌 색상
-    private StoneColor _myColor;
-    [Networked] private NetworkBool IsPlaying { get; set; } // 게임시작여부
-    [Header("턴 제한 시간")]
+    [Header("게임 설정")]
     public float TurnTimeLimit = 30f;
 
+    [Networked] public NetworkBool IsBlackTurn { get; set; } = true;
+    [Networked] public NetworkBool IsPlaying { get; set; }
     [Networked] public TickTimer TickTimer { get; set; }
-    public bool isSpawned = false;
+
+    public OmokuLogic _logic;
+
+    // 이 클라이언트가 조작할 수 있는 돌 색상 (멀티/싱글 구분용 로컬 값)
+    private StoneColor _myColor; 
+    private bool _isSpawned = false;
+
+    // ---  기록 관리 변수 ---
+    private readonly List<string> _blackHistory = new(); 
+    private readonly List<string> _whiteHistory = new(); 
+    private int _lastX; 
+    private int _lastZ; 
+    
     public override void Spawned()
-    {
-        isSpawned = true;
-        // 포인트 생성 및 게임 초기화
-        CreateClickPoints();
-        Reset();
-        switch (App.I.PlayMode)
-        {
-            case GamePlayMode.Single:
-                _myColor = StoneColor.Black; // 둘 다 조작
-                break;
+    {   
+        //얘는 Spawned 실행되기전 Update실행 막기위함
+        _isSpawned = true;
 
-            case GamePlayMode.AI:
-                // _myColor = StoneColor.Black; // 여기는 입력받아서 결정
-                break;
-
-            case GamePlayMode.Multi:
-                _myColor = Object.HasStateAuthority ? StoneColor.Black : StoneColor.White;
-                break;
-        }
-    }
-
-    /// <summary>
-    /// 게임 시작 시 225개의 클릭 감지용 포인트를 생성
-    /// </summary>
-    private void CreateClickPoints()
-    {
-
-        for (int i = GeneratedPoints.transform.childCount - 1; i >= 0; i--)
-            Destroy(GeneratedPoints.transform.GetChild(i).gameObject);
-
-        for (int x = 0; x < LineCount; x++)
-        {
-            for (int z = 0; z < LineCount; z++)
-            {
-                GameObject p = new GameObject($"Point_{x}_{z}");
-                
-
-                p.transform.SetParent(GeneratedPoints.transform);
-
-                Vector3 worldPos = new Vector3(StartPos.x + (x * Interval), StartPos.y, StartPos.z + (z * Interval));
-                p.transform.position = worldPos;
-
-
-                SphereCollider sc = p.AddComponent<SphereCollider>();
-                sc.radius = Interval * 0.75f;
-                sc.isTrigger = true;
-                p.layer = LayerMask.NameToLayer("Board");
-            }
-        }
+        if (BoardView != null) BoardView.Init();//보드판 셋팅
+        
+        ResetGame();
+        //내가 클릭해서 둘 수 있는 돌 색 호스트는 흑 클라는 백 색지정
+        if (App.I.PlayMode == GamePlayMode.Multi)
+            _myColor = Object.HasStateAuthority ? StoneColor.Black : StoneColor.White;
+        else
+            _myColor = StoneColor.Black;
     }
 
     private void Update()
     {
-        if (false == isSpawned)
-            return;
-        if (!IsPlaying) 
-        {
-            // 게임 중이 아닐 땐 고스트 끄기
-            BlackGhostObj.SetActive(false);
-            WhiteGhostObj.SetActive(false);
-            return;
-        }
+        if (!_isSpawned || !IsPlaying) return;
+
         UpdateTurnTimer();
-        //돌 미리보기
-        var result = CalculateRay();
-        HandleGhostStone(result);
 
-        if (Input.GetMouseButtonDown(0))
-        {
-            if (GameViewImage == null || BoardCamera == null) return;
-            var resultRay = CalculateRay();
-            PlaceStone(resultRay.pos, IsBlackTurn, resultRay.x, resultRay.z);
-        }
+        var result = BoardView.GetBoardPosition(); // 보드판 좌표 받아오기
 
-        if (Input.GetMouseButtonDown(1)) 
-        {
-            if (GameViewImage == null || BoardCamera == null) return;
-            var resultRay = CalculateRay();
-            
-            if (IsBlackTurn)
-            {
-                if (Object.HasStateAuthority)
-                    Rpc_PlaceStone(resultRay.pos, IsBlackTurn, resultRay.x, resultRay.z);
-            }
-            else
-            {
-                if (false == Object.HasStateAuthority)
-                    Rpc_PlaceStone(resultRay.pos, IsBlackTurn, resultRay.x, resultRay.z);
-            }
-        }
-}
-
-    public override void FixedUpdateNetwork()
-    {
-        
+        HandleGhost(result); // 돌미리보기
+        HandleInput(result); // 각 모드 입력처리
     }
+    
+    /// <summary>
+    /// 네트워크용 착수 요청 
+    /// </summary>
     [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
-    private void Rpc_PlaceStone(Vector3 pos, bool isBlackTurn, int x, int z)
+    private void Rpc_RequestPlaceStone(Vector3 pos, int x, int z, bool isBlack)
     {
-        PlaceStone(pos, isBlackTurn, x, z);
+        PlaceStoneProcess(pos, x, z, isBlack);
     }
     /// <summary>
-    /// 클릭한 위치에 돌 생성
+    /// 최종 돌 착수
+    /// (로직 적용 → 렌더링 → 기록 저장 → 승리 체크 → 턴 변경)
     /// </summary>
-    private void PlaceStone(Vector3 pos, bool isBlackTurn, int x, int z)
-    {
-        if (GameViewImage == null || BoardCamera == null) return;
-
-        StoneColor currentColor = isBlackTurn ? StoneColor.Black : StoneColor.White;
-
-        // 오목 로직 착수
-        if (_logic.PlaceStone(x, z, currentColor))
-        {
-            Vector3 spawnPos = pos;
-            spawnPos.y += 0.15f;
-            //최근기록 저장
-            UpdateAndShowLastPlace(x, z);
-            //전체기록 저장
-            string posText = $"{x},{z}";
-            if (isBlackTurn) _blackHistory.Add(posText);
-            else _whiteHistory.Add(posText);
-
-            // 돌 생성
-            GameObject prefab = isBlackTurn ? BlackStonePrefab : WhiteStonePrefab;
-            GameObject stone = Instantiate(prefab, spawnPos, Quaternion.identity);
-            stone.tag = "Stone"; 
-
-                
-            _stoneObjects[x, z] = stone;
-
-            // 승리 판정
-            if (_logic.CheckWin(x, z, currentColor))
-            {
-                Debug.Log($"<color=cyan>★ 승리! {currentColor} ★</color>");
-                Reset();
-                return;
-            }
-            // 턴변경
-            ChangeTurn();
-        }
-    }
-
-    private (Vector3 pos, int x, int z) CalculateRay()
-    {
-        // 1. UI 좌표 -> 렌더 텍스처 비율 변환
-        RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            GameViewImage.rectTransform, 
-            Input.mousePosition, 
-            null, 
-            out Vector2 localPoint
-        );
-
-        Rect r = GameViewImage.rectTransform.rect;
-        float nX = (localPoint.x - r.x) / r.width;
-        float nY = (localPoint.y - r.y) / r.height;
-
-        // 2. 레이 발사
-        Ray ray = BoardCamera.ViewportPointToRay(new Vector3(nX, nY, 0));
-        int layerMask = 1 << LayerMask.NameToLayer("Board");
-
-        var vec = Vector3.zero;
-        var xIdx = 0;
-        var zIdx = 0;
-        if (Physics.Raycast(ray, out RaycastHit hit, 1000f, layerMask))
-        {
-            // 3. 포인트 오브젝트 확인
-            string objectName = hit.transform.name;
-            if (!objectName.StartsWith("Point_")) 
-                return (hit.transform.position, 0, 0);
-
-            string[] nameParts = objectName.Split('_');
-            vec = hit.transform.position;
-            xIdx = int.Parse(nameParts[1]);
-            zIdx = int.Parse(nameParts[2]);
-
-            // 잘못된거확인
-            if (xIdx < 0 || xIdx >= LineCount || zIdx < 0 || zIdx >= LineCount)
-            {
-                Debug.LogError($"<color=red>[범위 초과]</color> 잘못된 인덱스입니다! x: {xIdx}, z: {zIdx}. (최대치: {LineCount - 1})");
-                return (vec, 0, 0);
-            }
-        }
-        return (vec, xIdx, zIdx);
-    }
-    /// <summary>
-    /// 게임 초기화
-    /// </summary>
-    public void Reset()
+    public void PlaceStoneProcess(Vector3 pos, int x, int z, bool isBlackStone)
     {   
-        IsPlaying = false;
+        if (pos == Vector3.zero) return;
+        StoneColor color = isBlackStone ? StoneColor.Black : StoneColor.White;
 
-        TickTimer = TickTimer.None;
-
-        _logic = new OmokuLogic();
-        _stoneObjects = new GameObject[LineCount, LineCount];
-        IsBlackTurn = true;
-
-        _lastX = 0; 
-        _lastZ = 0;
-
-        _blackHistory.Clear();
-        _whiteHistory.Clear();
-
-        GameObject[] stones = GameObject.FindGameObjectsWithTag("Stone");
-        foreach (var s in stones) Destroy(s);
-
-        Debug.Log("게임 데이터 및 돌 리셋 완료");
-    }
-    /// <summary>
-    /// 좌표로 돌 착수 하기
-    /// 사용 예시: ForcePlaceStone(14, 14); 14,14는 바둑판 우측하단
-    /// 나오는 바둑알은 현재 자기턴 흑턴이면 흑 백턴이면 백
-    /// </summary>
-    public void ForcePlaceStone(int x, int z)
-    {   
-        if (!IsPlaying) return;
-        // 1. 바둑판 범위를 벗어났는지 확인
-        if (x < 0 || x >= LineCount || z < 0 || z >= LineCount)
-        {
-            Debug.LogError($"<color=red>[좌표 착수 실패]</color> 잘못된 인덱스입니다! x: {x}, z: {z}");
-            return;
-        }
-        StoneColor color = IsBlackTurn ? StoneColor.Black : StoneColor.White;
-
-        // 2. 로직 배열에 착수 시도 (이미 돌이 있거나 흑돌 금수 자리면 false를 반환하여 막아줌)
+        // 착수 가능 여부 검사(금수 포함) 후 오목로직 보드에 반영
         if (_logic.PlaceStone(x, z, color))
         {
-            // 3. 실제 유니티 월드(3D) 상의 생성 좌표 계산
-            Vector3 spawnPos = new Vector3(
-                StartPos.x + (x * Interval), 
-                StartPos.y, 
-                StartPos.z + (z * Interval)
-            );
-            spawnPos.y += 0.05f;
-            UpdateAndShowLastPlace(x, z); // 최근기록 저장
-            // 4. 프리팹 선택 및 생성
-            GameObject prefab = (color == StoneColor.Black) ? BlackStonePrefab : WhiteStonePrefab;
-            GameObject stone = Instantiate(prefab, spawnPos, Quaternion.identity);
-            stone.tag = "Stone"; 
+            BoardView.SpawnStone(x, z, isBlackStone, pos); // 돌 생성       
+            UpdateAndShowLastPlace(x, z, isBlackStone); // 최근위치 알려주기
 
-            // 5. 시각적 돌 오브젝트 배열에 저장
-            _stoneObjects[x, z] = stone;
-
-            // 6. 전체 기록 남기기
-            string posText = $"{x},{z} (강제)";
-            if (color == StoneColor.Black) _blackHistory.Add(posText);
+            //전체 기록 저장
+            string posText = $"{x},{z}";
+            if (isBlackStone) _blackHistory.Add(posText);
             else _whiteHistory.Add(posText);
 
-            // 7. 승리 판정도 동일하게 적용
+            // 승리체크
             if (_logic.CheckWin(x, z, color))
             {
                 Debug.Log($"<color=cyan>★ 승리! {color} ★</color>");
-                Reset();
+                ResetGame();
                 return;
             }
             ChangeTurn();
         }
-        else
-        {
-            Debug.LogWarning($"<color=orange>[강제 착수 실패]</color> ({x}, {z}) 위치에는 이미 돌이 있거나 금수 자리입니다.");
-        }
     }
-
     /// <summary>
-    /// 턴변경
+    /// 현재 마우스 위치에서 착수 가능 여부를 판단하고 돌 미리보기 표시
     /// </summary>
-    public void ChangeTurn()
+    private void HandleGhost((Vector3 pos, int x, int z) result)
     {
-        IsBlackTurn = !IsBlackTurn;
-        StartTurnTimer();
+        bool canPlace = result.pos != Vector3.zero &&
+                        _logic.Board[result.x, result.z].Color == StoneColor.None;
+
+        StoneColor currentTurn = IsBlackTurn ? StoneColor.Black : StoneColor.White;
+
+        if (App.I.PlayMode == GamePlayMode.Multi && currentTurn != _myColor)
+            canPlace = false;
+
+        BoardView.UpdateGhostStone(result.pos, canPlace, IsBlackTurn);
     }
     /// <summary>
-    /// 턴 시작시 제한시간 초기화
+    /// 현재 플레이 모드에 따라 입력 처리 분기 (싱글 / 멀티 / AI)
     /// </summary>
-    private void StartTurnTimer()
+    private void HandleInput((Vector3 pos, int x, int z) result)
     {
-        if (false == Object.HasStateAuthority)
-            return;
-        TickTimer = TickTimer.CreateFromSeconds(App.I.Runner, TurnTimeLimit);
-    }
-    /// <summary>
-    /// 시간이 0 이하가 되면 자동으로 턴을 변경
-    /// </summary>
-    private void UpdateTurnTimer()
-    {
-        if (!IsPlaying) return; 
-        if (!Object.HasStateAuthority) return;
+        if (!Input.GetMouseButtonDown(0)) return;
 
-        if (TickTimer.ExpiredOrNotRunning(App.I.Runner))
+        switch (App.I.PlayMode)
         {
-            Debug.Log("시간 초과로 턴 변경");
-            ChangeTurn();
-        }
-    }
+            case GamePlayMode.Single:
+                HandleSingleInput(result);
+                break;
 
-    /// <summary>
-    /// 특정 좌표 돌 삭제
-    /// </summary>
-    public void RemoveStone(int x, int z)
-    {   
-        if (!IsPlaying) return;
+            case GamePlayMode.Multi:
+                HandleMultiInput(result);
+                break;
 
-        if (_stoneObjects[x, z] != null)
-        {
-            Destroy(_stoneObjects[x, z]);
-            _stoneObjects[x, z] = null;
-            _logic.Board[x, z] = new StoneData { Color = StoneColor.None };
+            case GamePlayMode.AI:
+                HandleAIInput(result);
+                break;
         }
     }
     /// <summary>
-    /// 턴알려주기
+    /// 싱글입력 처리
     /// </summary>
-    public string GetCurrentTurnText() => IsBlackTurn ? "흑돌 턴" : "백돌 턴";
+    private void HandleSingleInput((Vector3 pos, int x, int z) result)
+    {
+        PlaceStoneProcess(result.pos, result.x, result.z, IsBlackTurn);
+    }
+    /// <summary>
+    /// 멀티 입력처리
+    /// </summary>
+    private void HandleMultiInput((Vector3 pos, int x, int z) result)
+    {
+        StoneColor currentTurn = IsBlackTurn ? StoneColor.Black : StoneColor.White;
+
+        if (currentTurn != _myColor) return;
+
+        Rpc_RequestPlaceStone(result.pos, result.x, result.z, IsBlackTurn);
+    }
+    /// <summary>
+    /// AI 입력처리 
+    /// </summary>
+    private void HandleAIInput((Vector3 pos, int x, int z) result)
+    {
+        // 플레이어만 입력 근데지금 흑고정이라 선택하게하면 바꿔야함여기
+        if (!IsBlackTurn) return;
+
+        PlaceStoneProcess(result.pos, result.x, result.z, true);
+
+        // AI는 여기서 턴바꾸고 행동하는거 추가해야함
+    }
 
     /// <summary>
-    /// 게임하는동안 최근 착수 위치 알리기
+    /// 최근 기록 보기
     /// </summary>
-    public void UpdateAndShowLastPlace(int x, int z)
+    public void UpdateAndShowLastPlace(int x, int z, bool isBlack)
     {
         _lastX = x; _lastZ = z;
-        string lastPlayer = IsBlackTurn ? "흑돌" : "백돌";
-        string nextPlayer = IsBlackTurn ? "백돌" : "흑돌";
+        string lastPlayer = isBlack ? "흑돌" : "백돌";
+        string nextPlayer = isBlack ? "백돌" : "흑돌";
         Debug.Log($"<color=orange>[턴 교체]</color> {nextPlayer} 차례 (상대 {lastPlayer}의 마지막 수: {x}, {z})");
     }
+
     /// <summary>
-    /// 게임하는동안 좌표들 전체 기록
+    /// 전체 기록 보기
     /// </summary>
     public void ShowFullLog()
     {
         Debug.Log("흑돌 기보: " + string.Join(" -> ", _blackHistory));
         Debug.Log("백돌 기보: " + string.Join(" -> ", _whiteHistory));
     }
-    
     /// <summary>
-    /// (백,흑) 돌 착수 수 세기
+    /// 특정 좌표 돌 삭제
     /// </summary>
-    public int GetStoneCount(StoneColor color)
+    public void RemoveStoneProcess(int x, int z)
     {
-        int count = 0;
-        for (int x = 0; x < LineCount; x++)
-            for (int y = 0; y < LineCount; y++)
-                if (_logic.Board[x, y].Color == color) count++;
-        return count;
+        // 1. 로직 제거
+        _logic.Board[x, z].Color = StoneColor.None;
+
+        // 2. 뷰 제거
+        BoardView.RemoveStone(x, z);
     }
     /// <summary>
-    /// 돌 미리보여주기
+    /// 게임 초기화
     /// </summary>
-    private void HandleGhostStone((Vector3 pos, int x, int z) result)
-    {
-        BlackGhostObj.SetActive(false);
-        WhiteGhostObj.SetActive(false);
-
-        if (result.pos == Vector3.zero) return;
-        if (_logic.Board[result.x, result.z].Color != StoneColor.None) return;
-
-        StoneColor currentTurn = IsBlackTurn ? StoneColor.Black : StoneColor.White;
-
-        GameObject target = null;
-
-        switch (App.I.PlayMode)
+    public void ResetGame()
+    {   
+        //호스트만 초기화 그럼 모든클라 다동기화댐
+        if (Object.HasStateAuthority)
         {
-            case GamePlayMode.Single:
-                // 둘 다 보여주기
-                target = IsBlackTurn ? BlackGhostObj : WhiteGhostObj;
-                break;
-
-            case GamePlayMode.AI: // 여긴 추가해야함
-            case GamePlayMode.Multi:
-                // 내 턴만
-                if (currentTurn != _myColor) return;
-                target = (_myColor == StoneColor.Black) ? BlackGhostObj : WhiteGhostObj;
-                break;
+            IsPlaying = false;
+            TickTimer = TickTimer.None;
         }
-
-        if (target != null)
-        {
-            target.transform.position = result.pos + new Vector3(0, 0.15f, 0);
-            target.SetActive(true);
-        }
+        IsBlackTurn = true;
+        _logic = new OmokuLogic();
+        _blackHistory.Clear();
+        _whiteHistory.Clear();
+        _lastX = 0; _lastZ = 0;
+        if (BoardView != null) BoardView.ClearBoard();
+        BoardView.UpdateGhostStone(Vector3.zero, false, false);
+        Debug.Log("게임 리셋 및 기록 초기화 완료");
     }
-
-
-        
-
     /// <summary>
-    /// [UI 연결용] 게임 시작 버튼 클릭 시 호출.
+    /// 게임 시작 UI 버튼용
     /// </summary>
     public void StartGame()
     {   
-        
-        if (IsPlaying) return;
-
+        if (App.I.PlayMode == GamePlayMode.Multi && !Object.HasStateAuthority) return;
         IsPlaying = true;
-
         StartTurnTimer();
     }
-}
+    /// <summary>
+    /// 턴변경
+    /// </summary>
+    public void ChangeTurn() 
+    { 
+        IsBlackTurn = !IsBlackTurn; 
+        StartTurnTimer(); 
+    }
+    /// <summary>
+    /// 타이머 시작
+    /// </summary>
+    private void StartTurnTimer() 
+    {   //CreateFromSeconds 시간생성 TurnTimeLimit 이거만큼
+        if (Object.HasStateAuthority)TickTimer = TickTimer.CreateFromSeconds(App.I.Runner, TurnTimeLimit); 
+    }
+    /// <summary>
+    /// 타이머 종료
+    /// </summary>
+    private void UpdateTurnTimer() 
+    {   //ExpiredOrNotRunning 이거 시간이 다댔는지 확인함 다되면 true
+        if (Object.HasStateAuthority && TickTimer.ExpiredOrNotRunning(App.I.Runner))ChangeTurn(); 
+    }
+
+}   

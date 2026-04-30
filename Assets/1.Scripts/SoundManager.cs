@@ -1,48 +1,43 @@
 using UnityEngine;
+using UnityEngine.Audio;
 using Utility;
 
 public class SoundManager : Singleton<SoundManager>
 {
-    [Header("BGM")]
+    [Header(":: BGM")]
     [SerializeField] private AudioSource bgmSource;
     [SerializeField] private AudioClip bgm;
+    [SerializeField] private AudioMixerGroup bgmGroup;
 
-    [Header("사운드 이펙트")]
+    [Header(":: SFX")]
     [SerializeField] private AudioSource effectSource;
-    [SerializeField] private AudioClip click;
-    [SerializeField] private AudioClip placement;
-
     [SerializeField] private SerializableDic<string, AudioClip> sounds;
+    [SerializeField] private AudioMixerGroup sfxGroup;
     
     // 사운드 재생할 오브젝트 생성 ->
     // 사운드 재생 후 삭제, or 오브젝트 풀
-    // 오디어 믹서
-    
-    public void PlaySound(string key)
-    {
-        if (sounds.TryGetValue(key, out AudioClip clip))
-        {
-            PlayEffectSound(clip);
-        }
-    }
+    // 오디오 믹서
+
     private void Awake()
     {
         base.Awake();
-        InitializeBGM();
+        Initialize();
     }
 
-    private void InitializeBGM()
+    private void Initialize()
     {
         // BGM AudioSource 설정
         if(bgmSource == null)
         {
             bgmSource = gameObject.AddComponent<AudioSource>();
+            bgmSource.outputAudioMixerGroup = bgmGroup;
             bgmSource.loop = true;
         }
 
         if(effectSource == null)
         {
             effectSource = gameObject.AddComponent<AudioSource>();
+            effectSource.outputAudioMixerGroup = sfxGroup;
         }
 
         PlayBGM();
@@ -55,7 +50,7 @@ public class SoundManager : Singleton<SoundManager>
     {
         if(bgm == null)
         {
-            Debug.Log("[SoundManager] BGM 클립이 연결되지 않았습니다.");
+            $"[SoundManager] BGM 클립이 연결되지 않았습니다.".Log();
             return;
         }
 
@@ -66,17 +61,19 @@ public class SoundManager : Singleton<SoundManager>
     /// <summary>
     /// 이펙트 사운드 효과 재생
     /// </summary>
-    public void PlayEffectSound(AudioClip clip)
+    public void PlaySound(string key)
     {
-        if(clip == null)
+        if (sounds.TryGetValue(key, out AudioClip clip))
         {
-            Debug.Log("[SoundManager] Clip 클립이 연결되지 않았습니다.");
+            effectSource.PlayOneShot(clip);
+        }
+        else
+        {
+            $"[SoundManager] '{key}' 키를 찾을 수 없습니다.".Log();
             return;
         }
-
-        effectSource.PlayOneShot(clip);
     }
-    
+
     // public void PlayClick()     => PlayEffectSound(click);
     // public void PlayPlacement() => PlayEffectSound(placement);
 }
