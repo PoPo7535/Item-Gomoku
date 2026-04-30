@@ -71,7 +71,7 @@ public class GomokuBoardView : MonoBehaviour
     /// 실제 돌 프리팹을 화면에 생성하고 배열에 저장
     /// </summary>
     public void SpawnStone(int x, int z, bool isBlack, Vector3 pos)
-    {
+    {   
         // 이 배열이 초기화되지 않았을 경우를 대비
         if (_stoneObjects == null) _stoneObjects = new GameObject[LineCount, LineCount];
 

@@ -10,16 +10,22 @@ public class SoundManager : Singleton<SoundManager>
     [SerializeField] private AudioMixerGroup bgmGroup;
 
     [Header(":: SFX")]
-    [SerializeField] private AudioSource effectSource;
+    [SerializeField] private AudioSource sfxSource;
     [SerializeField] private SerializableDic<string, AudioClip> sounds;
     [SerializeField] private AudioMixerGroup sfxGroup;
-    
+
     // 사운드 재생할 오브젝트 생성 ->
     // 사운드 재생 후 삭제, or 오브젝트 풀
     // 오디오 믹서
 
     private void Awake()
     {
+        if (FindObjectsOfType<SoundManager>().Length > 1)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         base.Awake();
         Initialize();
     }
@@ -34,10 +40,10 @@ public class SoundManager : Singleton<SoundManager>
             bgmSource.loop = true;
         }
 
-        if(effectSource == null)
+        if(sfxSource == null)
         {
-            effectSource = gameObject.AddComponent<AudioSource>();
-            effectSource.outputAudioMixerGroup = sfxGroup;
+            sfxSource = gameObject.AddComponent<AudioSource>();
+            sfxSource.outputAudioMixerGroup = sfxGroup;
         }
 
         PlayBGM();
@@ -54,6 +60,8 @@ public class SoundManager : Singleton<SoundManager>
             return;
         }
 
+        if (bgmSource.isPlaying) return;
+
         bgmSource.clip = bgm;
         bgmSource.Play();
     }
@@ -65,7 +73,7 @@ public class SoundManager : Singleton<SoundManager>
     {
         if (sounds.TryGetValue(key, out AudioClip clip))
         {
-            effectSource.PlayOneShot(clip);
+            sfxSource.PlayOneShot(clip);
         }
         else
         {
@@ -73,7 +81,6 @@ public class SoundManager : Singleton<SoundManager>
             return;
         }
     }
-
     // public void PlayClick()     => PlayEffectSound(click);
     // public void PlayPlacement() => PlayEffectSound(placement);
 }
