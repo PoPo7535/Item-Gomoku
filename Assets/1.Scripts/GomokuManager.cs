@@ -223,6 +223,18 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
         StartTurnTimer();
     }
     /// <summary>
+    /// 게임 재시작 UI 버튼용
+    /// </summary>
+    public void RestartGame()
+    {
+        if (App.I.PlayMode == GamePlayMode.Multi && !Object.HasStateAuthority)
+            return;
+
+        ResetGame(); 
+        IsPlaying = true;
+        StartTurnTimer();
+    }
+    /// <summary>
     /// 턴변경
     /// </summary>
     public void ChangeTurn() 
