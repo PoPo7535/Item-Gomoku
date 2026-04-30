@@ -7,4 +7,6 @@ internal struct MinimaxThreatAnalysis
     public int OpenThreeCount;
     public int BlockedFourCount;
     public int OpenFourCount;
+    public int GappedFourCount;
+    public int BrokenThreeCount;
 }

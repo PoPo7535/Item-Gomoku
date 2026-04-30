@@ -10,8 +10,8 @@ using ThreatAnalysis = MinimaxThreatAnalysis;
 public partial class MinimaxGomokuAI : IGomokuAI
 {
     // AI 디버그/성능 로그 출력 여부임.
-    private const bool EnableAiDebugLog = false;
-    private const bool EnableAiStatsLog = false;
+    private const bool EnableAiDebugLog = true;
+    private const bool EnableAiStatsLog = true;
 
     // 탐색 제한 시간을 넘겼을 때 내부 흐름만 빠져나오기 위한 예외임.
     private sealed class SearchTimeoutException : System.Exception
@@ -23,6 +23,8 @@ public partial class MinimaxGomokuAI : IGomokuAI
     private const int OpenFourThreatScore = 900000;
     private const int BlockedFourThreatScore = 300000;
     private const int OpenThreeThreatScore = 50000;
+    private const int GappedFourThreatScore = 250000;
+    private const int BrokenThreeThreatScore = 30000;
 
     // 후보 생성 범위와 모드별 후보 제한 개수임.
     private const int CandidateRadius = 2;
@@ -35,6 +37,8 @@ public partial class MinimaxGomokuAI : IGomokuAI
     private const int BlockedFourOrderingBonus = 250000;
     private const int OpenThreeOrderingBonus = 45000;
     private const int CompositeThreatOrderingBonus = 180000;
+    private const int GappedFourOrderingBonus = 200000;
+    private const int BrokenThreeOrderingBonus = 25000;
     private const int DefenseOrderingBonusDivisor = 2;
 
     // 탐색이 참조하는 보드/평가기/위협 분석기와 색상 정보임.
@@ -74,7 +78,13 @@ public partial class MinimaxGomokuAI : IGomokuAI
         _logic = logic;
         _boardSize = boardSize;
         _evaluator = new GomokuBoardEvaluator();
-        _threatAnalyzer = new MinimaxThreatAnalyzer(_logic, OpenFourThreatScore, BlockedFourThreatScore, OpenThreeThreatScore);
+        _threatAnalyzer = new MinimaxThreatAnalyzer(
+            _logic,
+            OpenFourThreatScore,
+            BlockedFourThreatScore,
+            OpenThreeThreatScore,
+            GappedFourThreatScore,
+            BrokenThreeThreatScore);
         _aiColor = aiColor == StoneColor.Black ? StoneColor.Black : StoneColor.White;
         _opponentColor = GetOppositeColor(_aiColor);
     }
@@ -429,7 +439,8 @@ public partial class MinimaxGomokuAI : IGomokuAI
             int defenseScore = threatAnalysis.Score;
             LogAiDebug(
                 $"ThreatDefense candidate=({candidate.X},{candidate.Y}) score={threatAnalysis.Score} " +
-                $"open3={threatAnalysis.OpenThreeCount} blocked4={threatAnalysis.BlockedFourCount} open4={threatAnalysis.OpenFourCount} " +
+                $"open3={threatAnalysis.OpenThreeCount} broken3={threatAnalysis.BrokenThreeCount} " +
+                $"blocked4={threatAnalysis.BlockedFourCount} gapped4={threatAnalysis.GappedFourCount} open4={threatAnalysis.OpenFourCount} " +
                 $"tier={threatPriority}");
 
             if (!bestDefense.IsValid ||
@@ -471,6 +482,11 @@ public partial class MinimaxGomokuAI : IGomokuAI
             return "Blocked four defense";
         }
 
+        if (analysis.GappedFourCount > 0)
+        {
+            return "Gapped four defense";
+        }
+
         return "Threat defense";
     }
 
@@ -492,7 +508,7 @@ public partial class MinimaxGomokuAI : IGomokuAI
             return 3;
         }
 
-        if (analysis.BlockedFourCount > 0)
+        if (analysis.BlockedFourCount > 0 || analysis.GappedFourCount > 0)
         {
             return 2;
         }

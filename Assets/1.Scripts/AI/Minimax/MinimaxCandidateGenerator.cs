@@ -180,9 +180,19 @@ public partial class MinimaxGomokuAI
             bonus += BlockedFourOrderingBonus;
         }
 
+        if (analysis.GappedFourCount > 0)
+        {
+            bonus += GappedFourOrderingBonus * analysis.GappedFourCount;
+        }
+
         if (analysis.OpenThreeCount > 0)
         {
             bonus += OpenThreeOrderingBonus * analysis.OpenThreeCount;
+        }
+
+        if (analysis.BrokenThreeCount > 0)
+        {
+            bonus += BrokenThreeOrderingBonus * analysis.BrokenThreeCount;
         }
 
         if (analysis.BlockedFourCount > 0 && analysis.OpenThreeCount > 0)
