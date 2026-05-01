@@ -71,6 +71,20 @@ public static class Extensions
 
         return result.ToString();
     }
+    public static void SetAnchorKeepPosition(this RectTransform rt, Vector2 anchorMin, Vector2 anchorMax)
+    {
+        if (rt == null) return;
+
+        // 현재 월드 위치 저장
+        Vector3 worldPos = rt.position;
+
+        // 앵커 변경
+        rt.anchorMin = anchorMin;
+        rt.anchorMax = anchorMax;
+
+        // 위치 복원
+        rt.position = worldPos;
+    }
     public static T Next<T>(this T value) where T : struct, Enum
     {
         var values = (T[])Enum.GetValues(typeof(T));

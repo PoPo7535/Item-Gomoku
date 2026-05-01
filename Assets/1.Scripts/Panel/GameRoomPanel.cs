@@ -12,36 +12,57 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
     [SerializeField] private TMP_Text readyText;
     [SerializeField] private TMP_Text playerText1;
     [SerializeField] private TMP_Text playerText2;
-    [SerializeField] private Slider timerSlider;
     [SerializeField] private TMP_Text timerText;
     [SerializeField] private ItemSelectPanel itemSelectPanel;
+    [SerializeField] private Toggle openRoomToggle;
+    [SerializeField] private Toggle itemToggle;
+    [SerializeField] private TMP_Text roomCodeText;
+
     private bool _clientReady = false;
-    [Networked, OnChangedRender(nameof(OnChangedNickName1))] private NetworkString<_16> Player1Text { set; get; }
-    private void OnChangedNickName1() => playerText1.text = Player1Text.Value;
-    [Networked, OnChangedRender(nameof(OnChangedNickName2))] private NetworkString<_16> Player2Text { set; get; }
-    private void OnChangedNickName2() => playerText2.text = Player2Text.Value;
+    [Networked, OnChangedRender(nameof(OnChangedOpenRoomBool))] private NetworkBool OpenRoomToggleBool { get; set; }
+    private void OnChangedOpenRoomBool() => openRoomToggle.isOn = OpenRoomToggleBool;
+    [Networked, OnChangedRender(nameof(OnChangedItemBool))] private NetworkBool ItemToggleBool { get; set; }
+    private void OnChangedItemBool() => itemToggle.isOn = ItemToggleBool;
+    [Networked, OnChangedRender(nameof(OnChangedNickName1))] private NetworkString<_16> Player1Str { set; get; }
+    private void OnChangedNickName1() => playerText1.text = Player1Str.Value;
+    [Networked, OnChangedRender(nameof(OnChangedNickName2))] private NetworkString<_16> Player2Str { set; get; }
+    private void OnChangedNickName2() => playerText2.text = Player2Str.Value;
     public override void Spawned()
     {
-        App.I.Runner.SessionInfo.Name.Log();
-
         InspectorInit();
         SetupGameStartButton();
         SetNickName();
+        roomCodeText.text = App.I.Runner.SessionInfo.Name;
+        OpenRoomToggleBool = App.I.Runner.SessionInfo.IsVisible;
+        itemToggle.isOn = ItemToggleBool;
+        openRoomToggle.onValueChanged.AddListener((isOn) =>
+        {
+            OpenRoomToggleBool= isOn;
+            App.I.Runner.SessionInfo.IsVisible = isOn;
+        });
+        itemToggle.onValueChanged.AddListener((isOn) =>
+        {
+            ItemToggleBool = isOn;
+        });
     }
 
     public void LateUpdate()
     {
+        if (false == GomokuManager.I.IsPlaying)
+        {
+            timerText.text = "VS";   
+            return;
+        }
         var time = App.I.TickTimerRemainingTime(GomokuManager.I.TickTimer);
-        timerText.text = $"{time:0.0}";
-        timerSlider.value = time/ GomokuManager.I.TurnTimeLimit;
+        timerText.text = $"{time:0}";
     }
 
     private void SetNickName()
     {
-        playerText1.text = Player1Text.Value;
-        playerText2.text = Player2Text.Value;
+        playerText1.text = Player1Str.Value;
+        playerText2.text = Player2Str.Value;
         if (Object.HasStateAuthority)
-            Player1Text = App.I.nickName;
+            Player1Str = App.I.nickName;
         else
             Rpc_SetNickName(App.I.nickName);
     }
@@ -75,14 +96,14 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
 
     public void PlayerLeft(PlayerRef player)
     {
-        Player2Text = null;
+        Player2Str = null;
         _clientReady = false;
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority, HostMode = RpcHostMode.SourceIsHostPlayer)]
     private void Rpc_SetNickName(string nickName)
     {
-        Player2Text = nickName;
+        Player2Str = nickName;
     }
 
     private void SetupGameStartButton() //추가
