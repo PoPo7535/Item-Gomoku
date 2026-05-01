@@ -184,6 +184,29 @@ public class GomokuBoardView : MonoBehaviour
         // 핵심: 로직으로 넘김 (여기서 모든 처리됨)
         GomokuManager.I.PlaceStoneProcess(pos, x, z, isBlackTurn);
     }
+
+    /// <summary>
+    /// 좌표 기반 착수 위치를 월드 좌표로 변환함.
+    /// </summary>
+    /// <param name="x">보드 X 좌표.</param>
+    /// <param name="z">보드 Z 좌표.</param>
+    /// <param name="pos">변환된 월드 좌표.</param>
+    /// <returns>좌표 변환 성공 여부.</returns>
+    public bool TryGetWorldPositionByCoord(int x, int z, out Vector3 pos)
+    {
+        pos = Vector3.zero;
+        if (x < 0 || x >= LineCount || z < 0 || z >= LineCount)
+        {
+            return false;
+        }
+
+        pos = new Vector3(
+            StartPos.x + (x * Interval),
+            StartPos.y,
+            StartPos.z + (z * Interval));
+        return true;
+    }
+
     /// <summary>
     /// 특정 좌표(x,z)에 있는 오브젝트 돌만 삭제
     /// </summary>

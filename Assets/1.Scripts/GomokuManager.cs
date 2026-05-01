@@ -5,7 +5,7 @@ using Utility;
 
 
 // 얘는 오목 규칙 + 턴 + 네트워크 + 게임 진행 전체 흐름 관리하자
-public class GomokuManager : LocalFusionSingleton<GomokuManager>
+public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
 {
     [Header("참조 설정")]
     public GomokuBoardView BoardView;
@@ -80,6 +80,7 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
             UpdateAndShowLastPlace(x, z, isBlackStone); // 최근위치 알려주기
 
             //전체 기록 저장
+            NotifyBoardChanged();
             string posText = $"{x},{z}";
             if (isBlackStone) _blackHistory.Add(posText);
             else _whiteHistory.Add(posText);
@@ -107,7 +108,10 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (App.I.PlayMode == GamePlayMode.Multi && currentTurn != _myColor)
             canPlace = false;
 
-        BoardView.UpdateGhostStone(result.pos, canPlace, IsBlackTurn);
+        if (App.I.PlayMode == GamePlayMode.AI && (!IsPlayerTurn || _isAiThinking))
+            canPlace = false;
+
+        BoardView?.UpdateGhostStone(result.pos, canPlace, IsBlackTurn);
     }
     /// <summary>
     /// 현재 플레이 모드에 따라 입력 처리 분기 (싱글 / 멀티 / AI)
@@ -155,11 +159,19 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
     private void HandleAIInput((Vector3 pos, int x, int z) result)
     {
         // 플레이어만 입력 근데지금 흑고정이라 선택하게하면 바꿔야함여기
-        if (!IsBlackTurn) return;
+        if (_isAiThinking || !IsPlayerTurn)
+        {
+            return;
+        }
 
-        PlaceStoneProcess(result.pos, result.x, result.z, true);
+        if (result.pos == Vector3.zero || !CanPlaceStoneSafely(result.x, result.z, PlayerStoneColor))
+        {
+            return;
+        }
 
-        // AI는 여기서 행동하는거 추가해야함
+        PlaceStoneProcess(result.pos, result.x, result.z, PlayerStoneColor == StoneColor.Black);
+        TryScheduleAiTurnIfNeeded();
+
     }
 
     /// <summary>
@@ -188,6 +200,7 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
     {
         // 1. 로직 제거
         _logic.Board[x, z].Color = StoneColor.None;
+        NotifyBoardChanged();
 
         // 2. 뷰 제거
         BoardView.RemoveStone(x, z);
@@ -206,6 +219,7 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
     public void ResetGame()
     {   
         //호스트만 초기화 
+        CancelAiSearchRequest();
         if (Object.HasStateAuthority)
         {
             IsPlaying = false;
@@ -214,11 +228,12 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
        
         IsBlackTurn = true;
         _logic = new OmokuLogic();
+        ResetAiBoardState();
         _blackHistory.Clear();
         _whiteHistory.Clear();
         _lastX = 0; _lastZ = 0;
         if (BoardView != null) BoardView.ClearBoard();
-        BoardView.UpdateGhostStone(Vector3.zero, false, false);
+        BoardView?.UpdateGhostStone(Vector3.zero, false, false);
         Debug.Log("게임 리셋 및 기록 초기화 완료");
     }
     /// <summary>
@@ -230,6 +245,7 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (App.I.PlayMode == GamePlayMode.Multi && !Object.HasStateAuthority) return;
         IsPlaying = true;
         StartTurnTimer();
+        TryScheduleAiTurnIfNeeded();
     }
     /// <summary>
     /// 게임 재시작 UI 버튼용
@@ -240,6 +256,7 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
         ResetGame(); 
         IsPlaying = true;
         StartTurnTimer();
+        TryScheduleAiTurnIfNeeded();
     }
     /// <summary>
     /// 턴변경
@@ -264,4 +281,4 @@ public class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (Object.HasStateAuthority && TickTimer.ExpiredOrNotRunning(App.I.Runner))ChangeTurn(); 
     }
 
-}   
+}

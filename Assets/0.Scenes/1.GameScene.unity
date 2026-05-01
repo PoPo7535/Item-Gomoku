@@ -4973,6 +4973,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 233d7816bc218ae4486cbd0b52842f22, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GomokuManager
+  _aiStoneColor: 1
+  _aiAlgorithmType: 0
+  _aiDifficulty: 3
+  _maxAiSearchTimeSeconds: 7
   BoardView: {fileID: 1954883595}
   TurnTimeLimit: 10
   _IsBlackTurn:
