@@ -9,9 +9,10 @@ public class MainPanel : MonoBehaviour
     [SerializeField] private Button makeRoomBtn;
     [SerializeField] private Button findRoomBtn;
     [SerializeField] private Button fastGameBtn;
+    [SerializeField] private Button nickNameBtn;
     [SerializeField] private TMP_InputField nickNameIF;
     [SerializeField] private TMP_InputField roomCodeIF;
-    private void Awake()
+    private void Start()
     {
         singlePlayBtn.onClick.AddListener(() =>
         {
@@ -25,7 +26,8 @@ public class MainPanel : MonoBehaviour
         });
         findRoomBtn.onClick.AddListener(() =>
         {
-            App.I.JoinRoom("1");
+            roomCodeIF.text.Log();
+            App.I.JoinRoom(roomCodeIF.text);
             App.I.PlayMode = GamePlayMode.Multi;
         });
         fastGameBtn.onClick.AddListener(() =>
@@ -33,5 +35,8 @@ public class MainPanel : MonoBehaviour
             App.I.CreateRoom(GameMode.AutoHostOrClient, true);
             App.I.PlayMode = GamePlayMode.Multi;
         });
+        nickNameBtn.onClick.AddListener(() => { App.I.nickName = nickNameIF.text; });
+        nickNameIF.onEndEdit.AddListener((str) => { App.I.nickName = str; });
+        nickNameIF.onSubmit.AddListener((str) => { App.I.nickName = str; });
     }
 }

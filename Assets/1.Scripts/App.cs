@@ -17,6 +17,7 @@ public class App : SimulationSingleton<App>
     private NetworkRunner _networkRunner;
     private NetworkEvents _runnerEvent;
     public GamePlayMode PlayMode;
+    public string nickName;
     private new void Awake()
     {
         base.Awake();
@@ -31,6 +32,7 @@ public class App : SimulationSingleton<App>
                 () => { PopUpPanel.I.Close();}, "확인");
         });
     }
+
 
     public void CreateRoom(GameMode gameMode, bool isVisible)
     {
