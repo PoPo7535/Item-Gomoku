@@ -41,6 +41,7 @@ public class MainPanel : MonoBehaviour
         nickNameBtn.onClick.AddListener(() => { App.I.nickName = nickNameIF.text; });
         nickNameIF.onEndEdit.AddListener((str) => { App.I.nickName = str; });
         nickNameIF.onSubmit.AddListener((str) => { App.I.nickName = str; });
+        roomCodeIF.onValueChanged.AddListener(str => roomCodeIF.SetTextWithoutNotify(str.ToUpper()));
     }
 
     private void SetName()
