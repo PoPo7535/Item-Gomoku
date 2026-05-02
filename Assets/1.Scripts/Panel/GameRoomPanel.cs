@@ -7,16 +7,18 @@ using UnityEngine.UI;
 
 public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
 {
-    [SerializeField] private Button readyButton;
-    [SerializeField] private Button shutdownButton;
-    [SerializeField] private TMP_Text readyText;
-    [SerializeField] private TMP_Text playerText1;
-    [SerializeField] private TMP_Text playerText2;
-    [SerializeField] private TMP_Text timerText;
     [SerializeField] private ItemSelectPanel itemSelectPanel;
+    [SerializeField] private TMP_Text playerText1;
+    [SerializeField] private Image playerImg1;
+    [SerializeField] private TMP_Text playerText2;
+    [SerializeField] private Image playerImg2;
+    [SerializeField] private TMP_Text timerText;
     [SerializeField] private Toggle openRoomToggle;
     [SerializeField] private Toggle itemToggle;
     [SerializeField] private TMP_Text roomCodeText;
+    [SerializeField] private Button readyButton;
+    [SerializeField] private Button shutdownButton;
+    [SerializeField] private TMP_Text readyText;
 
     private bool _clientReady = false;
     [Networked, OnChangedRender(nameof(OnChangedOpenRoomBool))] private NetworkBool OpenRoomToggleBool { get; set; }
@@ -43,6 +45,11 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
         itemToggle.onValueChanged.AddListener((isOn) =>
         {
             ItemToggleBool = isOn;
+        });
+        GomokuManager.I.TurnEvents.Add(isBlackTurn =>
+        {
+            playerImg1.color = isBlackTurn ? new Color32(255, 210, 210, 255) : Color.white;
+            playerImg2.color = isBlackTurn ? Color.white : new Color32(210, 210, 255, 255);
         });
     }
 

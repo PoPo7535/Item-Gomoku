@@ -1004,7 +1004,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.9686275, g: 0.9686275, b: 0.9725491, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -4470,16 +4470,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e33e451e086f28a4bbef7d2ad0c97979, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameRoomPanel
-  readyButton: {fileID: 1977361494}
-  shutdownButton: {fileID: 2023027203}
-  readyText: {fileID: 1762363256}
-  playerText1: {fileID: 1599571926}
-  playerText2: {fileID: 720532686}
-  timerText: {fileID: 1151983280}
   itemSelectPanel: {fileID: 1046758905}
+  playerText1: {fileID: 1599571926}
+  playerImg1: {fileID: 163610167}
+  playerText2: {fileID: 720532686}
+  playerImg2: {fileID: 206335852}
+  timerText: {fileID: 1151983280}
   openRoomToggle: {fileID: 2093034978}
   itemToggle: {fileID: 1864272885}
   roomCodeText: {fileID: 456812180}
+  readyButton: {fileID: 1977361494}
+  shutdownButton: {fileID: 2023027203}
+  readyText: {fileID: 1762363256}
 --- !u!222 &1014983831
 CanvasRenderer:
   m_ObjectHideFlags: 0

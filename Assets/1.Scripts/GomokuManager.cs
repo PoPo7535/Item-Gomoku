@@ -15,20 +15,22 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     public float TurnTimeLimit = 30f;
 
     [Networked, OnChangedRender(nameof(OnTurnEvent))] public NetworkBool IsBlackTurn { get; set; } = true;
-    public readonly List<Func<bool>> TurnEvents = new();
+    public readonly List<Action<bool>> TurnEvents = new();
 
     private void OnTurnEvent()
     {
         foreach (var func in TurnEvents)
-            func?.Invoke();
+            func?.Invoke(IsBlackTurn);
     }
     [Networked, OnChangedRender(nameof(OnPlayEvent))] public NetworkBool IsPlaying { get; set; }
 
-    public readonly List<Func<bool>> PlayEvents = new();
+    public readonly List<Action<bool>> PlayEvents = new();
     private void OnPlayEvent()
     {
         foreach (var func in PlayEvents)
-            func?.Invoke();
+            func?.Invoke(IsPlaying);
+        if (IsPlaying)
+            OnTurnEvent();
     }
 
 
@@ -261,7 +263,6 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         if(IsPlaying) return;
         if (App.I.PlayMode == GamePlayMode.Multi && !Object.HasStateAuthority) return;
         IsPlaying = true;
-        OnTurnEvent();
         StartTurnTimer();
         TryScheduleAiTurnIfNeeded();
     }
