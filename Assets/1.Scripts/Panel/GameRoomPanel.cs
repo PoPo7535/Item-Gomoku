@@ -1,8 +1,6 @@
-using System;
 using Fusion;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
@@ -34,23 +32,6 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
         InspectorInit();
         SetupGameStartButton();
         SetNickName();
-        roomCodeText.text = App.I.Runner.SessionInfo.Name;
-        OpenRoomToggleBool = App.I.Runner.SessionInfo.IsVisible;
-        itemToggle.isOn = ItemToggleBool;
-        openRoomToggle.onValueChanged.AddListener((isOn) =>
-        {
-            OpenRoomToggleBool= isOn;
-            App.I.Runner.SessionInfo.IsVisible = isOn;
-        });
-        itemToggle.onValueChanged.AddListener((isOn) =>
-        {
-            ItemToggleBool = isOn;
-        });
-        GomokuManager.I.TurnEvents.Add(isBlackTurn =>
-        {
-            playerImg1.color = isBlackTurn ? new Color32(255, 210, 210, 255) : Color.white;
-            playerImg2.color = isBlackTurn ? Color.white : new Color32(210, 210, 255, 255);
-        });
     }
 
     public void LateUpdate()
@@ -85,6 +66,32 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
         });
         readyText.text = Object.HasStateAuthority ? "게임시작" : "준비";
         readyButton.interactable = false == Object.HasStateAuthority;
+        
+        roomCodeText.text = App.I.Runner.SessionInfo.Name;
+        OpenRoomToggleBool = App.I.Runner.SessionInfo.IsVisible;
+        itemToggle.isOn = ItemToggleBool;
+        openRoomToggle.onValueChanged.AddListener((isOn) =>
+        {
+            OpenRoomToggleBool= isOn;
+            App.I.Runner.SessionInfo.IsVisible = isOn;
+        });
+        itemToggle.onValueChanged.AddListener((isOn) =>
+        {
+            ItemToggleBool = isOn;
+        });
+        GomokuManager.I.TurnEvents.Add(isBlackTurn =>
+        {
+            playerImg1.color = isBlackTurn ? new Color32(255, 210, 210, 255) : Color.white;
+            playerImg2.color = isBlackTurn ? Color.white : new Color32(210, 210, 255, 255);
+        });
+        GomokuManager.I.PlayEvents.Add(isPlay =>
+        {
+            if (false == isPlay)
+            {
+                playerImg1.color = Color.white;
+                playerImg2.color = Color.white;
+            }
+        });
     }
 
     [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
