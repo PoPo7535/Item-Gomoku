@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
@@ -13,11 +14,27 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     [Header("게임 설정")]
     public float TurnTimeLimit = 30f;
 
-    [Networked] public NetworkBool IsBlackTurn { get; set; } = true;
-    [Networked] public NetworkBool IsPlaying { get; set; }
-    [Networked] public TickTimer TickTimer { get; set; }
+    [Networked, OnChangedRender(nameof(OnTurnEvent))] public NetworkBool IsBlackTurn { get; set; } = true;
+    public readonly List<Func<bool>> TurnEvents = new();
 
-    public OmokuLogic _logic;
+    private void OnTurnEvent()
+    {
+        foreach (var func in TurnEvents)
+            func?.Invoke();
+    }
+    [Networked, OnChangedRender(nameof(OnPlayEvent))] public NetworkBool IsPlaying { get; set; }
+
+    public readonly List<Func<bool>> PlayEvents = new();
+    private void OnPlayEvent()
+    {
+        foreach (var func in PlayEvents)
+            func?.Invoke();
+    }
+
+
+    [Networked] public TickTimer TickTimer { get; set; }
+    
+    private OmokuLogic _logic;
 
     // 이 클라이언트가 조작할 수 있는 돌 색상 (멀티/싱글 구분용 로컬 값)
     private StoneColor _myColor; 
@@ -244,6 +261,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         if(IsPlaying) return;
         if (App.I.PlayMode == GamePlayMode.Multi && !Object.HasStateAuthority) return;
         IsPlaying = true;
+        OnTurnEvent();
         StartTurnTimer();
         TryScheduleAiTurnIfNeeded();
     }
