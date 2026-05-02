@@ -14,6 +14,7 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
     [SerializeField] private Toggle openRoomToggle;
     [SerializeField] private Toggle itemToggle;
     [SerializeField] private TMP_Text roomCodeText;
+    [SerializeField] private Button roomCodeButton;
     [SerializeField] private Button readyButton;
     [SerializeField] private Button shutdownButton;
     [SerializeField] private TMP_Text readyText;
@@ -91,6 +92,10 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
                 playerImg1.color = Color.white;
                 playerImg2.color = Color.white;
             }
+        });
+        roomCodeButton.onClick.AddListener(() =>
+        {
+            GUIUtility.systemCopyBuffer = roomCodeText.text;
         });
     }
 
