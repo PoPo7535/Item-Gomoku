@@ -22,7 +22,8 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
     private bool _clientReady = false;
     [Networked, OnChangedRender(nameof(OnChangedOpenRoomBool))] private NetworkBool OpenRoomToggleBool { get; set; }
     private void OnChangedOpenRoomBool() => openRoomToggle.isOn = OpenRoomToggleBool;
-    [Networked, OnChangedRender(nameof(OnChangedItemBool))] private NetworkBool ItemToggleBool { get; set; }
+
+    [Networked, OnChangedRender(nameof(OnChangedItemBool))] private NetworkBool ItemToggleBool { get; set; } = true;
     private void OnChangedItemBool() => itemToggle.isOn = ItemToggleBool;
     [Networked, OnChangedRender(nameof(OnChangedNickName1))] private NetworkString<_16> Player1Str { set; get; }
     private void OnChangedNickName1() => playerText1.text = Player1Str.Value;
