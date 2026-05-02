@@ -142,6 +142,9 @@ namespace PolyAndCode.UI
                 RectTransform item = (UnityEngine.Object.Instantiate(PrototypeCell.gameObject)).GetComponent<RectTransform>();
                 item.name = "Cell";
                 item.sizeDelta = new Vector2(_cellWidth, _cellHeight);
+                _cachedCells.Add(item.GetComponent<ICell>());
+                DataSource.SetCell(_cachedCells[_cachedCells.Count - 1], poolSize);
+                item.sizeDelta = new Vector2(_cellWidth, item.sizeDelta.y);
                 _cellPool.Add(item);
                 item.SetParent(Content, false);
 
@@ -164,8 +167,8 @@ namespace PolyAndCode.UI
                 }
 
                 //Setting data for Cell
-                _cachedCells.Add(item.GetComponent<ICell>());
-                DataSource.SetCell(_cachedCells[_cachedCells.Count - 1], poolSize);
+                // _cachedCells.Add(item.GetComponent<ICell>());
+                // DataSource.SetCell(_cachedCells[_cachedCells.Count - 1], poolSize);
 
                 //Update the Pool size
                 poolSize++;
