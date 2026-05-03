@@ -96,7 +96,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (_logic.PlaceStone(x, z, color))
         {
             BoardView.SpawnStone(x, z, isBlackStone, pos); // 돌 생성       
-            UpdateAndShowLastPlace(x, z, isBlackStone); // 최근위치 알려주기
+            BoardView.ShowLastMoveMarkers(x, z); // 최근위치 알려주기
 
             //전체 기록 저장
             NotifyBoardChanged();
@@ -196,7 +196,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     }
 
     /// <summary>
-    /// 최근 기록 보기
+    /// 최근 기록 보기 // 현재안씀 X 
     /// </summary>
     public void UpdateAndShowLastPlace(int x, int z, bool isBlack)
     {
@@ -254,7 +254,13 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         _whiteHistory.Clear();
         _lastX = 0; _lastZ = 0;
         if (BoardView != null) BoardView.ClearBoard();
+        
         BoardView?.UpdateGhostStone(Vector3.zero, false, false);
+        if (BoardView.RealLastMoveMarker != null)
+        BoardView.RealLastMoveMarker.SetActive(false);
+
+        if (BoardView.FakeLastMoveMarker != null)
+        BoardView.FakeLastMoveMarker.SetActive(false);
         Debug.Log("게임 리셋 및 기록 초기화 완료");
     }
     /// <summary>

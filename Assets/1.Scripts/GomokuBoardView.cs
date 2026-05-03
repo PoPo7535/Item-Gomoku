@@ -16,7 +16,10 @@ public class GomokuBoardView : MonoBehaviour
 
     [Header("렌더 텍스처 & 카메라 설정")]
     public RawImage GameViewImage; 
-    public Camera BoardCamera;    
+    public Camera BoardCamera;
+    [Header("최근 착수 표시")]
+    public GameObject RealLastMoveMarker;   
+    public GameObject FakeLastMoveMarker;      
 
     [Header("보드 생성 설정")]
     public int LineCount = 15;
@@ -33,6 +36,38 @@ public class GomokuBoardView : MonoBehaviour
     {
         _stoneObjects = new GameObject[LineCount, LineCount];
         CreateClickPoints();
+        if (RealLastMoveMarker != null)
+        RealLastMoveMarker.SetActive(false);
+
+        if (FakeLastMoveMarker != null)
+        FakeLastMoveMarker.SetActive(false);
+    }
+    /// <summary>
+    /// 최근 착수 위치를 마커로 시각적으로 표시
+    /// - realX, realZ : 실제 마지막 착수 위치 (항상 표시됨)
+    /// - fakeX, fakeZ : 가짜 위치 (옵션, 전달 시 함께 표시)
+    /// </summary
+    public void ShowLastMoveMarkers(int realX, int realZ, int? fakeX = null, int? fakeZ = null)
+    {
+        // 진짜 위치
+        if (TryGetWorldPositionByCoord(realX, realZ, out Vector3 realPos))
+        {
+            RealLastMoveMarker.transform.position = realPos + new Vector3(0, 3.2f, 0);
+            RealLastMoveMarker.SetActive(true);
+        }
+
+        // 가짜 위치
+        if (fakeX.HasValue && fakeZ.HasValue &&
+            TryGetWorldPositionByCoord(fakeX.Value, fakeZ.Value, out Vector3 fakePos))
+        {
+            FakeLastMoveMarker.transform.position = fakePos + new Vector3(0, 3.2f, 0);
+            FakeLastMoveMarker.SetActive(true);
+        }
+        else
+        {
+            // 가짜 없으면 숨김
+            FakeLastMoveMarker.SetActive(false);
+        }
     }
 
     /// <summary>
