@@ -1,16 +1,121 @@
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 
 public class OfflineUIManager : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-      
+    [SerializeField] private Button _AIBtn;
+    [SerializeField] private TMP_Dropdown _difficultyDropdown;
+    [SerializeField] private TMP_Text _ainame;
+    [SerializeField] private TMP_Text _laveltext;
+    
+    private bool _isAIActive = false;
+
+    private void Start()
+    {   
+       
+        if (App.I.PlayMode == GamePlayMode.Multi)
+        {
+            SetUIVisible(false);
+            return;
+        }
+
+        SetUIVisible(false);
+        _AIBtn.onClick.AddListener(OnClickAIButton);
+        _difficultyDropdown.onValueChanged.AddListener(OnChanged);
+        OnChanged(_difficultyDropdown.value);
     }
 
-    // Update is called once per frame
     void Update()
-    {
+    {   
+        //멀티 모드 UI체크
+        if (App.I.PlayMode == GamePlayMode.Multi)
+        {
+            SetUIVisible(false);
+            return;
+        }
+
+        // 싱글 모드 UI체크
+        if (App.I.PlayMode == GamePlayMode.Single)
+        {
+            SetUIVisible(false);
+            return;
+        }
+
+        // 게임 시작 체크
+        if (GomokuManager.I.IsPlaying)
+        {
+            OnStartGameUI();
+        }
+        else
+        {
+            RefreshUIVisibility();
+        }
+    }
+    /// <summary>
+    /// AI 모드 활성화/비활성화 토글
+    /// 프로필 ui 버튼
+    /// </summary>
+    private void OnClickAIButton()
+    {   
         
+        if (App.I.PlayMode == GamePlayMode.Multi || GomokuManager.I.IsPlaying) return;
+
+        _isAIActive = !_isAIActive;
+        
+        if (_isAIActive)
+        {
+            App.I.PlayMode = GamePlayMode.AI;
+            RefreshUIVisibility();
+        }
+        else
+        {
+            App.I.PlayMode = GamePlayMode.Single;
+            SetUIVisible(false);
+        }
+    }
+    /// <summary>
+    /// AI UI 전체 표시 상태 갱신
+    /// </summary>
+    private void RefreshUIVisibility()
+    {
+        _difficultyDropdown.gameObject.SetActive(true);
+        _laveltext.gameObject.SetActive(true);
+        _ainame.gameObject.SetActive(true);
+    }
+    /// <summary>
+    /// 게임 시작 시 AI UI 일부 비활성화
+    /// 난이도 선택 UI 숨기고 게임 표시용 UI로 전환
+    /// </summary>
+    public void OnStartGameUI()
+    {
+        _difficultyDropdown.gameObject.SetActive(false);
+        _laveltext.gameObject.SetActive(false);
+        _ainame.gameObject.SetActive(true);
+    }
+    /// <summary>
+    /// AI 설정 UI 전체 표시/숨김 처리
+    /// </summary>
+    private void SetUIVisible(bool visible)
+    {
+        // Null 레퍼런스 방지를 위한 체크 (안전장치)
+        if (_difficultyDropdown != null) _difficultyDropdown.gameObject.SetActive(visible);
+        if (_laveltext != null) _laveltext.gameObject.SetActive(visible);
+        if (_ainame != null) _ainame.gameObject.SetActive(visible);
+    }
+    /// <summary>
+    /// AI 난이도 선택 처리
+    /// </summary>
+    private void OnChanged(int index)
+    {
+        GomokuAIDifficulty difficulty;
+        switch (index)
+        {
+            case 0: difficulty = GomokuAIDifficulty.Easy; _ainame.text = "이지봇"; break;
+            case 1: difficulty = GomokuAIDifficulty.Normal; _ainame.text = "노멀봇"; break;
+            case 2: difficulty = GomokuAIDifficulty.Hard; _ainame.text = "하드봇"; break;
+            default: difficulty = GomokuAIDifficulty.Easy; _ainame.text = "이지봇"; break;
+        }
+        GomokuManager.I.SetAIDifficulty(difficulty);
     }
 }

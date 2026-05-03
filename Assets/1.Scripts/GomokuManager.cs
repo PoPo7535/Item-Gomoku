@@ -114,6 +114,10 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             ChangeTurn();
         }
     }
+    public void SetAIDifficulty(GomokuAIDifficulty difficulty)
+    {
+        _aiDifficulty = difficulty;
+    }
     /// <summary>
     /// 현재 마우스 위치에서 착수 가능 여부를 판단하고 돌 미리보기 표시
     /// </summary>
