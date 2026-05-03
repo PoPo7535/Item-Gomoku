@@ -111,10 +111,10 @@ public class OfflineUIManager : MonoBehaviour
         GomokuAIDifficulty difficulty;
         switch (index)
         {
-            case 0: difficulty = GomokuAIDifficulty.Easy; _ainame.text = "이지봇"; break;
-            case 1: difficulty = GomokuAIDifficulty.Normal; _ainame.text = "노멀봇"; break;
-            case 2: difficulty = GomokuAIDifficulty.Hard; _ainame.text = "하드봇"; break;
-            default: difficulty = GomokuAIDifficulty.Easy; _ainame.text = "이지봇"; break;
+            case 0: difficulty = GomokuAIDifficulty.Easy; _ainame.text = "Beginner Bot"; break;
+            case 1: difficulty = GomokuAIDifficulty.Normal; _ainame.text = "Advanced Bot"; break;
+            case 2: difficulty = GomokuAIDifficulty.Hard; _ainame.text = "Expert"; break;
+            default: difficulty = GomokuAIDifficulty.Easy; _ainame.text = "Beginner Bot"; break;
         }
         GomokuManager.I.SetAIDifficulty(difficulty);
     }
