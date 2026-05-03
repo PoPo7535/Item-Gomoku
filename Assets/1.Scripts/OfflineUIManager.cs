@@ -43,6 +43,10 @@ public class OfflineUIManager : LocalSingleton<OfflineUIManager>
             SetUIVisible(false);
             return;
         }
+        // GomokuManager먼저 실행대는걸 막기위함
+        var gm = GomokuManager.I;
+        if (gm == null || gm.Object == null || !gm.Object.IsValid)
+            return;
 
         // 게임 시작 체크
         if (GomokuManager.I.IsPlaying)
