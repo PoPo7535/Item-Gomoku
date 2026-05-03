@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
 using Utility;
-
+using Cysharp.Threading.Tasks;
 
 // 얘는 오목 규칙 + 턴 + 네트워크 + 게임 진행 전체 흐름 관리하자
 public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
@@ -193,8 +193,6 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         }
 
         PlaceStoneProcess(result.pos, result.x, result.z, PlayerStoneColor == StoneColor.Black);
-        TryScheduleAiTurnIfNeeded();
-
     }
 
     /// <summary>
@@ -287,7 +285,26 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     public void ChangeTurn() 
     { 
         IsBlackTurn = !IsBlackTurn; 
-        StartTurnTimer(); 
+        StartTurnTimer();
+        ProcessAiTurn();
+        
+    }
+    /// <summary>
+    /// 턴이 변경된 이후 AI 착수 
+    /// </summary>
+    private async void ProcessAiTurn()
+    {
+        if (App.I.PlayMode != GamePlayMode.AI)
+            return;
+
+        if (IsBlackTurn == false)
+            return;
+
+        OfflineUIManager.I.ToggleAiMsg();
+        await UniTask.Delay(TimeSpan.FromSeconds(1.5f));
+        OfflineUIManager.I.ToggleAiMsg();
+
+        TryScheduleAiTurnIfNeeded();
     }
     /// <summary>
     /// 타이머 시작

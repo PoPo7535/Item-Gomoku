@@ -1,13 +1,15 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using Utility;
 
-public class OfflineUIManager : MonoBehaviour
+public class OfflineUIManager : LocalSingleton<OfflineUIManager>
 {
     [SerializeField] private Button _AIBtn;
     [SerializeField] private TMP_Dropdown _difficultyDropdown;
     [SerializeField] private TMP_Text _ainame;
     [SerializeField] private TMP_Text _laveltext;
+    [SerializeField] private TMP_Text _aimsg;
     
     private bool _isAIActive = false;
 
@@ -51,6 +53,14 @@ public class OfflineUIManager : MonoBehaviour
         {
             RefreshUIVisibility();
         }
+    }
+    public void ToggleAiMsg()
+    {
+        bool isActive = _aimsg.gameObject.activeSelf;
+        _aimsg.gameObject.SetActive(!isActive);
+
+        if (!isActive)
+            _aimsg.text = "AI가 생각중입니다...";
     }
     /// <summary>
     /// AI 모드 활성화/비활성화 토글
@@ -113,7 +123,7 @@ public class OfflineUIManager : MonoBehaviour
         {
             case 0: difficulty = GomokuAIDifficulty.Easy; _ainame.text = "Beginner Bot"; break;
             case 1: difficulty = GomokuAIDifficulty.Normal; _ainame.text = "Advanced Bot"; break;
-            case 2: difficulty = GomokuAIDifficulty.Hard; _ainame.text = "Expert"; break;
+            case 2: difficulty = GomokuAIDifficulty.Hard; _ainame.text = "Expert Bot"; break;
             default: difficulty = GomokuAIDifficulty.Easy; _ainame.text = "Beginner Bot"; break;
         }
         GomokuManager.I.SetAIDifficulty(difficulty);
