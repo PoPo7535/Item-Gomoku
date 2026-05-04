@@ -8,17 +8,36 @@ public class ChatCell : EnhancedScrollerCellView
     public RectTransform rectTransform;
     public TMP_Text chat;
 
-
+    private readonly string _hostColor = "AB7477";
+    private readonly string _clinerColor = "939EAE";
+    private readonly string _noticeColor = "3C3C3C";
     public void SetCell(ChatData chatData)
     {
-        chat.text = GetMsg(chatData);
-        // var size = chat.GetPreferredValues(chat.text, chat.rectTransform.rect.width, 0);
-        // rectTransform.sizeDelta = new Vector2(rectTransform.sizeDelta.x, size.y);
+        string colorCode = chatData.type switch
+        {
+            ChatType.Host => _hostColor,
+            ChatType.Client => _clinerColor,
+            ChatType.Notice => _noticeColor,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+        if (chatData.type != ChatType.Notice)
+        {
+            chat.alignment = TextAlignmentOptions.Left;
+            chat.text = $"<color=#{colorCode}>{chatData.name}</color> : {chatData.msg}";
+        }
+        else
+        {
+            chat.alignment = TextAlignmentOptions.Center;
+            chat.text = $"<color=#{colorCode}>- {chatData.msg} -</color>";
+        }
     }
 
     public static string GetMsg(ChatData chatData)
-    {
-        return $"{chatData.name} : {chatData.msg}";
+    {        
+        if (chatData.type != ChatType.Notice)
+            return $"{chatData.name} : {chatData.msg}";
+        else
+            return $"- {chatData.msg} -";
     }
 
     public void SetSpace()

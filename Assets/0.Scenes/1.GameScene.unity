@@ -2577,7 +2577,7 @@ MonoBehaviour:
   m_HideSoftKeyboard: 0
   m_CharacterValidation: 0
   m_RegexValue: 
-  m_GlobalPointSize: 14
+  m_GlobalPointSize: 25
   m_CharacterLimit: 0
   m_OnEndEdit:
     m_PersistentCalls:
@@ -5353,6 +5353,7 @@ MonoBehaviour:
   NestedObjects:
   - {fileID: 2093034980}
   - {fileID: 1864272887}
+  - {fileID: 2005178763}
   NetworkedBehaviours:
   - {fileID: 1014983830}
   ForceRemoteRenderTimeframe: 0
@@ -6187,8 +6188,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 18
-  m_fontSizeBase: 18
+  m_fontSize: 25
+  m_fontSizeBase: 25
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -9417,15 +9418,15 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 14
-  m_fontSizeBase: 14
+  m_fontSize: 25
+  m_fontSizeBase: 25
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
   m_HorizontalAlignment: 1
-  m_VerticalAlignment: 256
+  m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_characterHorizontalScale: 1
@@ -10483,6 +10484,7 @@ GameObject:
   - component: {fileID: 2005178760}
   - component: {fileID: 2005178759}
   - component: {fileID: 2005178762}
+  - component: {fileID: 2005178763}
   m_Layer: 5
   m_Name: Chatting Panel
   m_TagString: Untagged
@@ -10577,11 +10579,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d6f012e209d53504a81915078af4edf2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ChatScroller
-  _inputField: {fileID: 0}
-  myTextCellViewPrefab: {fileID: 1573566001138958826, guid: 1a38b38b06f92c7458f80cffebe1ec2f, type: 3}
-  spacerCellViewPrefab: {fileID: 1573566001138958826, guid: 1a38b38b06f92c7458f80cffebe1ec2f, type: 3}
   scroller: {fileID: 91026019}
-  myText: {fileID: 1897219593}
+  myTextCellViewPrefab: {fileID: 1573566001138958826, guid: 1a38b38b06f92c7458f80cffebe1ec2f, type: 3}
+  inputField: {fileID: 406779383}
+  chatButton: {fileID: 1896314377}
+  helperText: {fileID: 1897219593}
+--- !u!114 &2005178763
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2005178757}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 3259781484
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 2005178762}
+  ForceRemoteRenderTimeframe: 0
 --- !u!1 &2023027201
 GameObject:
   m_ObjectHideFlags: 0

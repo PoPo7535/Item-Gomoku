@@ -1,9 +1,13 @@
+using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using EnhancedUI.EnhancedScroller;
+using Fusion;
 using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Serialization;
+using UnityEngine.UI;
 
 public enum ChatType
 {
@@ -19,33 +23,61 @@ public class ChatData
     public ChatType type;
 }
 
-public class ChatScroller : MonoBehaviour,IEnhancedScrollerDelegate
+public class ChatScroller : NetworkBehaviour,IEnhancedScrollerDelegate
 {
-    [SerializeField] private TMP_InputField _inputField;
-    public EnhancedScrollerCellView myTextCellViewPrefab;
-    public EnhancedScrollerCellView spacerCellViewPrefab;
+    [SerializeField] private EnhancedScroller scroller;
+    [SerializeField] private EnhancedScrollerCellView myTextCellViewPrefab;
+    [SerializeField] private TMP_InputField inputField;
+    [SerializeField] private Button chatButton;
+    [SerializeField] private TMP_Text helperText;
     private readonly List<ChatData> _data = new();
     private float _totalCellSize = 0;
     private float _oldScrollPosition = 0;
-    public EnhancedScroller scroller;
-    public TMP_Text myText;
-    public Vector2 CalTextSize(string text)
+
+    private Vector2 CalTextSize(string text)
     {
-        myText.text = text;
-        return myText.GetPreferredValues(text, myText.rectTransform.rect.width, 0);
+        helperText.text = text;
+        return helperText.GetPreferredValues(text, helperText.rectTransform.rect.width, 0);
     }
     public void Start()
     {
         scroller.Delegate = this;
+        chatButton.onClick.AddListener(SendChatEvent);
     }
 
-    private void SendMsg(ChatData chatData)
+    public void Update()
+    {
+        if (inputField.isFocused && Input.GetKeyDown(KeyCode.Return) && inputField.text != string.Empty)
+        {
+            SendChatEvent();
+        }
+    }
+
+    private void SendChatEvent()
+    {
+        var tpye = Object.HasStateAuthority ? ChatType.Host : ChatType.Client;
+        Rpc_SendChat(App.I.nickName, inputField.text, tpye);
+        inputField.text = "";
+        inputField.ActivateInputField();
+    }
+    public override void Spawned()
+    {
+        SendChat("Space",string.Empty, ChatType.Host); // 필수
+        Rpc_SendChat(string.Empty, $"[{App.I.nickName}] 님이 입장하셨습니다.", ChatType.Notice);
+    }
+
+
+    private void SendChat(string name, string msg, ChatType type)
     {
         scroller.ClearAll();
-
         _oldScrollPosition = scroller.ScrollPosition;
         scroller.ScrollPosition = 0;
-        
+        var chatData = new ChatData
+        {
+            name = name, 
+            msg = msg, 
+            type = type
+        };
         chatData.size = CalTextSize(ChatCell.GetMsg(chatData));
         _data.Add(chatData);
 
@@ -58,6 +90,11 @@ public class ChatScroller : MonoBehaviour,IEnhancedScrollerDelegate
             tweenType: EnhancedScroller.TweenType.easeInOutSine,
             tweenTime: 0.5f, 
             jumpComplete: ResetSpacer);
+    }
+    [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
+    private void Rpc_SendChat(string name, string msg, ChatType type)
+    {
+        SendChat(name, msg, type);
     }
     private void ResetSpacer()
     {
@@ -106,7 +143,7 @@ public class ChatScroller : MonoBehaviour,IEnhancedScrollerDelegate
 
         if (dataIndex == 0)
         {
-            cellView = scroller.GetCellView(spacerCellViewPrefab) as ChatCell;
+            cellView = scroller.GetCellView(myTextCellViewPrefab) as ChatCell;
             cellView.name = "Space";
             cellView.SetSpace();
         }
@@ -119,4 +156,6 @@ public class ChatScroller : MonoBehaviour,IEnhancedScrollerDelegate
 
         return cellView;
     }
+
+
 }
