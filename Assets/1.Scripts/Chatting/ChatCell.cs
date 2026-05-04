@@ -1,17 +1,28 @@
-using PolyAndCode.UI;
+using System;
+using EnhancedUI.EnhancedScroller;
 using TMPro;
 using UnityEngine;
 
-public class ChatCell : MonoBehaviour, ICell
+public class ChatCell : EnhancedScrollerCellView
 {
     public RectTransform rectTransform;
     public TMP_Text chat;
 
 
-    public void SetCell(ChatInfo chatInfo)
+    public void SetCell(ChatData chatData)
     {
-        chat.text = $"{chatInfo.Name} : {chatInfo.Msg}";
-        var size = chat.GetPreferredValues(chat.text, chat.rectTransform.rect.width, 0);
-        rectTransform.sizeDelta = new Vector2(rectTransform.sizeDelta.x, size.y);
+        chat.text = GetMsg(chatData);
+        // var size = chat.GetPreferredValues(chat.text, chat.rectTransform.rect.width, 0);
+        // rectTransform.sizeDelta = new Vector2(rectTransform.sizeDelta.x, size.y);
+    }
+
+    public static string GetMsg(ChatData chatData)
+    {
+        return $"{chatData.name} : {chatData.msg}";
+    }
+
+    public void SetSpace()
+    {
+        chat.text = string.Empty;
     }
 }
