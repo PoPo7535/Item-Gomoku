@@ -3,7 +3,12 @@ guid: 617023a7ec4f092469547a9c6ff18142
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Cloaking.001
+    second: {fileID: 2100000, guid: 5dc3fad0713c09d47ac2f31dee88413f, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
