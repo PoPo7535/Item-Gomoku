@@ -387,7 +387,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         return false;
     }
     /// <summary>
-    /// [RPC] 착수 숨김 아이템 사용을 모든 클라이언트에 알림
+    /// 착수 숨김 아이템 사용을 모든 클라이언트에 알림
     /// </summary>
     [Rpc(RpcSources.All, RpcTargets.All,HostMode = RpcHostMode.SourceIsHostPlayer)]
     public void RPC_UseHideMoveItem()

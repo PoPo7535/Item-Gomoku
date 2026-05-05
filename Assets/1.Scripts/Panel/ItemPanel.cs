@@ -34,7 +34,9 @@ public class ItemPanel : MonoBehaviour
             });
         }
     }
-    // 턴이 바뀔 때 호출할 함수
+    /// <summary>
+    /// 턴 바낄때 토글 초기화
+    /// </summary>
     public void ClearAllToggles()
     {
         foreach (var t in _toggles)

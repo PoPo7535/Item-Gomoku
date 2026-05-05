@@ -50,7 +50,7 @@ public class GomokuItemManager : MonoBehaviour
         switch (CurrentSelectedItem.name)
         {
             case "더블 표시":
-                GomokuManager.I.RemoveStoneProcess(x, z);
+                // GomokuManager.I.RemoveStoneProcess(x, z);
                 _test.text = $"아이템 사용 : {CurrentSelectedItem.name}";
                 success = true;
                 break;
@@ -80,8 +80,11 @@ public class GomokuItemManager : MonoBehaviour
         }
 
         if (success)
+        {
+            CurrentSelectedItem = null;            
+                        
+        }
 
-            CurrentSelectedItem = null;
 
         return success;
     }
@@ -89,7 +92,7 @@ public class GomokuItemManager : MonoBehaviour
     public void ResetSelection()
     {
         CurrentSelectedItem = null;
-        // _test.text = "";
+        _test.text = "";
     }
 
 }
