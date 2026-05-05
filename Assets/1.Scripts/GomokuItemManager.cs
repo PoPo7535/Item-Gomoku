@@ -12,7 +12,9 @@ public class GomokuItemManager : MonoBehaviour
     {
         I = this;
     }
-    
+    /// <summary>
+    /// 아이템 ui 선택시 호출될함수
+    /// </summary>
     public void SelectItem(GomokuItem item)
     {
         if (item == null)
@@ -33,7 +35,9 @@ public class GomokuItemManager : MonoBehaviour
         CurrentSelectedItem = item;
         _test.text = $"아이템 선택  : {CurrentSelectedItem}";
     }
-
+    /// <summary>
+    /// 아이템 사용시 호출될 함수
+    /// </summary>
     public bool TryUseItem(int x, int z) // 실제 아이템 사용 
     {
         if (CurrentSelectedItem == null)
@@ -50,8 +54,7 @@ public class GomokuItemManager : MonoBehaviour
         switch (CurrentSelectedItem.name)
         {
             case "더블 표시":
-                // GomokuManager.I.RemoveStoneProcess(x, z);
-                _test.text = $"아이템 사용 : {CurrentSelectedItem.name}";
+                // 아이템 효과
                 success = true;
                 break;
 
@@ -59,9 +62,8 @@ public class GomokuItemManager : MonoBehaviour
                 // 아이템 효과
                 success = true;
                 break;
-
             case "착수 숨김":
-                GomokuManager.I.RPC_UseHideMoveItem();
+                GomokuManager.I.RPC_UseHideMoveItem(); // 미완
                 _test.text = $"아이템 사용 : {CurrentSelectedItem.name}";
                 success = true;
                 break;
@@ -70,7 +72,7 @@ public class GomokuItemManager : MonoBehaviour
                 success = true;
                 break;
             case "타이머 감소":
-                // 아이템 효과
+                GomokuManager.I.RPC_UseTimerReductionItem();// 미완
                 success = true;
                 break;
             case "투명 돌":

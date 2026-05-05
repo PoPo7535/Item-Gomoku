@@ -54,6 +54,8 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     public ItemPanel ItemPanel;
     // 다음 착수 시 마커를 숨길지 여부를 체크하는 플래그
     private bool _shouldHideNextMarker = false;
+    // 타이머 절반 효과
+    [Networked] public NetworkBool IsTimerHalfEffect { get; set; }
 
     public override void Spawned()
     {   
@@ -356,11 +358,23 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         TryScheduleAiTurnIfNeeded();
     }
     /// <summary>
-    /// 타이머 시작
+    /// 타이머 시작 로직 수정
     /// </summary>
     private void StartTurnTimer() 
-    {   //CreateFromSeconds 시간생성 TurnTimeLimit 이거만큼
-        if (Object.HasStateAuthority)TickTimer = TickTimer.CreateFromSeconds(App.I.Runner, TurnTimeLimit); 
+    {
+        if (!Object.HasStateAuthority) return;
+
+        float currentLimit = TurnTimeLimit;
+
+        // 만약 타이머 감소 효과가 켜져 있다면
+        if (IsTimerHalfEffect)
+        {
+            currentLimit = TurnTimeLimit / 2f; // 시간 절반
+            IsTimerHalfEffect = false; // 일회성이므로 사용 후 즉시 해제
+            Debug.Log($"상대방 턴 제한 시간 단축 적용: {currentLimit}초");
+        }
+
+        TickTimer = TickTimer.CreateFromSeconds(App.I.Runner, currentLimit); 
     }
     /// <summary>
     /// 타이머 종료
@@ -398,5 +412,16 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     {
         _shouldHideNextMarker = true;
         Debug.Log("<color=yellow>[아이템 발동] 다음 돌은 위치 표시가 숨겨집니다!</color>");
+    }
+    /// <summary>
+    /// 타이머 감소 아이템 사용 RPC
+    /// </summary>
+    [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
+    public void RPC_UseTimerReductionItem()
+    {
+        // 아이템을 쓴 시점에 플래그를 켭니다. 
+        // 이 효과는 ChangeTurn이 일어날 때 적용될 것입니다.
+        IsTimerHalfEffect = true;
+        Debug.Log("<color=red>[아이템 발동] 다음 상대의 턴 시간이 절반으로 줄어듭니다!</color>");
     }
 }
