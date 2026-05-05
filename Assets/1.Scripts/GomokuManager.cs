@@ -134,13 +134,13 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (App.I.PlayMode == GamePlayMode.AI && (!IsPlayerTurn || _isAiThinking))
             canPlace = false;
 
-        bool isForbidden = false;
+        bool isForbidden = false; // 금수 구분
 
-        if (canPlace && IsBlackTurn)
+        if (canPlace && IsBlackTurn) // 금수일시 
         {
-            _logic.Board[result.x, result.z].Color = StoneColor.Black;
-            isForbidden = _logic.IsForbidden(result.x, result.z, StoneColor.Black);
-            _logic.Board[result.x, result.z].Color = StoneColor.None;
+            _logic.Board[result.x, result.z].Color = StoneColor.Black; // 임시로 보드데이터에 돌 두고
+            isForbidden = _logic.IsForbidden(result.x, result.z, StoneColor.Black); // 여기서 금수결정
+            _logic.Board[result.x, result.z].Color = StoneColor.None; // 원상복귀 
         }
 
         BoardView?.UpdateGhostStone(result.pos, canPlace, IsBlackTurn, isForbidden);

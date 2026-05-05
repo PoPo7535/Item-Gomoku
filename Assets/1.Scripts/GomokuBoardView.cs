@@ -134,7 +134,7 @@ public class GomokuBoardView : MonoBehaviour
         ForbiddenPrefab.SetActive(false);
 
         if (!isVisible || pos == Vector3.zero) return;
-        if (isForbidden)
+        if (isForbidden) // 금수체크
         {
             ForbiddenPrefab.transform.position = pos + new Vector3(0, 0.15f, 0);
             ForbiddenPrefab.SetActive(true);
