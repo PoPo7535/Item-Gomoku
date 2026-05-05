@@ -116,7 +116,6 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             {
                 _shouldHideNextMarker = false;
             }
-            // [수정] 네트워크 변수 대신 매개변수로 들어온 fX를 체크
             else if (fX != -1) 
             {
                 BoardView.ShowLastMoveMarkers(x, z, fX, fZ);
