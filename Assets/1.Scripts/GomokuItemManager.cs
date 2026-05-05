@@ -19,9 +19,10 @@ public class GomokuItemManager : LocalFusionSingleton<GomokuItemManager>
             return;
         }
         CurrentSelectedItem = item;
+        Debug.Log($"선택된 아이템 이름 : {CurrentSelectedItem.name}");
     }
 
-    public bool TryUseItem(int x, int z)
+    public bool TryUseItem(int x, int z) // 실제 아이템 사용 
     {
         if (CurrentSelectedItem == null)
             return false;
