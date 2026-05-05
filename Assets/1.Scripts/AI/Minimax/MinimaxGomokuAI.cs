@@ -741,13 +741,13 @@ public partial class MinimaxGomokuAI : IGomokuAI
     /// <returns>클수록 먼저 차단해야 하는 현재 위협 등급.</returns>
     private int GetThreatPriority(ThreatAnalysis analysis)
     {
-        // 복합 위협은 일반 위협보다 항상 먼저 차단해야 함.
-        if (analysis.BlockedFourCount > 0 && analysis.OpenThreeCount > 0)
+        if (analysis.OpenFourCount > 0)
         {
             return 4;
         }
 
-        if (analysis.OpenFourCount > 0)
+        // 상대 열린 4가 없을 때만 four + 열린 3 복합 위협을 우선 차단함.
+        if ((analysis.BlockedFourCount > 0 || analysis.GappedFourCount > 0) && analysis.OpenThreeCount > 0)
         {
             return 3;
         }
