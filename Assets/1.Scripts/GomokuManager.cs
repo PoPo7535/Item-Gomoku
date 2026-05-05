@@ -186,7 +186,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
 
         if (GomokuItemManager.I.CurrentSelectedItem != null)
         {
-            bool used = GomokuItemManager.I.TryUseItem(result.x, result.z);
+            bool used = GomokuItemManager.I.TryUseItem(result.x, result.z); // 아이템 사용
 
             if (!used)return;
         }
