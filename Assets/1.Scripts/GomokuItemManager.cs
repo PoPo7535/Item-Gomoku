@@ -30,24 +30,24 @@ public class GomokuItemManager : LocalFusionSingleton<GomokuItemManager>
                 break;
 
             case "가짜 돌":
-                // UseBomb(x, z, CurrentSelectedItem.value);
+                // 아이템 효과
                 success = true;
                 break;
 
             case "착수 숨김":
-                // GomokuManager.I.ForcePlaceStone(x, z);
+                // 아이템 효과
                 success = true;
                 break;
             case "돌 바꾸기":
-                // GomokuManager.I.ForcePlaceStone(x, z);
+                // 아이템 효과
                 success = true;
                 break;
             case "타이머 감소":
-                // GomokuManager.I.ForcePlaceStone(x, z);
+                // 아이템 효과
                 success = true;
                 break;
             case "투명 돌":
-                // GomokuManager.I.ForcePlaceStone(x, z);
+                // 아이템 효과
                 success = true;
                 break;
         }
