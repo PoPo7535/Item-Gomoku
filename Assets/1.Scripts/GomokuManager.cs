@@ -184,12 +184,12 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
 
         if (currentTurn != _myColor) return;
 
-        // if (GomokuItemManager.I.CurrentSelectedItem != null)
-        // {
-        //     // bool used = GomokuItemManager.I.TryUseItem(result.x, result.z);
+        if (GomokuItemManager.I.CurrentSelectedItem != null)
+        {
+            bool used = GomokuItemManager.I.TryUseItem(result.x, result.z);
 
-        //     if (!used)return;
-        // }
+            if (!used)return;
+        }
 
         Rpc_RequestPlaceStone(result.pos, result.x, result.z, IsBlackTurn);
     }

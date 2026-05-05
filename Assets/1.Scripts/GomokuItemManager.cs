@@ -10,8 +10,14 @@ public class GomokuItemManager : LocalFusionSingleton<GomokuItemManager>
 {
     public GomokuItem CurrentSelectedItem; // 선택된 아이템 여기에 담자
 
-    public void SelectItem(GomokuItem item)
+    public void SelectItem(GomokuItem item) // UI에서 아이템 선택 시 호출 // 토글 
     {
+       
+        if (CurrentSelectedItem == item)
+        {
+            CurrentSelectedItem = null;
+            return;
+        }
         CurrentSelectedItem = item;
     }
 
