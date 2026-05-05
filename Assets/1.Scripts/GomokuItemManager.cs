@@ -54,7 +54,8 @@ public class GomokuItemManager : MonoBehaviour
         switch (CurrentSelectedItem.name)
         {
             case "더블 표시":
-                // 아이템 효과
+                GomokuManager.I.RPC_UseDoubleMarkerItem(); // 미완
+                _test.text = $"아이템 사용 : {CurrentSelectedItem.name}";
                 success = true;
                 break;
 
@@ -73,6 +74,7 @@ public class GomokuItemManager : MonoBehaviour
                 break;
             case "타이머 감소":
                 GomokuManager.I.RPC_UseTimerReductionItem();// 미완
+                _test.text = $"아이템 사용 : {CurrentSelectedItem.name}";
                 success = true;
                 break;
             case "투명 돌":

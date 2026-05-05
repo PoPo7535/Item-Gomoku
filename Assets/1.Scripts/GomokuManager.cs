@@ -50,12 +50,17 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     private int _lastZ;
 
 
-    ///------ 아이템 관련 변수-------///
+    ///------------------ 아이템 관련 변수---------------///
     public ItemPanel ItemPanel;
-    // 다음 착수 시 마커를 숨길지 여부를 체크하는 플래그
+
+    // 착수 숨김 효과 활성 여부
     private bool _shouldHideNextMarker = false;
-    // 타이머 절반 효과
+    // 타이머 절반 효과 활성 여부
     [Networked] public NetworkBool IsTimerHalfEffect { get; set; }
+    // 더블 표시 효과 활성 여부
+    [Networked] public NetworkBool IsDoubleMarkerEffect { get; set; }
+    [Networked] public int NetFakeX { get; set; } = -1;
+    [Networked] public int NetFakeZ { get; set; } = -1;
 
     public override void Spawned()
     {   
@@ -106,16 +111,25 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             BoardView.SpawnStone(x, z, isBlackStone, pos); 
             
             // --- 아이템 효과 체크 부분 ---
-            if (_shouldHideNextMarker)
+            if (_shouldHideNextMarker) // 마커 숨기기 아이템 적용
             {
-                // 이번 한 번만 숨기고 플래그 초기화
                 _shouldHideNextMarker = false;
-                Debug.Log("아이템 효과로 인해 최근 착수 마커를 표시하지 않습니다.");
+            }
+            else if (IsDoubleMarkerEffect && NetFakeX != -1) // 더블 표시 아이템 적용
+            {
+                 // 동기화된 NetFakeX, NetFakeZ를 사용하여 모든 유저에게 동일하게 표시
+                BoardView.ShowLastMoveMarkers(x, z, NetFakeX, NetFakeZ);
+                
+                if (Object.HasStateAuthority)// 호스트가 리셋시킴
+                {
+                    IsDoubleMarkerEffect = false;
+                    NetFakeX = -1;
+                    NetFakeZ = -1;
+                }
             }
             else
             {
-                // 평소에는 마커 표시
-                BoardView.ShowLastMoveMarkers(x, z); 
+                BoardView.ShowLastMoveMarkers(x, z);
             }
             // --------------------------
 
@@ -405,7 +419,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         return false;
     }
     /// <summary>
-    /// 착수 숨김 아이템 사용을 모든 클라이언트에 알림
+    /// 착수 숨김 사용 RPC
     /// </summary>
     [Rpc(RpcSources.All, RpcTargets.All,HostMode = RpcHostMode.SourceIsHostPlayer)]
     public void RPC_UseHideMoveItem()
@@ -424,4 +438,50 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         IsTimerHalfEffect = true;
         Debug.Log("<color=red>[아이템 발동] 다음 상대의 턴 시간이 절반으로 줄어듭니다!</color>");
     }
+    /// <summary>
+    /// 더블 표시 아이템 사용 RPC
+    /// </summary>
+    [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
+    public void RPC_UseDoubleMarkerItem()
+    {
+        //모든 클라이언트에서 이 플래그키기
+        IsDoubleMarkerEffect = true;
+
+        // 좌표 결정은 호스트가 해서 네트워크 변수에 저장
+        if (Object.HasStateAuthority)
+        {
+            // 현재 턴인 사람의 돌 색깔을 가져오기
+            StoneColor turnColor = IsBlackTurn ? StoneColor.Black : StoneColor.White;
+            var fakePos = GetRandomExistStone(turnColor); 
+            
+            NetFakeX = fakePos.x;
+            NetFakeZ = fakePos.z;
+            
+            Debug.Log($"[호스트 결정] 가짜 좌표 동기화: {NetFakeX}, {NetFakeZ}");
+        }
+    }
+    /// <summary>
+    /// 판 위에 놓인 특정 색상의 돌 중 하나를 랜덤하게 좌표반환
+    /// </summary>
+    private (int x, int z) GetRandomExistStone(StoneColor color)
+    {
+        List<(int x, int z)> stones = new List<(int x, int z)>();
+
+        for (int i = 0; i < 15; i++)
+        {
+            for (int j = 0; j < 15; j++)
+            {
+                if (_logic.Board[i, j].Color == color)
+                {
+                    stones.Add((i, j));
+                }
+            }
+        }
+
+        if (stones.Count == 0) return (-1, -1); // 돌이 없으면 -1 반환
+
+        int randomIndex = UnityEngine.Random.Range(0, stones.Count);
+        return stones[randomIndex];
+    }
+    
 }
