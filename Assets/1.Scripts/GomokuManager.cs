@@ -171,7 +171,8 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// 싱글입력 처리
     /// </summary>
     private void HandleSingleInput((Vector3 pos, int x, int z) result)
-    {
+    {   
+
         PlaceStoneProcess(result.pos, result.x, result.z, IsBlackTurn);
     }
     /// <summary>
@@ -182,6 +183,13 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         StoneColor currentTurn = IsBlackTurn ? StoneColor.Black : StoneColor.White;
 
         if (currentTurn != _myColor) return;
+
+        // if (GomokuItemManager.I.CurrentSelectedItem != null)
+        // {
+        //     // bool used = GomokuItemManager.I.TryUseItem(result.x, result.z);
+
+        //     if (!used)return;
+        // }
 
         Rpc_RequestPlaceStone(result.pos, result.x, result.z, IsBlackTurn);
     }

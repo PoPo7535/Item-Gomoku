@@ -1,16 +1,62 @@
 using UnityEngine;
-
-public class GomokuItemManager : MonoBehaviour
+using Utility;
+public enum ItemUseState
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    None,
+    Selecting,
+    Using
+}
+public class GomokuItemManager : LocalFusionSingleton<GomokuItemManager>
+{
+    public GomokuItem CurrentSelectedItem; // 선택된 아이템 여기에 담자
+
+    public void SelectItem(GomokuItem item)
     {
-        
+        CurrentSelectedItem = item;
     }
 
-    // Update is called once per frame
-    void Update()
+    public bool TryUseItem(int x, int z)
     {
-        
+        if (CurrentSelectedItem == null)
+            return false;
+
+        bool success = false;
+
+        switch (CurrentSelectedItem.name)
+        {
+            case "더블 표시":
+                GomokuManager.I.RemoveStoneProcess(x, z);
+                success = true;
+                break;
+
+            case "가짜 돌":
+                // UseBomb(x, z, CurrentSelectedItem.value);
+                success = true;
+                break;
+
+            case "착수 숨김":
+                // GomokuManager.I.ForcePlaceStone(x, z);
+                success = true;
+                break;
+            case "돌 바꾸기":
+                // GomokuManager.I.ForcePlaceStone(x, z);
+                success = true;
+                break;
+            case "타이머 감소":
+                // GomokuManager.I.ForcePlaceStone(x, z);
+                success = true;
+                break;
+            case "투명 돌":
+                // GomokuManager.I.ForcePlaceStone(x, z);
+                success = true;
+                break;
+        }
+
+        if (success)
+            CurrentSelectedItem = null;
+
+        return success;
     }
+
+
 }
