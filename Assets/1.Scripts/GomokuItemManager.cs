@@ -98,5 +98,15 @@ public class GomokuItemManager : MonoBehaviour
         CurrentSelectedItem = null;
         _test.text = "";
     }
+    // 아이템 사용후 ui 제거
+    public void ConsumeItemUI()
+    {
+        if (CurrentSelectedItem == null) return;
+
+        // UI 제거 (버튼 끄기 or Destroy)
+
+        CurrentSelectedItem = null;
+
+    }
 
 }

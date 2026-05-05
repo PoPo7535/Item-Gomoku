@@ -93,57 +93,46 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// 네트워크용 착수 요청 
     /// </summary>
     [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
-    private void Rpc_RequestPlaceStone(Vector3 pos, int x, int z, bool isBlack)
+    private void Rpc_RequestPlaceStone(Vector3 pos, int x, int z, bool isBlack, int fX = -1, int fZ = -1)
     {
-        PlaceStoneProcess(pos, x, z, isBlack);
+       
+        PlaceStoneProcess(pos, x, z, isBlack, fX, fZ);
     }
     /// <summary>
     /// 최종 돌 착수
     /// (로직 적용 → 렌더링 → 기록 저장 → 승리 체크 → 턴 변경)
     /// </summary>
-    public void PlaceStoneProcess(Vector3 pos, int x, int z, bool isBlackStone)
+    public void PlaceStoneProcess(Vector3 pos, int x, int z, bool isBlackStone, int fX = -1, int fZ = -1)
     {   
         if (pos == Vector3.zero) return;
         StoneColor color = isBlackStone ? StoneColor.Black : StoneColor.White;
 
         if (_logic.PlaceStone(x, z, color))
-        {
+        {   
+            GomokuItemManager.I.ConsumeItemUI(); //아이템 ui 삭제 아직 껍데기임
             BoardView.SpawnStone(x, z, isBlackStone, pos); 
             
-            // --- 아이템 효과 체크 부분 ---
-            if (_shouldHideNextMarker) // 마커 숨기기 아이템 적용
+            if (_shouldHideNextMarker) 
             {
                 _shouldHideNextMarker = false;
             }
-            else if (IsDoubleMarkerEffect && NetFakeX != -1) // 더블 표시 아이템 적용
+            // [수정] 네트워크 변수 대신 매개변수로 들어온 fX를 체크
+            else if (fX != -1) 
             {
-                 // 동기화된 NetFakeX, NetFakeZ를 사용하여 모든 유저에게 동일하게 표시
-                BoardView.ShowLastMoveMarkers(x, z, NetFakeX, NetFakeZ);
-                
-                if (Object.HasStateAuthority)// 호스트가 리셋시킴
-                {
-                    IsDoubleMarkerEffect = false;
-                    NetFakeX = -1;
-                    NetFakeZ = -1;
-                }
+                BoardView.ShowLastMoveMarkers(x, z, fX, fZ);
+                // 플래그 리셋 (로컬에서 즉시)
+                IsDoubleMarkerEffect = false;
             }
             else
             {
                 BoardView.ShowLastMoveMarkers(x, z);
             }
-            // --------------------------
 
             NotifyBoardChanged();
-            string posText = $"{x},{z}";
-            if (isBlackStone) _blackHistory.Add(posText);
-            else _whiteHistory.Add(posText);
+            if (isBlackStone) _blackHistory.Add($"{x},{z}");
+            else _whiteHistory.Add($"{x},{z}");
             
-            // 승리 체크 및 턴 변경 로직 (기존 코드 유지)
-            if (_logic.CheckWin(x, z, color))
-            {
-                RPC_GameEnd();
-                return;
-            }
+            if (_logic.CheckWin(x, z, color)) { RPC_GameEnd(); return; }
             ChangeTurn();
         }
     }
@@ -350,6 +339,14 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         IsBlackTurn = !IsBlackTurn;
         GomokuItemManager.I.ResetSelection();
         ItemPanel.ClearAllToggles();
+
+        if (Object.HasStateAuthority)
+        {
+            IsDoubleMarkerEffect = false;
+            NetFakeX = -1;
+            NetFakeZ = -1;
+        }
+
         StartTurnTimer();
         ProcessAiTurn();
         
