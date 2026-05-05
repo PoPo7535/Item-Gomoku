@@ -4,6 +4,7 @@ using Fusion;
 using UnityEngine;
 using Utility;
 using Cysharp.Threading.Tasks;
+using UnityEngine.EventSystems;
 
 // 얘는 오목 규칙 + 턴 + 네트워크 + 게임 진행 전체 흐름 관리하자
 public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
@@ -166,7 +167,10 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// 현재 플레이 모드에 따라 입력 처리 분기 (싱글 / 멀티 / AI)
     /// </summary>
     private void HandleInput((Vector3 pos, int x, int z) result)
-    {
+    {   
+        if (EventSystem.current.IsPointerOverGameObject())
+        return;
+
         if (!Input.GetMouseButtonDown(0)) return;
 
         switch (App.I.PlayMode)
