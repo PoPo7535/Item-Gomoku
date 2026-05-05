@@ -134,7 +134,16 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (App.I.PlayMode == GamePlayMode.AI && (!IsPlayerTurn || _isAiThinking))
             canPlace = false;
 
-        BoardView?.UpdateGhostStone(result.pos, canPlace, IsBlackTurn);
+        bool isForbidden = false;
+
+        if (canPlace && IsBlackTurn)
+        {
+            _logic.Board[result.x, result.z].Color = StoneColor.Black;
+            isForbidden = _logic.IsForbidden(result.x, result.z, StoneColor.Black);
+            _logic.Board[result.x, result.z].Color = StoneColor.None;
+        }
+
+        BoardView?.UpdateGhostStone(result.pos, canPlace, IsBlackTurn, isForbidden);
     }
     /// <summary>
     /// 현재 플레이 모드에 따라 입력 처리 분기 (싱글 / 멀티 / AI)
@@ -255,7 +264,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         _lastX = 0; _lastZ = 0;
         if (BoardView != null) BoardView.ClearBoard();
         
-        BoardView?.UpdateGhostStone(Vector3.zero, false, false);
+        BoardView?.UpdateGhostStone(Vector3.zero, false, false,false);
         if (BoardView.RealLastMoveMarker != null)
         BoardView.RealLastMoveMarker.SetActive(false);
 
