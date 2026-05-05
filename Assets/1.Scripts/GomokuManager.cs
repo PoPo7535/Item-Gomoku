@@ -235,6 +235,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         }
 
         PlaceStoneProcess(result.pos, result.x, result.z, PlayerStoneColor == StoneColor.Black);
+        
     }
 
     /// <summary>
