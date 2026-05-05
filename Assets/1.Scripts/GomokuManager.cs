@@ -398,6 +398,9 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (Object.HasStateAuthority && TickTimer.ExpiredOrNotRunning(App.I.Runner))ChangeTurn(); 
     }
 
+
+
+
     ///--------------------------------------아이템 관련함수------------------------------------------
     /// <summary>
     /// 아이템 매니저에서 쓸 자기턴확인용
