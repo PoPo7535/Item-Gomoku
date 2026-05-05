@@ -18,7 +18,7 @@ public class GomokuItemManager : MonoBehaviour
         if (item == null)
         {
             CurrentSelectedItem = null;
-            if (_test != null) _test.text = "아이템 선택 해제";
+            if (_test != null) _test.text = $"아이템 선택 해제 : {CurrentSelectedItem}";
             return; // 여기서 함수를 끝냄
         }
 
@@ -26,11 +26,12 @@ public class GomokuItemManager : MonoBehaviour
         if (CurrentSelectedItem != null && CurrentSelectedItem.name == item.name)
         {
             CurrentSelectedItem = null;
-            if (_test != null) _test.text = "아이템 선택 해제";
+            if (_test != null) _test.text = $"아이템 선택 해제 : {CurrentSelectedItem}";
             return;
         }
 
         CurrentSelectedItem = item;
+        _test.text = $"아이템 선택  : {CurrentSelectedItem}";
     }
 
     public bool TryUseItem(int x, int z) // 실제 아이템 사용 
@@ -51,7 +52,6 @@ public class GomokuItemManager : MonoBehaviour
             case "더블 표시":
                 GomokuManager.I.RemoveStoneProcess(x, z);
                 _test.text = $"아이템 사용 : {CurrentSelectedItem.name}";
-                Debug.Log("ㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴ");
                 success = true;
                 break;
 
@@ -63,7 +63,6 @@ public class GomokuItemManager : MonoBehaviour
             case "착수 숨김":
                 GomokuManager.I.RPC_UseHideMoveItem();
                 _test.text = $"아이템 사용 : {CurrentSelectedItem.name}";
-                Debug.Log("ㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴ");
                 success = true;
                 break;
             case "돌 바꾸기":
@@ -90,7 +89,7 @@ public class GomokuItemManager : MonoBehaviour
     public void ResetSelection()
     {
         CurrentSelectedItem = null;
-        _test.text = "";
+        // _test.text = "";
     }
 
 }
