@@ -3,6 +3,8 @@
 /// </summary>
 internal sealed class MinimaxThreatAnalyzer
 {
+    // 후보 좌표를 가상 착수한 것처럼 취급하는 전술 분석기임.
+    // Evaluator의 실제 보드 대표 window 보정과 바로 공통화하면 판단 결과가 달라질 수 있음.
     private static readonly int[] DirectionX = { 1, 0, 1, 1 };
     private static readonly int[] DirectionY = { 0, 1, 1, -1 };
 
@@ -51,6 +53,7 @@ internal sealed class MinimaxThreatAnalyzer
     /// <returns>지역 위협 분석 결과.</returns>
     public MinimaxThreatAnalysis AnalyzeThreatAt(int x, int y, StoneColor color)
     {
+        // (x, y)는 아직 비어 있어도 해당 색 돌이 놓인 후보 좌표처럼 분석함.
         MinimaxThreatAnalysis analysis = new MinimaxThreatAnalysis();
 
         for (int i = 0; i < DirectionX.Length; i++)

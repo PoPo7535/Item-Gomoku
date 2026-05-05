@@ -5,6 +5,7 @@ using System;
 /// </summary>
 public class GomokuBoardEvaluator
 {
+    // leaf 보드 평가용 점수표임. MinimaxGomokuAI의 전술/pre-check 점수와 직접 비교하지 않음.
     private enum ThreatPatternType
     {
         None,
@@ -451,6 +452,7 @@ public class GomokuBoardEvaluator
     /// <returns>끊어진 위협 패턴 종류.</returns>
     private ThreatPatternType GetGappedWindowPatternType(OmokuLogic logic, int boardSize, int x, int y, int directionX, int directionY, StoneColor color)
     {
+        // 이미 놓인 돌 기준 평가라 같은 window가 여러 run에서 중복 집계되지 않게 대표 시작점을 사용함.
         ThreatPatternType strongestPattern = ThreatPatternType.None;
 
         for (int offset = -4; offset <= 0; offset++)

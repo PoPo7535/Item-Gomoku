@@ -18,7 +18,7 @@ public partial class MinimaxGomokuAI : IGomokuAI
     {
     }
 
-    // 승패와 주요 위협 패턴의 기본 점수표임.
+    // 전술/pre-check/후보 정렬용 점수표임. leaf evaluator 점수와 직접 비교하는 스케일 아님.
     private const int WinScore = 10000000;
     private const int OpenFourThreatScore = 900000;
     private const int BlockedFourThreatScore = 300000;
@@ -171,6 +171,7 @@ public partial class MinimaxGomokuAI : IGomokuAI
 
         _bestMoveSoFar = fullCandidates[0];
 
+        // 오프닝 -> 즉시 승리 -> 즉시 방어 -> AI 열린 4 공격 -> 상대 직접 위협 방어 -> 제한 후보 minimax 순서임.
         GomokuMove openingMove = FindOpeningMove();
         if (openingMove.IsValid)
         {
