@@ -13,6 +13,8 @@ public class GomokuBoardView : MonoBehaviour
     [Header("고스트 돌 설정")]
     public GameObject BlackGhostObj; 
     public GameObject WhiteGhostObj;
+    [Header("금수 돌 설정")]
+    public GameObject ForbiddenPrefab; 
 
     [Header("렌더 텍스처 & 카메라 설정")]
     public RawImage GameViewImage; 
@@ -122,15 +124,22 @@ public class GomokuBoardView : MonoBehaviour
     /// <summary>
     /// 마우스 커서 위치에 따른 반투명 돌 표시
     /// </summary>
-    public void UpdateGhostStone(Vector3 pos, bool isVisible, bool isBlack)
+    public void UpdateGhostStone(Vector3 pos, bool isVisible, bool isBlack, bool isForbidden)
     {
         if (BlackGhostObj == null || WhiteGhostObj == null) return;
 
         // 일단 둘 다 끄기
         BlackGhostObj.SetActive(false);
         WhiteGhostObj.SetActive(false);
+        ForbiddenPrefab.SetActive(false);
 
         if (!isVisible || pos == Vector3.zero) return;
+        if (isForbidden) // 금수체크
+        {
+            ForbiddenPrefab.transform.position = pos + new Vector3(0, 0.15f, 0);
+            ForbiddenPrefab.SetActive(true);
+            return;
+        }
 
         GameObject target = isBlack ? BlackGhostObj : WhiteGhostObj;
         target.transform.position = pos + new Vector3(0, 0.15f, 0);

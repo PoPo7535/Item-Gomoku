@@ -124,7 +124,7 @@ public partial class GomokuManager
 
         CancelAiSearchRequest();
         _isAiThinking = true;
-        BoardView?.UpdateGhostStone(Vector3.zero, false, false);
+        BoardView?.UpdateGhostStone(Vector3.zero, false, false,false);
 
         int requestId = ++_aiSearchRequestId;
         CancellationTokenSource searchCancellationTokenSource = new CancellationTokenSource();
@@ -420,7 +420,7 @@ public partial class GomokuManager
     {
         Debug.LogWarning(warningMessage);
         _isAiThinking = false;
-        BoardView?.UpdateGhostStone(Vector3.zero, false, false);
+        BoardView?.UpdateGhostStone(Vector3.zero, false, false,false);
     }
 
     /// <summary>

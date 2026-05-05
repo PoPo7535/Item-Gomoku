@@ -17,6 +17,16 @@ public class ItemPanel : MonoBehaviour
             itemObj.toggle.group = _toggleGroup;
             itemObj.toggle.onValueChanged.AddListener((isOn) =>
             {
+                if (isOn)
+                {
+                    GomokuItemManager.I.SelectItem(item);
+                    "선택".Log();    
+                }
+                else if (GomokuItemManager.I.CurrentSelectedItem == item)
+                {
+                    GomokuItemManager.I.SelectItem(null);
+                    "해제".Log();
+                }
                 
             });
         }

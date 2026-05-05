@@ -134,7 +134,16 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (App.I.PlayMode == GamePlayMode.AI && (!IsPlayerTurn || _isAiThinking))
             canPlace = false;
 
-        BoardView?.UpdateGhostStone(result.pos, canPlace, IsBlackTurn);
+        bool isForbidden = false; // 금수 구분
+
+        if (canPlace && IsBlackTurn) // 금수일시 
+        {
+            _logic.Board[result.x, result.z].Color = StoneColor.Black; // 임시로 보드데이터에 돌 두고
+            isForbidden = _logic.IsForbidden(result.x, result.z, StoneColor.Black); // 여기서 금수결정
+            _logic.Board[result.x, result.z].Color = StoneColor.None; // 원상복귀 
+        }
+
+        BoardView?.UpdateGhostStone(result.pos, canPlace, IsBlackTurn, isForbidden);
     }
     /// <summary>
     /// 현재 플레이 모드에 따라 입력 처리 분기 (싱글 / 멀티 / AI)
@@ -162,7 +171,8 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// 싱글입력 처리
     /// </summary>
     private void HandleSingleInput((Vector3 pos, int x, int z) result)
-    {
+    {   
+
         PlaceStoneProcess(result.pos, result.x, result.z, IsBlackTurn);
     }
     /// <summary>
@@ -173,6 +183,13 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         StoneColor currentTurn = IsBlackTurn ? StoneColor.Black : StoneColor.White;
 
         if (currentTurn != _myColor) return;
+
+        if (GomokuItemManager.I.CurrentSelectedItem != null)
+        {
+            bool used = GomokuItemManager.I.TryUseItem(result.x, result.z); // 아이템 사용
+
+            if (!used)return;
+        }
 
         Rpc_RequestPlaceStone(result.pos, result.x, result.z, IsBlackTurn);
     }
@@ -255,7 +272,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         _lastX = 0; _lastZ = 0;
         if (BoardView != null) BoardView.ClearBoard();
         
-        BoardView?.UpdateGhostStone(Vector3.zero, false, false);
+        BoardView?.UpdateGhostStone(Vector3.zero, false, false,false);
         if (BoardView.RealLastMoveMarker != null)
         BoardView.RealLastMoveMarker.SetActive(false);
 
@@ -325,6 +342,25 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     private void UpdateTurnTimer() 
     {   //ExpiredOrNotRunning 이거 시간이 다댔는지 확인함 다되면 true
         if (Object.HasStateAuthority && TickTimer.ExpiredOrNotRunning(App.I.Runner))ChangeTurn(); 
+    }
+    /// <summary>
+    /// 아이템 매니저에서 쓸 자기턴확인용
+    /// </summary>
+    public bool IsMyTurn()
+    {
+        // 게임 안하는 중이면 당연히 false
+        if (!IsPlaying) return false;
+
+        // 현재 턴 색
+        StoneColor currentTurn = IsBlackTurn ? StoneColor.Black : StoneColor.White;
+
+        // 멀티
+        if (App.I.PlayMode == GamePlayMode.Multi)
+        {
+            return currentTurn == _myColor;
+        }
+
+        return false;
     }
 
 }
