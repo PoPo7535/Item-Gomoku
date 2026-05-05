@@ -45,6 +45,16 @@ internal sealed class MinimaxThreatAnalyzer
     }
 
     /// <summary>
+    /// Returns the bit mask for a threat direction.
+    /// </summary>
+    /// <param name="directionIndex">Direction index.</param>
+    /// <returns>Bit mask for the direction.</returns>
+    private static int GetDirectionMask(int directionIndex)
+    {
+        return 1 << directionIndex;
+    }
+
+    /// <summary>
     /// 특정 좌표가 만드는 열린 4, 막힌 4, 열린 3 위협 점수를 계산함.
     /// </summary>
     /// <param name="x">검사할 X 좌표.</param>
@@ -69,11 +79,13 @@ internal sealed class MinimaxThreatAnalyzer
             else if (count >= 4 && openEnds == 1)
             {
                 analysis.BlockedFourCount++;
+                analysis.BlockedFourDirectionMask |= GetDirectionMask(i);
                 analysis.Score = System.Math.Max(analysis.Score, _blockedFourThreatScore);
             }
             else if (count == 3 && openEnds == 2)
             {
                 analysis.OpenThreeCount++;
+                analysis.OpenThreeDirectionMask |= GetDirectionMask(i);
                 analysis.Score = System.Math.Max(analysis.Score, _openThreeThreatScore);
             }
             else if (count == 2 && openEnds == 2)
@@ -83,7 +95,7 @@ internal sealed class MinimaxThreatAnalyzer
                 analysis.Score = System.Math.Max(analysis.Score, _openTwoThreatScore);
             }
 
-            AnalyzeWindowThreats(x, y, DirectionX[i], DirectionY[i], color, ref analysis);
+            AnalyzeWindowThreats(x, y, DirectionX[i], DirectionY[i], i, color, ref analysis);
         }
 
         return analysis;
@@ -96,9 +108,10 @@ internal sealed class MinimaxThreatAnalyzer
     /// <param name="y">기준 Y 좌표.</param>
     /// <param name="directionX">검사 방향 X.</param>
     /// <param name="directionY">검사 방향 Y.</param>
+    /// <param name="directionIndex">복합 위협 방향 mask에 사용할 방향 인덱스.</param>
     /// <param name="color">검사할 돌 색상.</param>
     /// <param name="analysis">갱신할 위협 분석 결과.</param>
-    private void AnalyzeWindowThreats(int x, int y, int directionX, int directionY, StoneColor color, ref MinimaxThreatAnalysis analysis)
+    private void AnalyzeWindowThreats(int x, int y, int directionX, int directionY, int directionIndex, StoneColor color, ref MinimaxThreatAnalysis analysis)
     {
         bool foundGappedFour = false;
         bool foundBrokenThree = false;
@@ -129,6 +142,7 @@ internal sealed class MinimaxThreatAnalyzer
         if (foundGappedFour)
         {
             analysis.GappedFourCount++;
+            analysis.GappedFourDirectionMask |= GetDirectionMask(directionIndex);
             analysis.Score = System.Math.Max(analysis.Score, _gappedFourThreatScore);
         }
 

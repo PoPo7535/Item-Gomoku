@@ -171,7 +171,7 @@ public partial class MinimaxGomokuAI : IGomokuAI
 
         _bestMoveSoFar = fullCandidates[0];
 
-        // 오프닝 -> 즉시 승리 -> 즉시 방어 -> AI 열린 4 공격 -> 상대 직접 위협 방어 -> 제한 후보 minimax 순서임.
+        // 오프닝 -> 즉시 승리 -> 즉시 방어 -> AI 열린 4 공격 -> 상대 직접 위협 방어 -> AI 복합 위협 -> 제한 후보 minimax 순서임.
         GomokuMove openingMove = FindOpeningMove();
         if (openingMove.IsValid)
         {
@@ -204,6 +204,13 @@ public partial class MinimaxGomokuAI : IGomokuAI
         {
             // 난이도와 무관한 직접 위협은 minimax 전에 공통으로 차단함.
             return threatDefense;
+        }
+
+        GomokuMove compoundThreat = FindAiCompoundThreatMove(fullCandidates);
+        if (compoundThreat.IsValid)
+        {
+            LogAiDebug($"Compound threat selected {FormatMove(compoundThreat)}");
+            return compoundThreat;
         }
 
         List<GomokuMove> searchCandidates = GenerateCandidates(_aiColor, CandidateGenerationMode.RootEvaluation, true);
@@ -521,6 +528,176 @@ public partial class MinimaxGomokuAI : IGomokuAI
         }
 
         return bestDefense;
+    }
+
+    /// <summary>
+    /// AI가 한 수로 복합 공격 위협을 만들 수 있는 후보를 찾음.
+    /// </summary>
+    /// <param name="candidates">검사할 루트 후보 목록.</param>
+    /// <returns>복합 공격 위협을 만드는 최선 후보.</returns>
+    private GomokuMove FindAiCompoundThreatMove(List<GomokuMove> candidates)
+    {
+        GomokuMove bestThreat = GomokuMove.Invalid("Compound threat not found");
+        int bestPriority = 0;
+        int bestFourThreatCount = 0;
+        int bestOpenThreeCount = 0;
+        int bestThreatScore = int.MinValue;
+        int bestCandidateScore = int.MinValue;
+
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            ThrowIfCancellationRequested();
+            GomokuMove candidate = candidates[i];
+
+            // 흑돌 금수 후보는 복합 위협처럼 보여도 선택하면 안 됨.
+            if (!IsLegalMove(candidate.X, candidate.Y, _aiColor))
+            {
+                continue;
+            }
+
+            ThreatAnalysis threatAnalysis;
+
+            // 합법 후보만 가상 착수해 복합 위협 여부를 확인함.
+            PlaceTemporary(candidate.X, candidate.Y, _aiColor);
+            try
+            {
+                threatAnalysis = AnalyzeThreatAt(candidate.X, candidate.Y, _aiColor);
+            }
+            finally
+            {
+                RestoreTemporary(candidate.X, candidate.Y);
+            }
+
+            int priority = GetCompoundThreatPriority(threatAnalysis);
+            if (priority <= 0)
+            {
+                continue;
+            }
+
+            int fourThreatCount = GetCompoundFourThreatDirectionCount(threatAnalysis);
+            int openThreeDirectionCount = CountDirectionBits(threatAnalysis.OpenThreeDirectionMask);
+            if (!bestThreat.IsValid ||
+                priority > bestPriority ||
+                (priority == bestPriority && fourThreatCount > bestFourThreatCount) ||
+                (priority == bestPriority && fourThreatCount == bestFourThreatCount && openThreeDirectionCount > bestOpenThreeCount) ||
+                (priority == bestPriority && fourThreatCount == bestFourThreatCount && openThreeDirectionCount == bestOpenThreeCount && threatAnalysis.Score > bestThreatScore) ||
+                (priority == bestPriority && fourThreatCount == bestFourThreatCount && openThreeDirectionCount == bestOpenThreeCount && threatAnalysis.Score == bestThreatScore && candidate.Score > bestCandidateScore))
+            {
+                bestPriority = priority;
+                bestFourThreatCount = fourThreatCount;
+                bestOpenThreeCount = openThreeDirectionCount;
+                bestThreatScore = threatAnalysis.Score;
+                bestCandidateScore = candidate.Score;
+                bestThreat = new GomokuMove(candidate.X, candidate.Y, threatAnalysis.Score, GetCompoundThreatReason(threatAnalysis));
+            }
+        }
+
+        return bestThreat;
+    }
+
+    /// <summary>
+    /// AI 복합 위협 분석 결과를 공격 우선순위 등급으로 변환함.
+    /// </summary>
+    /// <param name="analysis">현재 위협 분석 결과.</param>
+    /// <returns>클수록 먼저 선택해야 하는 복합 공격 등급.</returns>
+    private int GetCompoundThreatPriority(ThreatAnalysis analysis)
+    {
+        int fourThreatDirectionCount = GetCompoundFourThreatDirectionCount(analysis);
+
+        if (fourThreatDirectionCount >= 2)
+        {
+            return 4;
+        }
+
+        if (HasDistinctThreatDirections(analysis.BlockedFourDirectionMask, analysis.OpenThreeDirectionMask))
+        {
+            return 3;
+        }
+
+        if (HasDistinctThreatDirections(analysis.GappedFourDirectionMask, analysis.OpenThreeDirectionMask))
+        {
+            return 2;
+        }
+
+        if (CountDirectionBits(analysis.OpenThreeDirectionMask) >= 2)
+        {
+            return 1;
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// AI 복합 위협 분석 결과에 맞는 선택 사유 문자열을 반환함.
+    /// </summary>
+    /// <param name="analysis">현재 위협 분석 결과.</param>
+    /// <returns>복합 공격 사유 문자열.</returns>
+    private string GetCompoundThreatReason(ThreatAnalysis analysis)
+    {
+        int fourThreatDirectionCount = GetCompoundFourThreatDirectionCount(analysis);
+
+        if (fourThreatDirectionCount >= 2)
+        {
+            return "Two fours compound attack";
+        }
+
+        if (HasDistinctThreatDirections(analysis.BlockedFourDirectionMask, analysis.OpenThreeDirectionMask))
+        {
+            return "Blocked four open three compound attack";
+        }
+
+        if (HasDistinctThreatDirections(analysis.GappedFourDirectionMask, analysis.OpenThreeDirectionMask))
+        {
+            return "Gapped four open three compound attack";
+        }
+
+        if (CountDirectionBits(analysis.OpenThreeDirectionMask) >= 2)
+        {
+            return "Double open three compound attack";
+        }
+
+        return "Compound threat attack";
+    }
+
+    /// <summary>
+    /// 복합 공격 판정에 사용할 four 계열 위협 방향 수를 반환함.
+    /// </summary>
+    /// <param name="analysis">현재 위협 분석 결과.</param>
+    /// <returns>막힌 4와 끊어진 4가 존재하는 서로 다른 방향 수.</returns>
+    private int GetCompoundFourThreatDirectionCount(ThreatAnalysis analysis)
+    {
+        return CountDirectionBits(analysis.BlockedFourDirectionMask | analysis.GappedFourDirectionMask);
+    }
+
+    /// <summary>
+    /// 두 위협 마스크가 서로 다른 방향의 위협을 포함하는지 확인함.
+    /// </summary>
+    /// <param name="firstMask">첫 번째 위협 방향 마스크.</param>
+    /// <param name="secondMask">두 번째 위협 방향 마스크.</param>
+    /// <returns>서로 다른 방향에 위협이 존재하면 true.</returns>
+    private bool HasDistinctThreatDirections(int firstMask, int secondMask)
+    {
+        return firstMask != 0 &&
+               secondMask != 0 &&
+               CountDirectionBits(firstMask | secondMask) >= 2;
+    }
+
+    /// <summary>
+    /// 방향 마스크에 켜진 bit 수를 계산함.
+    /// </summary>
+    /// <param name="directionMask">방향 bit 마스크.</param>
+    /// <returns>켜진 방향 bit 수.</returns>
+    private int CountDirectionBits(int directionMask)
+    {
+        int count = 0;
+
+        while (directionMask != 0)
+        {
+            count += directionMask & 1;
+            directionMask >>= 1;
+        }
+
+        return count;
     }
 
     /// <summary>

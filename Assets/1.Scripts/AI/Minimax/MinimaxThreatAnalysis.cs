@@ -11,4 +11,7 @@ internal struct MinimaxThreatAnalysis
     public int GappedFourCount;
     public int BrokenThreeCount;
     public int OpenTwoDirectionCount;
+    public int OpenThreeDirectionMask;
+    public int BlockedFourDirectionMask;
+    public int GappedFourDirectionMask;
 }
