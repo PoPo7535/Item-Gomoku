@@ -17,13 +17,15 @@ public class ItemPanel : MonoBehaviour
             itemObj.toggle.group = _toggleGroup;
             itemObj.toggle.onValueChanged.AddListener((isOn) =>
             {
-                if (isOn) // 클릭 시  선택된 아이템 정보 넘김
+                if (isOn)
                 {
-                    GomokuItemManager.I.SelectItem(item);    
-
-                }else if (GomokuItemManager.I.CurrentSelectedItem == item)// 한번더 클릭시 해제
+                    GomokuItemManager.I.SelectItem(item);
+                    "선택".Log();    
+                }
+                else if (GomokuItemManager.I.CurrentSelectedItem == item)
                 {
                     GomokuItemManager.I.SelectItem(null);
+                    "해제".Log();
                 }
                 
             });

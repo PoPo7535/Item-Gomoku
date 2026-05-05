@@ -343,5 +343,24 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     {   //ExpiredOrNotRunning 이거 시간이 다댔는지 확인함 다되면 true
         if (Object.HasStateAuthority && TickTimer.ExpiredOrNotRunning(App.I.Runner))ChangeTurn(); 
     }
+    /// <summary>
+    /// 아이템 매니저에서 쓸 자기턴확인용
+    /// </summary>
+    public bool IsMyTurn()
+    {
+        // 게임 안하는 중이면 당연히 false
+        if (!IsPlaying) return false;
+
+        // 현재 턴 색
+        StoneColor currentTurn = IsBlackTurn ? StoneColor.Black : StoneColor.White;
+
+        // 멀티
+        if (App.I.PlayMode == GamePlayMode.Multi)
+        {
+            return currentTurn == _myColor;
+        }
+
+        return false;
+    }
 
 }
