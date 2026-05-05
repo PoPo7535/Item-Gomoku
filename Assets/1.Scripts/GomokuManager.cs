@@ -46,8 +46,14 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     private readonly List<string> _blackHistory = new(); 
     private readonly List<string> _whiteHistory = new(); 
     private int _lastX; 
-    private int _lastZ; 
-    
+    private int _lastZ;
+
+
+    ///------ 아이템 관련 변수-------///
+    public ItemPanel ItemPanel;
+    // 다음 착수 시 마커를 숨길지 여부를 체크하는 플래그
+    private bool _shouldHideNextMarker = false;
+
     public override void Spawned()
     {   
         //얘는 Spawned 실행되기전 Update실행 막기위함
@@ -92,22 +98,32 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (pos == Vector3.zero) return;
         StoneColor color = isBlackStone ? StoneColor.Black : StoneColor.White;
 
-        // 착수 가능 여부 검사(금수 포함) 후 오목로직 보드에 반영
         if (_logic.PlaceStone(x, z, color))
         {
-            BoardView.SpawnStone(x, z, isBlackStone, pos); // 돌 생성       
-            BoardView.ShowLastMoveMarkers(x, z); // 최근위치 알려주기
+            BoardView.SpawnStone(x, z, isBlackStone, pos); 
+            
+            // --- 아이템 효과 체크 부분 ---
+            if (_shouldHideNextMarker)
+            {
+                // 이번 한 번만 숨기고 플래그 초기화
+                _shouldHideNextMarker = false;
+                Debug.Log("아이템 효과로 인해 최근 착수 마커를 표시하지 않습니다.");
+            }
+            else
+            {
+                // 평소에는 마커 표시
+                BoardView.ShowLastMoveMarkers(x, z); 
+            }
+            // --------------------------
 
-            //전체 기록 저장
             NotifyBoardChanged();
             string posText = $"{x},{z}";
             if (isBlackStone) _blackHistory.Add(posText);
             else _whiteHistory.Add(posText);
-
-            // 승리체크
+            
+            // 승리 체크 및 턴 변경 로직 (기존 코드 유지)
             if (_logic.CheckWin(x, z, color))
             {
-                Debug.Log($"<color=cyan>★ 승리! {color} ★</color>");
                 RPC_GameEnd();
                 return;
             }
@@ -117,6 +133,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     public void SetAIDifficulty(GomokuAIDifficulty difficulty)
     {
         _aiDifficulty = difficulty;
+
     }
     /// <summary>
     /// 현재 마우스 위치에서 착수 가능 여부를 판단하고 돌 미리보기 표시
@@ -278,6 +295,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
 
         if (BoardView.FakeLastMoveMarker != null)
         BoardView.FakeLastMoveMarker.SetActive(false);
+        GomokuItemManager.I.ResetSelection();
         Debug.Log("게임 리셋 및 기록 초기화 완료");
     }
     /// <summary>
@@ -290,6 +308,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         IsPlaying = true;
         StartTurnTimer();
         TryScheduleAiTurnIfNeeded();
+        GomokuItemManager.I.ResetSelection();
     }
     /// <summary>
     /// 게임 재시작 UI 버튼용
@@ -301,13 +320,16 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         IsPlaying = true;
         StartTurnTimer();
         TryScheduleAiTurnIfNeeded();
+        GomokuItemManager.I.ResetSelection();
     }
     /// <summary>
     /// 턴변경
     /// </summary>
     public void ChangeTurn() 
     { 
-        IsBlackTurn = !IsBlackTurn; 
+        IsBlackTurn = !IsBlackTurn;
+        GomokuItemManager.I.ResetSelection();
+        ItemPanel.ClearAllToggles();
         StartTurnTimer();
         ProcessAiTurn();
         
@@ -343,6 +365,8 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     {   //ExpiredOrNotRunning 이거 시간이 다댔는지 확인함 다되면 true
         if (Object.HasStateAuthority && TickTimer.ExpiredOrNotRunning(App.I.Runner))ChangeTurn(); 
     }
+
+    ///--------------------------------------아이템 관련함수------------------------------------------
     /// <summary>
     /// 아이템 매니저에서 쓸 자기턴확인용
     /// </summary>
@@ -362,5 +386,13 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
 
         return false;
     }
-
+    /// <summary>
+    /// [RPC] 착수 숨김 아이템 사용을 모든 클라이언트에 알림
+    /// </summary>
+    [Rpc(RpcSources.All, RpcTargets.All,HostMode = RpcHostMode.SourceIsHostPlayer)]
+    public void RPC_UseHideMoveItem()
+    {
+        _shouldHideNextMarker = true;
+        Debug.Log("<color=yellow>[아이템 발동] 다음 돌은 위치 표시가 숨겨집니다!</color>");
+    }
 }

@@ -1,39 +1,36 @@
+using System;
+using TMPro;
 using UnityEngine;
 using Utility;
-public enum ItemUseState
-{
-    None,
-    Selecting,
-    Using
-}
 public class GomokuItemManager : MonoBehaviour
 {   
     public static GomokuItemManager I;
     public GomokuItem CurrentSelectedItem; // 선택된 아이템 여기에 담자
+    public TMP_Text _test;
     
     private void Awake()
     {
         I = this;
     }
     
-    public void SelectItem(GomokuItem item) // ui 에 아이템 서택시 호출 // 토글
+    public void SelectItem(GomokuItem item)
     {
         if (item == null)
         {
             CurrentSelectedItem = null;
-            Debug.Log("아이템 선택 해제");
-            return;
+            if (_test != null) _test.text = "아이템 선택 해제";
+            return; // 여기서 함수를 끝냄
         }
 
-        if (CurrentSelectedItem == item)
+        // 2. 그 다음 기존 로직 수행
+        if (CurrentSelectedItem != null && CurrentSelectedItem.name == item.name)
         {
             CurrentSelectedItem = null;
-            Debug.Log("아이템 선택 해제");
+            if (_test != null) _test.text = "아이템 선택 해제";
             return;
         }
 
         CurrentSelectedItem = item;
-        Debug.Log($"선택된 아이템 이름 : {item.name}");
     }
 
     public bool TryUseItem(int x, int z) // 실제 아이템 사용 
@@ -48,11 +45,13 @@ public class GomokuItemManager : MonoBehaviour
         }
 
         bool success = false;
-
+   
         switch (CurrentSelectedItem.name)
         {
             case "더블 표시":
                 GomokuManager.I.RemoveStoneProcess(x, z);
+                _test.text = $"아이템 사용 : {CurrentSelectedItem.name}";
+                Debug.Log("ㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴ");
                 success = true;
                 break;
 
@@ -62,7 +61,9 @@ public class GomokuItemManager : MonoBehaviour
                 break;
 
             case "착수 숨김":
-                // 아이템 효과
+                GomokuManager.I.RPC_UseHideMoveItem();
+                _test.text = $"아이템 사용 : {CurrentSelectedItem.name}";
+                Debug.Log("ㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴㄴ");
                 success = true;
                 break;
             case "돌 바꾸기":
@@ -80,10 +81,16 @@ public class GomokuItemManager : MonoBehaviour
         }
 
         if (success)
+
             CurrentSelectedItem = null;
 
         return success;
     }
-
+    // 상태초기화
+    public void ResetSelection()
+    {
+        CurrentSelectedItem = null;
+        _test.text = "";
+    }
 
 }
