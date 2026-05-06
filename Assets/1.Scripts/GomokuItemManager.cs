@@ -85,8 +85,7 @@ public class GomokuItemManager : MonoBehaviour
 
         if (success)
         {
-            CurrentSelectedItem = null;            
-                        
+            CurrentSelectedItem = null;                    
         }
 
 
