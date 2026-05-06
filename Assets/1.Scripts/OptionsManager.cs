@@ -14,11 +14,11 @@ public class OptionsManager : Singleton<OptionsManager>
 
     private void Awake()
     {
-        if (FindObjectsOfType<OptionsManager>().Length > 1)
-        {
-            Destroy(gameObject);
-            return;
-        }
+        //if (FindObjectsOfType<OptionsManager>().Length > 1)
+        //{
+        //    Destroy(gameObject);
+        //    return;
+        //}
 
         base.Awake();
         DontDestroyOnLoad(gameObject);

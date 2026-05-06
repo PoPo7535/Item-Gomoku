@@ -26,11 +26,11 @@ public class SoundManager : Singleton<SoundManager>
 
     private void Awake()
     {
-        if (FindObjectsOfType<SoundManager>().Length > 1)
-        {
-            Destroy(gameObject);
-            return;
-        }
+        //if (FindObjectsOfType<SoundManager>().Length > 1)
+        //{
+        //    Destroy(gameObject);
+        //    return;
+        //}
 
         base.Awake();
         Initialize();
