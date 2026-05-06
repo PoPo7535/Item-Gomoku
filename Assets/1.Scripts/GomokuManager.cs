@@ -4,6 +4,7 @@ using Fusion;
 using UnityEngine;
 using Utility;
 using Cysharp.Threading.Tasks;
+using UnityEngine.EventSystems;
 
 // 얘는 오목 규칙 + 턴 + 네트워크 + 게임 진행 전체 흐름 관리하자
 public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
@@ -46,8 +47,21 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     private readonly List<string> _blackHistory = new(); 
     private readonly List<string> _whiteHistory = new(); 
     private int _lastX; 
-    private int _lastZ; 
-    
+    private int _lastZ;
+
+
+    ///------------------ 아이템 관련 변수---------------///
+    public ItemPanel ItemPanel;
+
+    // 착수 숨김 효과 활성 여부
+    private bool _shouldHideNextMarker = false;
+    // 타이머 절반 효과 활성 여부
+    [Networked] public NetworkBool IsTimerHalfEffect { get; set; }
+    // 더블 표시 효과 활성 여부
+    [Networked] public NetworkBool IsDoubleMarkerEffect { get; set; }
+    [Networked] public int NetFakeX { get; set; } = -1;
+    [Networked] public int NetFakeZ { get; set; } = -1;
+
     public override void Spawned()
     {   
         //얘는 Spawned 실행되기전 Update실행 막기위함
@@ -79,44 +93,52 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// 네트워크용 착수 요청 
     /// </summary>
     [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
-    private void Rpc_RequestPlaceStone(Vector3 pos, int x, int z, bool isBlack)
+    private void Rpc_RequestPlaceStone(Vector3 pos, int x, int z, bool isBlack, int fX = -1, int fZ = -1)
     {
-        PlaceStoneProcess(pos, x, z, isBlack);
+       
+        PlaceStoneProcess(pos, x, z, isBlack, fX, fZ);
     }
     /// <summary>
     /// 최종 돌 착수
     /// (로직 적용 → 렌더링 → 기록 저장 → 승리 체크 → 턴 변경)
     /// </summary>
-    public void PlaceStoneProcess(Vector3 pos, int x, int z, bool isBlackStone)
+    public void PlaceStoneProcess(Vector3 pos, int x, int z, bool isBlackStone, int fX = -1, int fZ = -1)
     {   
         if (pos == Vector3.zero) return;
         StoneColor color = isBlackStone ? StoneColor.Black : StoneColor.White;
 
-        // 착수 가능 여부 검사(금수 포함) 후 오목로직 보드에 반영
         if (_logic.PlaceStone(x, z, color))
-        {
-            BoardView.SpawnStone(x, z, isBlackStone, pos); // 돌 생성       
-            BoardView.ShowLastMoveMarkers(x, z); // 최근위치 알려주기
-
-            //전체 기록 저장
-            NotifyBoardChanged();
-            string posText = $"{x},{z}";
-            if (isBlackStone) _blackHistory.Add(posText);
-            else _whiteHistory.Add(posText);
-
-            // 승리체크
-            if (_logic.CheckWin(x, z, color))
+        {   
+            GomokuItemManager.I.ConsumeItemUI(); //아이템 ui 삭제 아직 껍데기임
+            BoardView.SpawnStone(x, z, isBlackStone, pos); 
+            
+            if (_shouldHideNextMarker) 
             {
-                Debug.Log($"<color=cyan>★ 승리! {color} ★</color>");
-                RPC_GameEnd();
-                return;
+                _shouldHideNextMarker = false;
             }
+            else if (fX != -1) 
+            {
+                BoardView.ShowLastMoveMarkers(x, z, fX, fZ);
+                // 플래그 리셋 (로컬에서 즉시)
+                IsDoubleMarkerEffect = false;
+            }
+            else
+            {
+                BoardView.ShowLastMoveMarkers(x, z);
+            }
+
+            NotifyBoardChanged();
+            if (isBlackStone) _blackHistory.Add($"{x},{z}");
+            else _whiteHistory.Add($"{x},{z}");
+            
+            if (_logic.CheckWin(x, z, color)) { RPC_GameEnd(); return; }
             ChangeTurn();
         }
     }
     public void SetAIDifficulty(GomokuAIDifficulty difficulty)
     {
         _aiDifficulty = difficulty;
+
     }
     /// <summary>
     /// 현재 마우스 위치에서 착수 가능 여부를 판단하고 돌 미리보기 표시
@@ -149,7 +171,10 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// 현재 플레이 모드에 따라 입력 처리 분기 (싱글 / 멀티 / AI)
     /// </summary>
     private void HandleInput((Vector3 pos, int x, int z) result)
-    {
+    {   
+        if (EventSystem.current.IsPointerOverGameObject())
+        return;
+
         if (!Input.GetMouseButtonDown(0)) return;
 
         switch (App.I.PlayMode)
@@ -210,6 +235,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         }
 
         PlaceStoneProcess(result.pos, result.x, result.z, PlayerStoneColor == StoneColor.Black);
+        
     }
 
     /// <summary>
@@ -278,6 +304,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
 
         if (BoardView.FakeLastMoveMarker != null)
         BoardView.FakeLastMoveMarker.SetActive(false);
+        GomokuItemManager.I.ResetSelection();
         Debug.Log("게임 리셋 및 기록 초기화 완료");
     }
     /// <summary>
@@ -290,6 +317,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         IsPlaying = true;
         StartTurnTimer();
         TryScheduleAiTurnIfNeeded();
+        GomokuItemManager.I.ResetSelection();
     }
     /// <summary>
     /// 게임 재시작 UI 버튼용
@@ -301,13 +329,24 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         IsPlaying = true;
         StartTurnTimer();
         TryScheduleAiTurnIfNeeded();
+        GomokuItemManager.I.ResetSelection();
     }
     /// <summary>
     /// 턴변경
     /// </summary>
     public void ChangeTurn() 
     { 
-        IsBlackTurn = !IsBlackTurn; 
+        IsBlackTurn = !IsBlackTurn;
+        GomokuItemManager.I.ResetSelection();
+        ItemPanel.ClearAllToggles();
+
+        if (Object.HasStateAuthority)
+        {
+            IsDoubleMarkerEffect = false;
+            NetFakeX = -1;
+            NetFakeZ = -1;
+        }
+
         StartTurnTimer();
         ProcessAiTurn();
         
@@ -330,11 +369,23 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         TryScheduleAiTurnIfNeeded();
     }
     /// <summary>
-    /// 타이머 시작
+    /// 타이머 시작 로직 수정
     /// </summary>
     private void StartTurnTimer() 
-    {   //CreateFromSeconds 시간생성 TurnTimeLimit 이거만큼
-        if (Object.HasStateAuthority)TickTimer = TickTimer.CreateFromSeconds(App.I.Runner, TurnTimeLimit); 
+    {
+        if (!Object.HasStateAuthority) return;
+
+        float currentLimit = TurnTimeLimit;
+
+        // 만약 타이머 감소 효과가 켜져 있다면
+        if (IsTimerHalfEffect)
+        {
+            currentLimit = TurnTimeLimit / 2f; // 시간 절반
+            IsTimerHalfEffect = false; // 일회성이므로 사용 후 즉시 해제
+            Debug.Log($"상대방 턴 제한 시간 단축 적용: {currentLimit}초");
+        }
+
+        TickTimer = TickTimer.CreateFromSeconds(App.I.Runner, currentLimit); 
     }
     /// <summary>
     /// 타이머 종료
@@ -343,6 +394,11 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     {   //ExpiredOrNotRunning 이거 시간이 다댔는지 확인함 다되면 true
         if (Object.HasStateAuthority && TickTimer.ExpiredOrNotRunning(App.I.Runner))ChangeTurn(); 
     }
+
+
+
+
+    ///--------------------------------------아이템 관련함수------------------------------------------
     /// <summary>
     /// 아이템 매니저에서 쓸 자기턴확인용
     /// </summary>
@@ -362,5 +418,70 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
 
         return false;
     }
+    /// <summary>
+    /// 착수 숨김 사용 RPC
+    /// </summary>
+    [Rpc(RpcSources.All, RpcTargets.All,HostMode = RpcHostMode.SourceIsHostPlayer)]
+    public void RPC_UseHideMoveItem()
+    {
+        _shouldHideNextMarker = true;
+        Debug.Log("<color=yellow>[아이템 발동] 다음 돌은 위치 표시가 숨겨집니다!</color>");
+    }
+    /// <summary>
+    /// 타이머 감소 아이템 사용 RPC
+    /// </summary>
+    [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
+    public void RPC_UseTimerReductionItem()
+    {
+        // 아이템을 쓴 시점에 플래그를 켭니다. 
+        // 이 효과는 ChangeTurn이 일어날 때 적용될 것입니다.
+        IsTimerHalfEffect = true;
+        Debug.Log("<color=red>[아이템 발동] 다음 상대의 턴 시간이 절반으로 줄어듭니다!</color>");
+    }
+    /// <summary>
+    /// 더블 표시 아이템 사용 RPC
+    /// </summary>
+    [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
+    public void RPC_UseDoubleMarkerItem()
+    {
+        //모든 클라이언트에서 이 플래그키기
+        IsDoubleMarkerEffect = true;
 
+        // 좌표 결정은 호스트가 해서 네트워크 변수에 저장
+        if (Object.HasStateAuthority)
+        {
+            // 현재 턴인 사람의 돌 색깔을 가져오기
+            StoneColor turnColor = IsBlackTurn ? StoneColor.Black : StoneColor.White;
+            var fakePos = GetRandomExistStone(turnColor); 
+            
+            NetFakeX = fakePos.x;
+            NetFakeZ = fakePos.z;
+            
+            Debug.Log($"[호스트 결정] 가짜 좌표 동기화: {NetFakeX}, {NetFakeZ}");
+        }
+    }
+    /// <summary>
+    /// 판 위에 놓인 특정 색상의 돌 중 하나를 랜덤하게 좌표반환
+    /// </summary>
+    private (int x, int z) GetRandomExistStone(StoneColor color)
+    {
+        List<(int x, int z)> stones = new List<(int x, int z)>();
+
+        for (int i = 0; i < 15; i++)
+        {
+            for (int j = 0; j < 15; j++)
+            {
+                if (_logic.Board[i, j].Color == color)
+                {
+                    stones.Add((i, j));
+                }
+            }
+        }
+
+        if (stones.Count == 0) return (-1, -1); // 돌이 없으면 -1 반환
+
+        int randomIndex = UnityEngine.Random.Range(0, stones.Count);
+        return stones[randomIndex];
+    }
+    
 }

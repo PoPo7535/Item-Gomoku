@@ -1,41 +1,43 @@
+using System;
+using TMPro;
 using UnityEngine;
 using Utility;
-public enum ItemUseState
-{
-    None,
-    Selecting,
-    Using
-}
 public class GomokuItemManager : MonoBehaviour
 {   
     public static GomokuItemManager I;
     public GomokuItem CurrentSelectedItem; // 선택된 아이템 여기에 담자
+    public TMP_Text _test;
     
     private void Awake()
     {
         I = this;
     }
-    
-    public void SelectItem(GomokuItem item) // ui 에 아이템 서택시 호출 // 토글
+    /// <summary>
+    /// 아이템 ui 선택시 호출될함수
+    /// </summary>
+    public void SelectItem(GomokuItem item)
     {
         if (item == null)
         {
             CurrentSelectedItem = null;
-            Debug.Log("아이템 선택 해제");
-            return;
+            if (_test != null) _test.text = $"아이템 선택 해제 : {CurrentSelectedItem}";
+            return; // 여기서 함수를 끝냄
         }
 
-        if (CurrentSelectedItem == item)
+        // 2. 그 다음 기존 로직 수행
+        if (CurrentSelectedItem != null && CurrentSelectedItem.name == item.name)
         {
             CurrentSelectedItem = null;
-            Debug.Log("아이템 선택 해제");
+            if (_test != null) _test.text = $"아이템 선택 해제 : {CurrentSelectedItem}";
             return;
         }
 
         CurrentSelectedItem = item;
-        Debug.Log($"선택된 아이템 이름 : {item.name}");
+        _test.text = $"아이템 선택  : {CurrentSelectedItem}";
     }
-
+    /// <summary>
+    /// 아이템 사용시 호출될 함수
+    /// </summary>
     public bool TryUseItem(int x, int z) // 실제 아이템 사용 
     {
         if (CurrentSelectedItem == null)
@@ -48,11 +50,12 @@ public class GomokuItemManager : MonoBehaviour
         }
 
         bool success = false;
-
+   
         switch (CurrentSelectedItem.name)
         {
             case "더블 표시":
-                GomokuManager.I.RemoveStoneProcess(x, z);
+                GomokuManager.I.RPC_UseDoubleMarkerItem(); // 미완
+                _test.text = $"아이템 사용 : {CurrentSelectedItem.name}";
                 success = true;
                 break;
 
@@ -60,9 +63,9 @@ public class GomokuItemManager : MonoBehaviour
                 // 아이템 효과
                 success = true;
                 break;
-
             case "착수 숨김":
-                // 아이템 효과
+                GomokuManager.I.RPC_UseHideMoveItem(); // 완성
+                _test.text = $"아이템 사용 : {CurrentSelectedItem.name}";
                 success = true;
                 break;
             case "돌 바꾸기":
@@ -70,7 +73,8 @@ public class GomokuItemManager : MonoBehaviour
                 success = true;
                 break;
             case "타이머 감소":
-                // 아이템 효과
+                GomokuManager.I.RPC_UseTimerReductionItem();// 완성
+                _test.text = $"아이템 사용 : {CurrentSelectedItem.name}";
                 success = true;
                 break;
             case "투명 돌":
@@ -80,10 +84,29 @@ public class GomokuItemManager : MonoBehaviour
         }
 
         if (success)
-            CurrentSelectedItem = null;
+        {
+            CurrentSelectedItem = null;            
+                        
+        }
+
 
         return success;
     }
+    // 상태초기화
+    public void ResetSelection()
+    {
+        CurrentSelectedItem = null;
+        _test.text = "";
+    }
+    // 아이템 사용후 ui 제거
+    public void ConsumeItemUI()
+    {
+        if (CurrentSelectedItem == null) return;
 
+        // UI 제거 (버튼 끄기 or Destroy)
+
+        CurrentSelectedItem = null;
+
+    }
 
 }
