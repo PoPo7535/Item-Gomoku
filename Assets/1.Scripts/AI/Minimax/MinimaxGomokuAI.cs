@@ -227,16 +227,40 @@ public partial class MinimaxGomokuAI : IGomokuAI
     /// </summary>
     private GomokuMove FindBestMinimaxMove(List<GomokuMove> candidates, int searchDepth)
     {
-        GomokuMove bestMove = GomokuMove.Invalid("No evaluated move");
-        int bestScore = int.MinValue;
-        int alpha = int.MinValue + 1;
-        int beta = int.MaxValue;
-
         if (candidates.Count > 0)
         {
             // 첫 후보를 기본 fallback으로 보관해 시간 초과 시에도 착수 후보를 잃지 않음.
             _bestMoveSoFar = candidates[0];
         }
+
+        GomokuMove bestCompletedMove = GomokuMove.Invalid("No completed depth");
+        for (int depth = 1; depth <= searchDepth; depth++)
+        {
+            ResetKillerMoves();
+            GomokuMove depthBestMove = SearchRootAtDepth(candidates, depth);
+            if (depthBestMove.IsValid)
+            {
+                // 완료된 depth 결과만 timeout fallback으로 commit함.
+                bestCompletedMove = depthBestMove;
+                _bestMoveSoFar = depthBestMove;
+            }
+        }
+
+        return bestCompletedMove.IsValid ? bestCompletedMove : FindFallbackMove();
+    }
+
+    /// <summary>
+    /// 지정한 root depth에서 모든 root 후보를 평가함.
+    /// </summary>
+    /// <param name="candidates">평가할 root 후보 목록.</param>
+    /// <param name="searchDepth">현재 iterative deepening depth.</param>
+    /// <returns>현재 depth를 끝까지 평가한 최선 후보.</returns>
+    private GomokuMove SearchRootAtDepth(List<GomokuMove> candidates, int searchDepth)
+    {
+        GomokuMove bestMove = GomokuMove.Invalid("No evaluated move");
+        int bestScore = int.MinValue;
+        int alpha = int.MinValue + 1;
+        int beta = int.MaxValue;
 
         for (int i = 0; i < candidates.Count; i++)
         {
@@ -261,13 +285,12 @@ public partial class MinimaxGomokuAI : IGomokuAI
             {
                 bestScore = score;
                 bestMove = new GomokuMove(candidate.X, candidate.Y, score, $"Minimax depth {searchDepth}");
-                _bestMoveSoFar = bestMove;
             }
 
             alpha = System.Math.Max(alpha, bestScore);
         }
 
-        return bestMove.IsValid ? bestMove : FindFallbackMove();
+        return bestMove;
     }
 
     /// <summary>
@@ -290,6 +313,7 @@ public partial class MinimaxGomokuAI : IGomokuAI
 
         StoneColor currentColor = isAiTurn ? _aiColor : _opponentColor;
         List<GomokuMove> candidates = GenerateCandidates(currentColor, CandidateGenerationMode.SearchNode, true);
+        ApplyKillerMoveOrdering(candidates, depth, currentColor);
 
         if (candidates.Count == 0)
         {
@@ -302,6 +326,56 @@ public partial class MinimaxGomokuAI : IGomokuAI
         }
 
         return EvaluateMinBranch(depth, alpha, beta, candidates, currentColor);
+    }
+
+    /// <summary>
+    /// 현재 후보 목록 안에 존재하는 killer move를 앞쪽으로 재배치함.
+    /// </summary>
+    /// <param name="candidates">현재 노드의 제한 후보 목록.</param>
+    /// <param name="depth">현재 remaining depth.</param>
+    /// <param name="currentColor">현재 착수 색상.</param>
+    private void ApplyKillerMoveOrdering(List<GomokuMove> candidates, int depth, StoneColor currentColor)
+    {
+        int insertIndex = 0;
+        for (int slot = 0; slot < KillerMoveSlotsPerDepth; slot++)
+        {
+            if (!TryGetKillerMove(depth, slot, out GomokuMove killerMove))
+            {
+                continue;
+            }
+
+            int candidateIndex = FindCandidateIndex(candidates, killerMove, insertIndex);
+            if (candidateIndex < 0 || !IsLegalMove(killerMove.X, killerMove.Y, currentColor))
+            {
+                continue;
+            }
+
+            // Killer move는 제한 후보 목록 안에 있을 때만 순서만 앞당김.
+            GomokuMove candidate = candidates[candidateIndex];
+            candidates.RemoveAt(candidateIndex);
+            candidates.Insert(insertIndex, candidate);
+            insertIndex++;
+        }
+    }
+
+    /// <summary>
+    /// 후보 목록에서 같은 좌표의 후보 인덱스를 찾음.
+    /// </summary>
+    /// <param name="candidates">검사할 후보 목록.</param>
+    /// <param name="move">찾을 후보 좌표.</param>
+    /// <param name="startIndex">검색 시작 인덱스.</param>
+    /// <returns>같은 좌표의 후보 인덱스. 없으면 -1.</returns>
+    private int FindCandidateIndex(List<GomokuMove> candidates, GomokuMove move, int startIndex)
+    {
+        for (int i = startIndex; i < candidates.Count; i++)
+        {
+            if (IsSameMove(candidates[i], move))
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     /// <summary>
@@ -334,6 +408,7 @@ public partial class MinimaxGomokuAI : IGomokuAI
             if (beta <= alpha)
             {
                 _stats.PruningCount++;
+                RecordKillerMove(depth, candidate);
                 // 더 나은 결과가 나올 수 없는 분기는 가지치기함.
                 break;
             }
@@ -372,6 +447,7 @@ public partial class MinimaxGomokuAI : IGomokuAI
             if (beta <= alpha)
             {
                 _stats.PruningCount++;
+                RecordKillerMove(depth, candidate);
                 // 플레이어가 더 나쁜 결과를 강제할 수 있는 분기는 중단함.
                 break;
             }

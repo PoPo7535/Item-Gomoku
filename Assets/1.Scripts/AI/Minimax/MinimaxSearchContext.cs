@@ -8,6 +8,11 @@ using Stopwatch = System.Diagnostics.Stopwatch;
 /// </summary>
 public partial class MinimaxGomokuAI
 {
+    private const int KillerMoveTableDepth = 8;
+    private const int KillerMoveSlotsPerDepth = 2;
+
+    private readonly GomokuMove[,] _killerMoves = new GomokuMove[KillerMoveTableDepth + 1, KillerMoveSlotsPerDepth];
+
     /// <summary>
     /// 해당 색상이 지정 좌표에 둘 수 있는지 확인함.
     /// </summary>
@@ -127,7 +132,77 @@ public partial class MinimaxGomokuAI
     private void ResetSearchCachesAndStats()
     {
         _rootEvaluationCache.Clear();
+        ResetKillerMoves();
         _stats.Reset();
+    }
+
+    /// <summary>
+    /// 탐색 1회 동안 사용할 killer move table을 초기화함.
+    /// </summary>
+    private void ResetKillerMoves()
+    {
+        for (int depth = 0; depth <= KillerMoveTableDepth; depth++)
+        {
+            for (int slot = 0; slot < KillerMoveSlotsPerDepth; slot++)
+            {
+                _killerMoves[depth, slot] = GomokuMove.Invalid("No killer move");
+            }
+        }
+    }
+
+    /// <summary>
+    /// 특정 remaining depth에서 beta cut-off를 만든 killer move를 기록함.
+    /// </summary>
+    /// <param name="depth">현재 remaining depth.</param>
+    /// <param name="move">기록할 killer move.</param>
+    private void RecordKillerMove(int depth, GomokuMove move)
+    {
+        if (!move.IsValid || depth < 0 || depth > KillerMoveTableDepth)
+        {
+            return;
+        }
+
+        if (IsSameMove(_killerMoves[depth, 0], move) || IsSameMove(_killerMoves[depth, 1], move))
+        {
+            return;
+        }
+
+        _killerMoves[depth, 1] = _killerMoves[depth, 0];
+        _killerMoves[depth, 0] = move;
+    }
+
+    /// <summary>
+    /// 특정 remaining depth와 slot에 저장된 killer move를 가져옴.
+    /// </summary>
+    /// <param name="depth">현재 remaining depth.</param>
+    /// <param name="slot">killer move slot.</param>
+    /// <param name="move">저장된 killer move.</param>
+    /// <returns>유효한 killer move가 있으면 true.</returns>
+    private bool TryGetKillerMove(int depth, int slot, out GomokuMove move)
+    {
+        move = GomokuMove.Invalid("No killer move");
+
+        if (depth < 0 || depth > KillerMoveTableDepth || slot < 0 || slot >= KillerMoveSlotsPerDepth)
+        {
+            return false;
+        }
+
+        move = _killerMoves[depth, slot];
+        return move.IsValid;
+    }
+
+    /// <summary>
+    /// 두 후보가 같은 좌표를 가리키는지 확인함.
+    /// </summary>
+    /// <param name="first">첫 번째 후보.</param>
+    /// <param name="second">두 번째 후보.</param>
+    /// <returns>두 후보가 모두 유효하고 좌표가 같으면 true.</returns>
+    private static bool IsSameMove(GomokuMove first, GomokuMove second)
+    {
+        return first.IsValid &&
+               second.IsValid &&
+               first.X == second.X &&
+               first.Y == second.Y;
     }
 
     /// <summary>
