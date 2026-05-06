@@ -469,7 +469,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     public void RPC_UseTimerReductionItem()
     {
         // 아이템을 쓴 시점에 플래그를 켭니다. 
-        // 이 효과는 ChangeTurn이 일어날 때 적용될 것입니다.
+        // 이 효과는 ChangeTurn이 일어날 때 적용
         IsTimerHalfEffect = true;
         Debug.Log("<color=red>[아이템 발동] 다음 상대의 턴 시간이 절반으로 줄어듭니다!</color>");
     }

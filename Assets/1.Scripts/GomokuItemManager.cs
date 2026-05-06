@@ -54,7 +54,7 @@ public class GomokuItemManager : MonoBehaviour
         switch (CurrentSelectedItem.name)
         {
             case "더블 표시":
-                GomokuManager.I.RPC_UseDoubleMarkerItem();// 미완
+                GomokuManager.I.RPC_UseDoubleMarkerItem();// 완성
                 _test.text = $"아이템 사용 : {CurrentSelectedItem.name}";
                 success = true;
                 break;
