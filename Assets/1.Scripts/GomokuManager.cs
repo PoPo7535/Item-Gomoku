@@ -40,7 +40,9 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     private OmokuLogic _logic;
 
     // 이 클라이언트가 조작할 수 있는 돌 색상 (멀티/싱글 구분용 로컬 값)
-    private StoneColor _myColor; 
+    private StoneColor _myColor;
+    public StoneColor MyColor => _myColor;
+    public StoneColor hostColor;
     private bool _isSpawned = false;
 
     // ---  기록 관리 변수 ---
@@ -61,6 +63,8 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     [Networked] public NetworkBool IsDoubleMarkerEffect { get; set; }
     [Networked] public int NetFakeX { get; set; } = -1;
     [Networked] public int NetFakeZ { get; set; } = -1;
+    [Networked] public int CurrentFakeX { get; set; } = -1; // 가짜 마커 위치 저장용
+    [Networked] public int CurrentFakeZ { get; set; } = -1; // 가짜 마커 위치 저장용
 
     public override void Spawned()
     {   
@@ -70,11 +74,6 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (BoardView != null) BoardView.Init();//보드판 셋팅
         
         ResetGame();
-        //내가 클릭해서 둘 수 있는 돌 색 호스트는 흑 클라는 백 색지정
-        if (App.I.PlayMode == GamePlayMode.Multi)
-            _myColor = Object.HasStateAuthority ? StoneColor.Black : StoneColor.White;
-        else
-            _myColor = StoneColor.Black;
     }
 
     private void Update()
@@ -87,6 +86,25 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
 
         HandleGhost(result); // 돌미리보기
         HandleInput(result); // 각 모드 입력처리
+    }
+    /// <summary>
+    /// 플레이 모드에 따라 로컬 플레이어가 조작할 돌 색상을 설정
+    /// </summary>
+    private void SetupPlayerColor()
+    {
+        hostColor = App.I.PlayMode == GamePlayMode.AI ? StoneColor.White : StoneColor.Black;
+        if (App.I.PlayMode == GamePlayMode.Multi)
+        {
+            _myColor = Object.HasStateAuthority ? StoneColor.Black : StoneColor.White;
+        }
+        else if (App.I.PlayMode == GamePlayMode.AI)
+        {
+            _myColor = StoneColor.White;
+        }
+        else
+        {
+            _myColor = StoneColor.Black;
+        }
     }
     
     /// <summary>
@@ -116,15 +134,17 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             {
                 _shouldHideNextMarker = false;
             }
-            else if (fX != -1) 
-            {
-                BoardView.ShowLastMoveMarkers(x, z, fX, fZ);
-                // 플래그 리셋 (로컬에서 즉시)
-                IsDoubleMarkerEffect = false;
-            }
             else
             {
-                BoardView.ShowLastMoveMarkers(x, z);
+                // fX, fZ가 -1이 아니라면 가짜 마커도 같이 뜸
+                int? fakeX = (fX != -1) ? fX : (int?)null;
+                int? fakeZ = (fZ != -1) ? fZ : (int?)null;
+                if (Object.HasStateAuthority) // 권한 확인 추가
+                {
+                    CurrentFakeX = fX; 
+                    CurrentFakeZ = fZ;
+                }
+                BoardView.ShowLastMoveMarkers(x, z, fakeX, fakeZ);
             }
 
             NotifyBoardChanged();
@@ -206,17 +226,29 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     private void HandleMultiInput((Vector3 pos, int x, int z) result)
     {
         StoneColor currentTurn = IsBlackTurn ? StoneColor.Black : StoneColor.White;
-
         if (currentTurn != _myColor) return;
 
+        // 아이템 선택 중일 때 처리
         if (GomokuItemManager.I.CurrentSelectedItem != null)
         {
-            bool used = GomokuItemManager.I.TryUseItem(result.x, result.z); // 아이템 사용
-
-            if (!used)return;
+            bool used = GomokuItemManager.I.TryUseItem(result.x, result.z);
+            if (!used) return;
         }
 
-        Rpc_RequestPlaceStone(result.pos, result.x, result.z, IsBlackTurn);
+        // --- 더블 표시 아이템 로직 추가 ---
+        int fakeX = -1;
+        int fakeZ = -1;
+
+        if (IsDoubleMarkerEffect)
+        {
+            // 내 돌 중 하나를 랜덤하게 골라 가짜 마커 좌표로 설정
+            var randomStone = GetRandomExistStone(_myColor);
+            fakeX = randomStone.x;
+            fakeZ = randomStone.z;
+        }
+
+        // 서버에 착수 요청 (가짜 좌표 포함)
+        Rpc_RequestPlaceStone(result.pos, result.x, result.z, IsBlackTurn, fakeX, fakeZ);
     }
     /// <summary>
     /// AI 입력처리 
@@ -305,6 +337,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (BoardView.FakeLastMoveMarker != null)
         BoardView.FakeLastMoveMarker.SetActive(false);
         GomokuItemManager.I.ResetSelection();
+        SetupPlayerColor();
         Debug.Log("게임 리셋 및 기록 초기화 완료");
     }
     /// <summary>
@@ -314,6 +347,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     {   
         if(IsPlaying) return;
         if (App.I.PlayMode == GamePlayMode.Multi && !Object.HasStateAuthority) return;
+        SetupPlayerColor();
         IsPlaying = true;
         StartTurnTimer();
         TryScheduleAiTurnIfNeeded();
@@ -325,6 +359,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     public void RestartGame()
     {
         if (App.I.PlayMode == GamePlayMode.Multi && !Object.HasStateAuthority) return;
+        SetupPlayerColor();
         ResetGame(); 
         IsPlaying = true;
         StartTurnTimer();
@@ -434,7 +469,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     public void RPC_UseTimerReductionItem()
     {
         // 아이템을 쓴 시점에 플래그를 켭니다. 
-        // 이 효과는 ChangeTurn이 일어날 때 적용될 것입니다.
+        // 이 효과는 ChangeTurn이 일어날 때 적용
         IsTimerHalfEffect = true;
         Debug.Log("<color=red>[아이템 발동] 다음 상대의 턴 시간이 절반으로 줄어듭니다!</color>");
     }
@@ -447,18 +482,6 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         //모든 클라이언트에서 이 플래그키기
         IsDoubleMarkerEffect = true;
 
-        // 좌표 결정은 호스트가 해서 네트워크 변수에 저장
-        if (Object.HasStateAuthority)
-        {
-            // 현재 턴인 사람의 돌 색깔을 가져오기
-            StoneColor turnColor = IsBlackTurn ? StoneColor.Black : StoneColor.White;
-            var fakePos = GetRandomExistStone(turnColor); 
-            
-            NetFakeX = fakePos.x;
-            NetFakeZ = fakePos.z;
-            
-            Debug.Log($"[호스트 결정] 가짜 좌표 동기화: {NetFakeX}, {NetFakeZ}");
-        }
     }
     /// <summary>
     /// 판 위에 놓인 특정 색상의 돌 중 하나를 랜덤하게 좌표반환
@@ -482,6 +505,31 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
 
         int randomIndex = UnityEngine.Random.Range(0, stones.Count);
         return stones[randomIndex];
+    }
+    /// <summary>
+    /// 간파하기에 사용할 클릭한 좌표에 가짜마커 일시 마커 비활성화
+    /// </summary>
+    public bool CheckAndDestroyFakeMarker(int x, int z)
+    {
+        // 클릭한 좌표가 가짜 마커 좌표와 일치하는지 확인
+        if (x == CurrentFakeX && z == CurrentFakeZ)
+        {
+            // 모든 클라이언트에서 가짜 마커를 끄도록 RPC 호출
+            RPC_DestroyFakeMarker();
+            return true;
+        }
+        return false;
+    }
+    /// <summary>
+    /// 모든 클라이언트에서 가짜 마커를 시각적으로 비활성화하고 서버의 가짜 좌표 데이터를 초기화
+    /// </summary>
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    public void RPC_DestroyFakeMarker()
+    {
+        BoardView.FakeLastMoveMarker.SetActive(false);
+        CurrentFakeX = -1;
+        CurrentFakeZ = -1;
+        Debug.Log("<color=cyan>[아이템 발동] 가짜 마커가 간파되어 사라졌습니다!</color>");
     }
     
 }

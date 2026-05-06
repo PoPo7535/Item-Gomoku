@@ -51,14 +51,14 @@ public class GomokuBoardView : MonoBehaviour
     /// </summary
     public void ShowLastMoveMarkers(int realX, int realZ, int? fakeX = null, int? fakeZ = null)
     {
-        // 진짜 위치
+        // 진짜 위치 마커
         if (TryGetWorldPositionByCoord(realX, realZ, out Vector3 realPos))
         {
             RealLastMoveMarker.transform.position = realPos + new Vector3(0, 3.2f, 0);
             RealLastMoveMarker.SetActive(true);
         }
 
-        // 가짜 위치
+        // 가짜 위치 마커 (전달받은 좌표가 있을 때만 작동)
         if (fakeX.HasValue && fakeZ.HasValue &&
             TryGetWorldPositionByCoord(fakeX.Value, fakeZ.Value, out Vector3 fakePos))
         {
@@ -67,7 +67,6 @@ public class GomokuBoardView : MonoBehaviour
         }
         else
         {
-            // 가짜 없으면 숨김
             FakeLastMoveMarker.SetActive(false);
         }
     }

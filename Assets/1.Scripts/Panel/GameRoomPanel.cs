@@ -83,8 +83,18 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
         });
         GomokuManager.I.TurnEvents.Add(isBlackTurn =>
         {
-            playerImg1.color = isBlackTurn ? new Color32(255, 210, 210, 255) : Color.white;
-            playerImg2.color = isBlackTurn ? Color.white : new Color32(210, 210, 255, 255);
+            var gm = GomokuManager.I;
+
+            StoneColor currentTurn = isBlackTurn ? StoneColor.Black : StoneColor.White;
+            bool isMyTurn = currentTurn == gm.hostColor;
+
+            playerImg1.color = isMyTurn 
+                ? new Color32(255, 210, 210, 255) 
+                : Color.white;
+
+            playerImg2.color = !isMyTurn 
+                ? new Color32(210, 210, 255, 255) 
+                : Color.white;
         });
         GomokuManager.I.PlayEvents.Add(isPlay =>
         {

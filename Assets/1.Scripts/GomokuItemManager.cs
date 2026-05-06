@@ -24,7 +24,7 @@ public class GomokuItemManager : MonoBehaviour
             return; // 여기서 함수를 끝냄
         }
 
-        // 2. 그 다음 기존 로직 수행
+   
         if (CurrentSelectedItem != null && CurrentSelectedItem.name == item.name)
         {
             CurrentSelectedItem = null;
@@ -54,7 +54,7 @@ public class GomokuItemManager : MonoBehaviour
         switch (CurrentSelectedItem.name)
         {
             case "더블 표시":
-                GomokuManager.I.RPC_UseDoubleMarkerItem(); // 미완
+                GomokuManager.I.RPC_UseDoubleMarkerItem();// 완성
                 _test.text = $"아이템 사용 : {CurrentSelectedItem.name}";
                 success = true;
                 break;
@@ -70,6 +70,7 @@ public class GomokuItemManager : MonoBehaviour
                 break;
             case "돌 바꾸기":
                 // 아이템 효과
+        
                 success = true;
                 break;
             case "타이머 감소":
@@ -85,8 +86,7 @@ public class GomokuItemManager : MonoBehaviour
 
         if (success)
         {
-            CurrentSelectedItem = null;            
-                        
+            CurrentSelectedItem = null;                    
         }
 
 

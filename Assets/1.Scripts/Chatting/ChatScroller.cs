@@ -1,12 +1,9 @@
 using System;
 using System.Collections.Generic;
-using Cysharp.Threading.Tasks;
 using EnhancedUI.EnhancedScroller;
 using Fusion;
 using TMPro;
-using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public enum ChatType
@@ -23,7 +20,7 @@ public class ChatData
     public ChatType type;
 }
 
-public class ChatScroller : NetworkBehaviour,IEnhancedScrollerDelegate
+public class ChatScroller : NetworkBehaviour,IEnhancedScrollerDelegate, IPlayerLeft
 {
     [SerializeField] private EnhancedScroller scroller;
     [SerializeField] private EnhancedScrollerCellView myTextCellViewPrefab;
@@ -33,7 +30,8 @@ public class ChatScroller : NetworkBehaviour,IEnhancedScrollerDelegate
     private readonly List<ChatData> _data = new();
     private float _totalCellSize = 0;
     private float _oldScrollPosition = 0;
-
+    private string _clientNickName = string.Empty;
+    
     private Vector2 CalTextSize(string text)
     {
         helperText.text = text;
@@ -43,18 +41,16 @@ public class ChatScroller : NetworkBehaviour,IEnhancedScrollerDelegate
     {
         scroller.Delegate = this;
         chatButton.onClick.AddListener(SendChatEvent);
-    }
-
-    public void Update()
-    {
-        if (inputField.isFocused && Input.GetKeyDown(KeyCode.Return) && inputField.text != string.Empty)
+        inputField.onSubmit.AddListener(_ =>
         {
             SendChatEvent();
-        }
+        });
     }
 
     private void SendChatEvent()
     {
+        if (inputField.text == string.Empty)
+            return;
         var tpye = Object.HasStateAuthority ? ChatType.Host : ChatType.Client;
         Rpc_SendChat(App.I.nickName, inputField.text, tpye);
         inputField.text = "";
@@ -63,7 +59,7 @@ public class ChatScroller : NetworkBehaviour,IEnhancedScrollerDelegate
     public override void Spawned()
     {
         SendChat("Space",string.Empty, ChatType.Host); // 필수
-        Rpc_SendChat(string.Empty, $"[{App.I.nickName}] 님이 입장하셨습니다.", ChatType.Notice);
+        Rpc_SendChat(App.I.nickName, $"[{App.I.nickName}] 님이 입장하셨습니다.", ChatType.Notice);
     }
 
 
@@ -94,6 +90,8 @@ public class ChatScroller : NetworkBehaviour,IEnhancedScrollerDelegate
     [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
     private void Rpc_SendChat(string name, string msg, ChatType type)
     {
+        if(Object.HasStateAuthority && type == ChatType.Notice)
+            _clientNickName = name;
         SendChat(name, msg, type);
     }
     private void ResetSpacer()
@@ -150,12 +148,18 @@ public class ChatScroller : NetworkBehaviour,IEnhancedScrollerDelegate
         else
         {
             cellView = scroller.GetCellView(myTextCellViewPrefab) as ChatCell;
-            cellView.name = "Cell " + dataIndex.ToString();
+            cellView.name = "Cell " + dataIndex;
             cellView.SetCell(_data[dataIndex]);
         }
 
         return cellView;
     }
 
-
+    public void PlayerLeft(PlayerRef player)
+    {
+        if (App.I.Runner.LocalPlayer == player)
+            return;
+        SendChat(string.Empty, $"[{_clientNickName}] 님이 퇴장하셨습니다.", ChatType.Notice);
+        _clientNickName = string.Empty;
+    }
 }
