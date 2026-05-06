@@ -24,7 +24,7 @@ public class GomokuItemManager : MonoBehaviour
             return; // 여기서 함수를 끝냄
         }
 
-        // 2. 그 다음 기존 로직 수행
+   
         if (CurrentSelectedItem != null && CurrentSelectedItem.name == item.name)
         {
             CurrentSelectedItem = null;
