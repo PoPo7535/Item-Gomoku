@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Audio;
 using Utility;
@@ -8,8 +10,11 @@ public class SoundManager : Singleton<SoundManager>
 
     [Header(":: BGM")]
     [SerializeField] private AudioSource bgmSource;
-    [SerializeField] private AudioClip bgm;
+    [SerializeField] private SerializableDic<string, AudioClip> bgms;
     [SerializeField] private AudioMixerGroup bgmGroup;
+
+    private List<string> _bgmKeys;
+    [SerializeField] private int currentIndex = 0;
 
     [Header(":: SFX")]
     [SerializeField] private AudioSource sfxSource;
@@ -27,11 +32,11 @@ public class SoundManager : Singleton<SoundManager>
 
     private void Awake()
     {
-        //if (FindObjectsOfType<SoundManager>().Length > 1)
-        //{
-        //    Destroy(gameObject);
-        //    return;
-        //}
+        if (FindObjectsOfType<SoundManager>().Length > 1)
+        {
+            Destroy(gameObject);
+            return;
+        }
 
         base.Awake();
         Initialize();
@@ -71,6 +76,7 @@ public class SoundManager : Singleton<SoundManager>
             sfxSource.outputAudioMixerGroup = sfxGroup;
         }
 
+        _bgmKeys = bgms.Keys.ToList();
         PlayBGM();
     }
 
@@ -100,16 +106,38 @@ public class SoundManager : Singleton<SoundManager>
     /// </summary>
     private void PlayBGM()
     {
-        if(bgm == null)
+        if(_bgmKeys == null || _bgmKeys.Count == 0)
         {
             $"[SoundManager] BGM 클립이 연결되지 않았습니다.".Log();
             return;
         }
 
-        if (bgmSource.isPlaying) return;
+        // if (bgmSource.isPlaying) return;
 
-        bgmSource.clip = bgm;
-        bgmSource.Play();
+        if (bgms.TryGetValue(_bgmKeys[currentIndex], out AudioClip clip))
+        {
+            bgmSource.clip = clip;
+            bgmSource.Play();
+        }
+    }
+
+    /// <summary>
+    /// 다음 BGM으로 전환
+    /// </summary>
+    public void PlayNextBGM()
+    {
+        currentIndex = (currentIndex + 1) % _bgmKeys.Count;
+        PlayBGM();
+    }
+
+    /// <summary>
+    /// 이전 BGM으로 전환
+    /// </summary>
+    public void PlayPrebBGM()
+    {
+        currentIndex = (currentIndex - 1) % _bgmKeys.Count;
+        if(currentIndex < 0) currentIndex = _bgmKeys.Count - 1;
+        PlayBGM();
     }
 
     /// <summary>
