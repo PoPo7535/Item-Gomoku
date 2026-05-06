@@ -29,8 +29,8 @@ public class OptionsManager : Singleton<OptionsManager>
         bgmSlider.value = DEFAULT_VOLUME;
         sfxSlider.value = DEFAULT_VOLUME;
 
-        Options.BGMVolumeChanged(DEFAULT_VOLUME);
-        Options.SFXVolumeChanged(DEFAULT_VOLUME);
+        Options.OnBGMVolumeChanged(DEFAULT_VOLUME);
+        Options.OnSFXVolumeChanged(DEFAULT_VOLUME);
 
         bgmSlider.onValueChanged.AddListener(OnBGMChanged);
         sfxSlider.onValueChanged.AddListener(OnSFXChanged);
@@ -45,12 +45,12 @@ public class OptionsManager : Singleton<OptionsManager>
 
     private void OnBGMChanged(float value)
     {
-        Options.BGMVolumeChanged(value);
+        Options.OnBGMVolumeChanged(value);
     }
 
     private void OnSFXChanged(float value)
     {
-        Options.SFXVolumeChanged(value);
+        Options.OnSFXVolumeChanged(value);
     }
 
 
