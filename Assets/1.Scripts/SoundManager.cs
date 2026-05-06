@@ -4,6 +4,8 @@ using Utility;
 
 public class SoundManager : Singleton<SoundManager>
 {
+    private const float DEFAULT_VOLUME = 0.5f;
+
     [Header(":: BGM")]
     [SerializeField] private AudioSource bgmSource;
     [SerializeField] private AudioClip bgm;
@@ -17,6 +19,10 @@ public class SoundManager : Singleton<SoundManager>
     // 사운드 재생할 오브젝트 생성 ->
     // 사운드 재생 후 삭제, or 오브젝트 풀
     // 오디오 믹서
+    [Header(":: Mixer")]
+    [SerializeField] private AudioMixer audioMixer;
+    private const string PARAM_BGM = "BGM";
+    private const string PARAM_SFX = "SFX";
 
     private void Awake()
     {
@@ -28,6 +34,21 @@ public class SoundManager : Singleton<SoundManager>
 
         base.Awake();
         Initialize();
+    }
+
+    private void OnEnable()
+    {
+        Options.BGMVolume += SetBGMVolume;
+        Options.SFXVolume += SetSFXVolume;
+
+        SetBGMVolume(DEFAULT_VOLUME);
+        SetSFXVolume(DEFAULT_VOLUME);
+    }
+
+    private void OnDisable()
+    {
+        Options.BGMVolume -= SetBGMVolume;
+        Options.SFXVolume -= SetSFXVolume;
     }
 
     private void Initialize()
@@ -47,6 +68,21 @@ public class SoundManager : Singleton<SoundManager>
         }
 
         PlayBGM();
+    }
+
+    /// <summary>
+    /// BGM/SFX 볼륨 조절
+    /// </summary>
+    private void SetBGMVolume(float value)
+    {
+        float db = value > 0f ? Mathf.Log10(value) * 20f : -80f;
+        audioMixer.SetFloat(PARAM_BGM, db);
+    }
+
+    private void SetSFXVolume(float value)
+    {
+        float db = value > 0f ? Mathf.Log10(value) * 20f : -80f;
+        audioMixer.SetFloat(PARAM_SFX, db);
     }
 
     /// <summary>
