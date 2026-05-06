@@ -40,7 +40,8 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     private OmokuLogic _logic;
 
     // 이 클라이언트가 조작할 수 있는 돌 색상 (멀티/싱글 구분용 로컬 값)
-    private StoneColor _myColor; 
+    private StoneColor _myColor;
+    public StoneColor MyColor => _myColor;
     private bool _isSpawned = false;
 
     // ---  기록 관리 변수 ---
@@ -70,11 +71,6 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (BoardView != null) BoardView.Init();//보드판 셋팅
         
         ResetGame();
-        //내가 클릭해서 둘 수 있는 돌 색 호스트는 흑 클라는 백 색지정
-        if (App.I.PlayMode == GamePlayMode.Multi)
-            _myColor = Object.HasStateAuthority ? StoneColor.Black : StoneColor.White;
-        else
-            _myColor = StoneColor.Black;
     }
 
     private void Update()
@@ -87,6 +83,24 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
 
         HandleGhost(result); // 돌미리보기
         HandleInput(result); // 각 모드 입력처리
+    }
+    /// <summary>
+    /// 플레이 모드에 따라 로컬 플레이어가 조작할 돌 색상을 설정
+    /// </summary>
+    private void SetupPlayerColor()
+    {
+        if (App.I.PlayMode == GamePlayMode.Multi)
+        {
+            _myColor = Object.HasStateAuthority ? StoneColor.Black : StoneColor.White;
+        }
+        else if (App.I.PlayMode == GamePlayMode.AI)
+        {
+            _myColor = StoneColor.White;
+        }
+        else
+        {
+            _myColor = StoneColor.Black;
+        }
     }
     
     /// <summary>
@@ -305,6 +319,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (BoardView.FakeLastMoveMarker != null)
         BoardView.FakeLastMoveMarker.SetActive(false);
         GomokuItemManager.I.ResetSelection();
+        SetupPlayerColor();
         Debug.Log("게임 리셋 및 기록 초기화 완료");
     }
     /// <summary>
@@ -314,6 +329,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     {   
         if(IsPlaying) return;
         if (App.I.PlayMode == GamePlayMode.Multi && !Object.HasStateAuthority) return;
+        SetupPlayerColor();
         IsPlaying = true;
         StartTurnTimer();
         TryScheduleAiTurnIfNeeded();
@@ -325,6 +341,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     public void RestartGame()
     {
         if (App.I.PlayMode == GamePlayMode.Multi && !Object.HasStateAuthority) return;
+        SetupPlayerColor();
         ResetGame(); 
         IsPlaying = true;
         StartTurnTimer();
