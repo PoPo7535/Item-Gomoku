@@ -6,6 +6,9 @@ public class OptionsManager : Singleton<OptionsManager>
 {
     private const float DEFAULT_VOLUME = 0.5f;
 
+    [Header(":: Master")]
+    [SerializeField] private Slider masterVolume;
+
     [Header(":: BGM")]
     [SerializeField] private Slider bgmSlider;
 
@@ -26,12 +29,15 @@ public class OptionsManager : Singleton<OptionsManager>
 
     private void Start()
     {
+        masterVolume.value = DEFAULT_VOLUME;
         bgmSlider.value = DEFAULT_VOLUME;
         sfxSlider.value = DEFAULT_VOLUME;
 
+        Options.OnMasterVolumeChanged(DEFAULT_VOLUME);
         Options.OnBGMVolumeChanged(DEFAULT_VOLUME);
         Options.OnSFXVolumeChanged(DEFAULT_VOLUME);
 
+        masterVolume.onValueChanged.AddListener(OnMasterChanged);
         bgmSlider.onValueChanged.AddListener(OnBGMChanged);
         sfxSlider.onValueChanged.AddListener(OnSFXChanged);
 
@@ -39,8 +45,14 @@ public class OptionsManager : Singleton<OptionsManager>
 
     private void OnDestroy()
     {
+        masterVolume.onValueChanged.RemoveListener(OnMasterChanged);
         bgmSlider.onValueChanged.RemoveListener(OnBGMChanged);
         sfxSlider.onValueChanged.RemoveListener(OnSFXChanged);
+    }
+
+    private void OnMasterChanged(float value)
+    {
+        Options.OnMasterVolumeChanged(value);
     }
 
     private void OnBGMChanged(float value)

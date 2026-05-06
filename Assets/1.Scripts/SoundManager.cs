@@ -21,6 +21,7 @@ public class SoundManager : Singleton<SoundManager>
     // 오디오 믹서
     [Header(":: Mixer")]
     [SerializeField] private AudioMixer audioMixer;
+    private const string PARAM_MASTER = "Master";
     private const string PARAM_BGM = "BGM";
     private const string PARAM_SFX = "SFX";
 
@@ -38,15 +39,18 @@ public class SoundManager : Singleton<SoundManager>
 
     private void OnEnable()
     {
+        Options.MasterVolume += SetMasterVolume;
         Options.BGMVolume += SetBGMVolume;
         Options.SFXVolume += SetSFXVolume;
 
+        SetMasterVolume(DEFAULT_VOLUME);
         SetBGMVolume(DEFAULT_VOLUME);
         SetSFXVolume(DEFAULT_VOLUME);
     }
 
     private void OnDisable()
     {
+        Options.MasterVolume -= SetMasterVolume;
         Options.BGMVolume -= SetBGMVolume;
         Options.SFXVolume -= SetSFXVolume;
     }
@@ -71,8 +75,14 @@ public class SoundManager : Singleton<SoundManager>
     }
 
     /// <summary>
-    /// BGM/SFX 볼륨 조절
+    /// Master/BGM/SFX 볼륨 조절
     /// </summary>
+    private void SetMasterVolume(float value)
+    {
+        float db = value > 0f ? Mathf.Log10(value) * 20f : -80f;
+        audioMixer.SetFloat(PARAM_MASTER, db);
+    }
+
     private void SetBGMVolume(float value)
     {
         float db = value > 0f ? Mathf.Log10(value) * 20f : -80f;
