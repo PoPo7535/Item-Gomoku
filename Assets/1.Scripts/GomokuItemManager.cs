@@ -54,7 +54,7 @@ public class GomokuItemManager : MonoBehaviour
         switch (CurrentSelectedItem.name)
         {
             case "더블 표시":
-                GomokuManager.I.RPC_UseDoubleMarkerItem(); // 미완
+                GomokuManager.I.RPC_UseDoubleMarkerItem();// 미완
                 _test.text = $"아이템 사용 : {CurrentSelectedItem.name}";
                 success = true;
                 break;
@@ -70,6 +70,7 @@ public class GomokuItemManager : MonoBehaviour
                 break;
             case "돌 바꾸기":
                 // 아이템 효과
+        
                 success = true;
                 break;
             case "타이머 감소":

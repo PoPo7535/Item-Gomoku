@@ -63,6 +63,8 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     [Networked] public NetworkBool IsDoubleMarkerEffect { get; set; }
     [Networked] public int NetFakeX { get; set; } = -1;
     [Networked] public int NetFakeZ { get; set; } = -1;
+    [Networked] public int CurrentFakeX { get; set; } = -1; // 가짜 마커 위치 저장용
+    [Networked] public int CurrentFakeZ { get; set; } = -1; // 가짜 마커 위치 저장용
 
     public override void Spawned()
     {   
@@ -132,15 +134,17 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             {
                 _shouldHideNextMarker = false;
             }
-            else if (fX != -1) 
-            {
-                BoardView.ShowLastMoveMarkers(x, z, fX, fZ);
-                // 플래그 리셋 (로컬에서 즉시)
-                IsDoubleMarkerEffect = false;
-            }
             else
             {
-                BoardView.ShowLastMoveMarkers(x, z);
+                // fX, fZ가 -1이 아니라면 가짜 마커도 같이 뜸
+                int? fakeX = (fX != -1) ? fX : (int?)null;
+                int? fakeZ = (fZ != -1) ? fZ : (int?)null;
+                if (Object.HasStateAuthority) // 권한 확인 추가
+                {
+                    CurrentFakeX = fX; 
+                    CurrentFakeZ = fZ;
+                }
+                BoardView.ShowLastMoveMarkers(x, z, fakeX, fakeZ);
             }
 
             NotifyBoardChanged();
@@ -222,17 +226,29 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     private void HandleMultiInput((Vector3 pos, int x, int z) result)
     {
         StoneColor currentTurn = IsBlackTurn ? StoneColor.Black : StoneColor.White;
-
         if (currentTurn != _myColor) return;
 
+        // 아이템 선택 중일 때 처리
         if (GomokuItemManager.I.CurrentSelectedItem != null)
         {
-            bool used = GomokuItemManager.I.TryUseItem(result.x, result.z); // 아이템 사용
-
-            if (!used)return;
+            bool used = GomokuItemManager.I.TryUseItem(result.x, result.z);
+            if (!used) return;
         }
 
-        Rpc_RequestPlaceStone(result.pos, result.x, result.z, IsBlackTurn);
+        // --- 더블 표시 아이템 로직 추가 ---
+        int fakeX = -1;
+        int fakeZ = -1;
+
+        if (IsDoubleMarkerEffect)
+        {
+            // 내 돌 중 하나를 랜덤하게 골라 가짜 마커 좌표로 설정
+            var randomStone = GetRandomExistStone(_myColor);
+            fakeX = randomStone.x;
+            fakeZ = randomStone.z;
+        }
+
+        // 서버에 착수 요청 (가짜 좌표 포함)
+        Rpc_RequestPlaceStone(result.pos, result.x, result.z, IsBlackTurn, fakeX, fakeZ);
     }
     /// <summary>
     /// AI 입력처리 
@@ -466,18 +482,6 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         //모든 클라이언트에서 이 플래그키기
         IsDoubleMarkerEffect = true;
 
-        // 좌표 결정은 호스트가 해서 네트워크 변수에 저장
-        if (Object.HasStateAuthority)
-        {
-            // 현재 턴인 사람의 돌 색깔을 가져오기
-            StoneColor turnColor = IsBlackTurn ? StoneColor.Black : StoneColor.White;
-            var fakePos = GetRandomExistStone(turnColor); 
-            
-            NetFakeX = fakePos.x;
-            NetFakeZ = fakePos.z;
-            
-            Debug.Log($"[호스트 결정] 가짜 좌표 동기화: {NetFakeX}, {NetFakeZ}");
-        }
     }
     /// <summary>
     /// 판 위에 놓인 특정 색상의 돌 중 하나를 랜덤하게 좌표반환
@@ -501,6 +505,31 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
 
         int randomIndex = UnityEngine.Random.Range(0, stones.Count);
         return stones[randomIndex];
+    }
+    /// <summary>
+    /// 간파하기에 사용할 클릭한 좌표에 가짜마커 일시 마커 비활성화
+    /// </summary>
+    public bool CheckAndDestroyFakeMarker(int x, int z)
+    {
+        // 클릭한 좌표가 가짜 마커 좌표와 일치하는지 확인
+        if (x == CurrentFakeX && z == CurrentFakeZ)
+        {
+            // 모든 클라이언트에서 가짜 마커를 끄도록 RPC 호출
+            RPC_DestroyFakeMarker();
+            return true;
+        }
+        return false;
+    }
+    /// <summary>
+    /// 모든 클라이언트에서 가짜 마커를 시각적으로 비활성화하고 서버의 가짜 좌표 데이터를 초기화
+    /// </summary>
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    public void RPC_DestroyFakeMarker()
+    {
+        BoardView.FakeLastMoveMarker.SetActive(false);
+        CurrentFakeX = -1;
+        CurrentFakeZ = -1;
+        Debug.Log("<color=cyan>[아이템 발동] 가짜 마커가 간파되어 사라졌습니다!</color>");
     }
     
 }
