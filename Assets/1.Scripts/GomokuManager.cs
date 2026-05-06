@@ -42,6 +42,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     // 이 클라이언트가 조작할 수 있는 돌 색상 (멀티/싱글 구분용 로컬 값)
     private StoneColor _myColor;
     public StoneColor MyColor => _myColor;
+    public StoneColor hostColor;
     private bool _isSpawned = false;
 
     // ---  기록 관리 변수 ---
@@ -89,6 +90,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// </summary>
     private void SetupPlayerColor()
     {
+        hostColor = App.I.PlayMode == GamePlayMode.AI ? StoneColor.White : StoneColor.Black;
         if (App.I.PlayMode == GamePlayMode.Multi)
         {
             _myColor = Object.HasStateAuthority ? StoneColor.Black : StoneColor.White;

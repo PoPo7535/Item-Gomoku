@@ -86,7 +86,7 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
             var gm = GomokuManager.I;
 
             StoneColor currentTurn = isBlackTurn ? StoneColor.Black : StoneColor.White;
-            bool isMyTurn = currentTurn == gm.MyColor;
+            bool isMyTurn = currentTurn == gm.hostColor;
 
             playerImg1.color = isMyTurn 
                 ? new Color32(255, 210, 210, 255) 
