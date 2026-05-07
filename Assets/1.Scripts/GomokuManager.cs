@@ -374,29 +374,38 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// </summary>
     public void ChangeTurn() 
     { 
-        IsBlackTurn = !IsBlackTurn;
-        GomokuItemManager.I.ResetSelection();
-        ItemPanel.ClearAllToggles();
+        //공통 처리 
+        IsBlackTurn = !IsBlackTurn; // 저기턴변경 false 가 백
+        GomokuItemManager.I.ResetSelection(); //아이템 선택되어있는거 싹다 꺼두기
+        ItemPanel.ClearAllToggles(); // 아이템패널 토글싹다 꺼두기 
 
+        // 호스트가 처리함
         if (Object.HasStateAuthority)
         {
+            // 더블 표시 및 가짜 마커 초기화
             IsDoubleMarkerEffect = false;
             NetFakeX = -1;
             NetFakeZ = -1;
-        }
+
+            // 돌 바꾸기 아이템 효과가 활성 상태인지 확인
             if (IsStoneSwapped)
             {
-                // 한 턴이 지나서, 지금 턴이 아이템을 썼던 사람의 턴과 같아지면 복구!
+                // 한 턴이 지나서, 다시 내 턴이 오면 다시원상복구
                 if (IsBlackTurn == SwapUsedByBlack) 
                 {
-                    IsStoneSwapped = false;
-                    RPC_ApplyStoneSwap(false); // 다시 원래대로 복구
-                    Debug.Log("<color=green>돌 바꾸기 효과 종료 (원상 복구)</color>");
+                    IsStoneSwapped = false; //효과초기화
+                    // 호스트가 RPC를 쏴서 모든 사람의 화면을 원상복구시킴
+                    RPC_ApplyStoneSwap(false); 
+                    Debug.Log("<color=green>돌 바꾸기 효과 종료 (호스트 명령)</color>");
                 }
             }
-        StartTurnTimer();
+            // ----------------------------------------------
+
+            StartTurnTimer(); // 타이머도 호스트만 관리
+        }
+
+        // 3. AI 차례 확인 (모든 플레이어 공통 체크)
         ProcessAiTurn();
-        
     }
     /// <summary>
     /// 턴이 변경된 이후 AI 착수 
