@@ -6,7 +6,7 @@ using Utility;
 
 public class SoundManager : Singleton<SoundManager>
 {
-    private const float DEFAULT_VOLUME = 0.5f;
+    private const float DEFAULT_VOLUME = 100f;
 
     [Header(":: BGM")]
     [SerializeField] private AudioSource bgmSource;
@@ -14,12 +14,15 @@ public class SoundManager : Singleton<SoundManager>
     [SerializeField] private AudioMixerGroup bgmGroup;
 
     private List<string> _bgmKeys;
-    [SerializeField] private int currentIndex = 0;
+    private int _currentBGMIndex = 0;
 
     [Header(":: SFX")]
     [SerializeField] private AudioSource sfxSource;
     [SerializeField] private SerializableDic<string, AudioClip> sounds;
     [SerializeField] private AudioMixerGroup sfxGroup;
+
+    //private List<string> _sfxKeys;
+    //private int _sfxIndex;
 
     // 사운드 재생할 오브젝트 생성 ->
     // 사운드 재생 후 삭제, or 오브젝트 풀
@@ -85,21 +88,23 @@ public class SoundManager : Singleton<SoundManager>
     /// </summary>
     private void SetMasterVolume(float value)
     {
-        float db = value > 0f ? Mathf.Log10(value) * 20f : -80f;
+        float db = (value / 100f) > 0f ? Mathf.Log10((value / 100f)) * 20f : -80f;
         audioMixer.SetFloat(PARAM_MASTER, db);
     }
 
     private void SetBGMVolume(float value)
     {
-        float db = value > 0f ? Mathf.Log10(value) * 20f : -80f;
+        float db = (value / 100f) > 0f ? Mathf.Log10((value / 100f)) * 20f : -80f;
         audioMixer.SetFloat(PARAM_BGM, db);
     }
 
     private void SetSFXVolume(float value)
     {
-        float db = value > 0f ? Mathf.Log10(value) * 20f : -80f;
+        float db = (value / 100f) > 0f ? Mathf.Log10((value / 100f)) * 20f : -80f;
         audioMixer.SetFloat(PARAM_SFX, db);
     }
+
+    // ── BGM ────────────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
     /// 배경음악 재생
@@ -114,7 +119,7 @@ public class SoundManager : Singleton<SoundManager>
 
         // if (bgmSource.isPlaying) return;
 
-        if (bgms.TryGetValue(_bgmKeys[currentIndex], out AudioClip clip))
+        if (bgms.TryGetValue(_bgmKeys[_currentBGMIndex], out AudioClip clip))
         {
             bgmSource.clip = clip;
             bgmSource.Play();
@@ -126,19 +131,30 @@ public class SoundManager : Singleton<SoundManager>
     /// </summary>
     public void PlayNextBGM()
     {
-        currentIndex = (currentIndex + 1) % _bgmKeys.Count;
+        _currentBGMIndex = (_currentBGMIndex + 1) % _bgmKeys.Count;
         PlayBGM();
     }
 
     /// <summary>
     /// 이전 BGM으로 전환
     /// </summary>
-    public void PlayPrebBGM()
+    public void PlayPrevBGM()
     {
-        currentIndex = (currentIndex - 1) % _bgmKeys.Count;
-        if(currentIndex < 0) currentIndex = _bgmKeys.Count - 1;
+        _currentBGMIndex = (_currentBGMIndex - 1) % _bgmKeys.Count;
+        if(_currentBGMIndex < 0) _currentBGMIndex = _bgmKeys.Count - 1;
         PlayBGM();
     }
+
+    /// <summary>
+    /// 현재 재생중인 BGM 제목 Key 반환
+    /// </summary>
+    public string CurrentBGMTitle()
+    {
+        if (_bgmKeys == null || _bgmKeys.Count == 0) return string.Empty;
+        return _bgmKeys[_currentBGMIndex];
+    }
+
+    // ── SFX ────────────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
     /// 이펙트 사운드 효과 재생
