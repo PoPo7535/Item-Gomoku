@@ -107,12 +107,13 @@ public class GomokuBoardView : MonoBehaviour
     /// 실제 돌 프리팹을 화면에 생성하고 배열에 저장
     /// </summary>
     public void SpawnStone(int x, int z, bool isBlack, Vector3 pos)
-    {   
-        // 이 배열이 초기화되지 않았을 경우를 대비
+    {
         if (_stoneObjects == null) _stoneObjects = new GameObject[LineCount, LineCount];
 
-        GameObject prefab = isBlack ? BlackStonePrefab : WhiteStonePrefab;
-        
+        // 여기서도 GomokuManager의 IsStoneSwapped 변수 상태에 따라 반전 결정
+        bool renderAsBlack = GomokuManager.I.IsStoneSwapped ? !isBlack : isBlack;
+
+        GameObject prefab = renderAsBlack ? BlackStonePrefab : WhiteStonePrefab;
         Vector3 spawnPos = pos + new Vector3(0, 0.15f, 0); 
         
         GameObject stone = Instantiate(prefab, spawnPos, Quaternion.identity);
@@ -260,6 +261,45 @@ public class GomokuBoardView : MonoBehaviour
             Destroy(_stoneObjects[x, z]);
             _stoneObjects[x, z] = null;
         }
+    }
+    /// <summary>
+    /// 현재 판에 렌더링된 모든 돌 오브젝트를 삭제하고 상태에 따라 다시 생성 
+    /// </summary>
+    public void SwapAllStonesVisual(bool isSwapped)
+    {   
+
+        for (int x = 0; x < LineCount; x++)
+        {
+            for (int z = 0; z < LineCount; z++)
+            {
+                if (_stoneObjects[x, z] != null)
+                {
+                    
+                    Vector3 currentPos = _stoneObjects[x, z].transform.position;
+                    Destroy(_stoneObjects[x, z]);
+
+                    StoneColor actualColor = GomokuManager.I.GetStoneColorAt(x, z);
+                    bool shouldBeBlack;
+                    if (isSwapped)
+                    {
+                        // 반전 모드: 실제가 흑이면 백으로 실제가 백이면 흑으로
+                        shouldBeBlack = (actualColor == StoneColor.White); 
+                    }
+                    else
+                    {
+                        // 일반 모드: 실제 색상 그대로
+                        shouldBeBlack = (actualColor == StoneColor.Black);
+                    }
+                    // ----------------------------------------------
+
+                    GameObject prefab = shouldBeBlack ? BlackStonePrefab : WhiteStonePrefab;
+                    GameObject newStone = Instantiate(prefab, currentPos, Quaternion.identity);
+                    newStone.tag = "Stone";
+                    _stoneObjects[x, z] = newStone;
+                }
+            }
+        }
+
     }
 
 }

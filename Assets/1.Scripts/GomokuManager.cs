@@ -65,6 +65,9 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     [Networked] public int NetFakeZ { get; set; } = -1;
     [Networked] public int CurrentFakeX { get; set; } = -1; // 가짜 마커 위치 저장용
     [Networked] public int CurrentFakeZ { get; set; } = -1; // 가짜 마커 위치 저장용
+    // 돌바꾸기 효과 활성 여부 
+    [Networked] public NetworkBool IsStoneSwapped { get; set; } 
+    [Networked] public NetworkBool SwapUsedByBlack { get; set; } // 아이템 쓴사람이 누구인지 확인 // 흑인지 백인지 
 
     public override void Spawned()
     {   
@@ -332,10 +335,10 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         
         BoardView?.UpdateGhostStone(Vector3.zero, false, false,false);
         if (BoardView.RealLastMoveMarker != null)
-        BoardView.RealLastMoveMarker.SetActive(false);
+            BoardView.RealLastMoveMarker.SetActive(false);
 
         if (BoardView.FakeLastMoveMarker != null)
-        BoardView.FakeLastMoveMarker.SetActive(false);
+            BoardView.FakeLastMoveMarker.SetActive(false);
         GomokuItemManager.I.ResetSelection();
         SetupPlayerColor();
         Debug.Log("게임 리셋 및 기록 초기화 완료");
@@ -381,7 +384,16 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             NetFakeX = -1;
             NetFakeZ = -1;
         }
-
+            if (IsStoneSwapped)
+            {
+                // 한 턴이 지나서, 지금 턴이 아이템을 썼던 사람의 턴과 같아지면 복구!
+                if (IsBlackTurn == SwapUsedByBlack) 
+                {
+                    IsStoneSwapped = false;
+                    RPC_ApplyStoneSwap(false); // 다시 원래대로 복구
+                    Debug.Log("<color=green>돌 바꾸기 효과 종료 (원상 복구)</color>");
+                }
+            }
         StartTurnTimer();
         ProcessAiTurn();
         
@@ -531,5 +543,33 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         CurrentFakeZ = -1;
         Debug.Log("<color=cyan>[아이템 발동] 가짜 마커가 간파되어 사라졌습니다!</color>");
     }
+
+
+
+
+    /// <summary>
+    /// 돌 바꾸기 RPC 요청
+    /// </summary>
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    public void RPC_UseStoneSwapItem()
+    {
+        IsStoneSwapped = true; 
+        SwapUsedByBlack = IsBlackTurn; //아이템을 쓴 순간의 턴을 기억함
+        
+        RPC_ApplyStoneSwap(true); 
+        Debug.Log("돌 바꾸기 아이템 사용됨 (서버)");
+    }
+    /// <summary>
+    /// 실제 보드판에 있는 돌 색상 반전 
+    /// </summary>
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ApplyStoneSwap(bool targetState) 
+    {
+        BoardView.SwapAllStonesVisual(targetState);
+    }
+    /// <summary>
+    /// 특정 보드 좌표(x, z)에 놓인 돌의 실제 데이터 색상 가져오기 보드뷰에서 쓸거임
+    /// </summary>
+    public StoneColor GetStoneColorAt(int x, int z) => _logic.Board[x, z].Color;
     
 }
