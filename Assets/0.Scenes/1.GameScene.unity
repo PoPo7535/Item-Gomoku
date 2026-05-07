@@ -15007,10 +15007,6 @@ MonoBehaviour:
   _NetFakeZ: -1
   _CurrentFakeX: -1
   _CurrentFakeZ: -1
-  _IsStoneSwapped:
-    _value: 0
-  _SwapUsedByBlack:
-    _value: 0
 --- !u!4 &1912329768
 Transform:
   m_ObjectHideFlags: 0
@@ -15516,9 +15512,9 @@ RectTransform:
   - {fileID: 1762363255}
   m_Father: {fileID: 1601513872}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 165, y: 32.5}
+  m_AnchorMin: {x: 1, y: 0}
+  m_AnchorMax: {x: 1, y: 0}
+  m_AnchoredPosition: {x: -165, y: 120}
   m_SizeDelta: {x: 330, y: 65}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1977361494
@@ -15795,8 +15791,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -110.02426}
-  m_SizeDelta: {x: 730, y: 610}
+  m_AnchoredPosition: {x: 0, y: -65}
+  m_SizeDelta: {x: 730, y: 520}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2005178759
 MonoBehaviour:
