@@ -15007,6 +15007,10 @@ MonoBehaviour:
   _NetFakeZ: -1
   _CurrentFakeX: -1
   _CurrentFakeZ: -1
+  _IsStoneSwapped:
+    _value: 0
+  _SwapUsedByBlack:
+    _value: 0
 --- !u!4 &1912329768
 Transform:
   m_ObjectHideFlags: 0
@@ -17199,6 +17203,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 0f053d0295d963047928c8a8c15762e7, type: 2}
+    - target: {fileID: 5799214986609361728, guid: 666ab8a3d201bdf42a17fd31eeb33807, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
     - target: {fileID: 7904307219917589804, guid: 666ab8a3d201bdf42a17fd31eeb33807, type: 3}
       propertyPath: m_Name
       value: F_Marker
@@ -17206,6 +17214,18 @@ PrefabInstance:
     - target: {fileID: 7904307219917589804, guid: 666ab8a3d201bdf42a17fd31eeb33807, type: 3}
       propertyPath: m_IsActive
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8484519982804716842, guid: 666ab8a3d201bdf42a17fd31eeb33807, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.23
+      objectReference: {fileID: 0}
+    - target: {fileID: 8484519982804716842, guid: 666ab8a3d201bdf42a17fd31eeb33807, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8484519982804716842, guid: 666ab8a3d201bdf42a17fd31eeb33807, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.23
       objectReference: {fileID: 0}
     - target: {fileID: 8484519982804716842, guid: 666ab8a3d201bdf42a17fd31eeb33807, type: 3}
       propertyPath: m_LocalPosition.x
@@ -17266,6 +17286,18 @@ PrefabInstance:
     m_TransformParent: {fileID: 1224104560}
     m_Modifications:
     - target: {fileID: 1795092621079914262, guid: 2d2334e6d65024840b906640e3009a4a, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.23
+      objectReference: {fileID: 0}
+    - target: {fileID: 1795092621079914262, guid: 2d2334e6d65024840b906640e3009a4a, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1795092621079914262, guid: 2d2334e6d65024840b906640e3009a4a, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.23
+      objectReference: {fileID: 0}
+    - target: {fileID: 1795092621079914262, guid: 2d2334e6d65024840b906640e3009a4a, type: 3}
       propertyPath: m_LocalPosition.x
       value: 8.6
       objectReference: {fileID: 0}
@@ -17305,6 +17337,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2514487075393443696, guid: 2d2334e6d65024840b906640e3009a4a, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
     - target: {fileID: 6490613250527981214, guid: 2d2334e6d65024840b906640e3009a4a, type: 3}
       propertyPath: m_Name
       value: R_Marker
