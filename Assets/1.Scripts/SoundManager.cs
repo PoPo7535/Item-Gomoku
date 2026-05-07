@@ -6,7 +6,11 @@ using Utility;
 
 public class SoundManager : Singleton<SoundManager>
 {
-    private const float DEFAULT_VOLUME = 100f;
+    private const float DEFAULT_VOLUME = 50f;
+
+    public float CurrentMasterVolume { get; private set; } = DEFAULT_VOLUME;
+    public float CurrentBGMVolume { get; private set; } = DEFAULT_VOLUME;
+    public float CurrentSFXVolume { get; private set; } = DEFAULT_VOLUME;
 
     [Header(":: BGM")]
     [SerializeField] private AudioSource bgmSource;
@@ -21,12 +25,6 @@ public class SoundManager : Singleton<SoundManager>
     [SerializeField] private SerializableDic<string, AudioClip> sounds;
     [SerializeField] private AudioMixerGroup sfxGroup;
 
-    //private List<string> _sfxKeys;
-    //private int _sfxIndex;
-
-    // 사운드 재생할 오브젝트 생성 ->
-    // 사운드 재생 후 삭제, or 오브젝트 풀
-    // 오디오 믹서
     [Header(":: Mixer")]
     [SerializeField] private AudioMixer audioMixer;
     private const string PARAM_MASTER = "Master";
@@ -50,10 +48,6 @@ public class SoundManager : Singleton<SoundManager>
         Options.MasterVolume += SetMasterVolume;
         Options.BGMVolume += SetBGMVolume;
         Options.SFXVolume += SetSFXVolume;
-
-        SetMasterVolume(DEFAULT_VOLUME);
-        SetBGMVolume(DEFAULT_VOLUME);
-        SetSFXVolume(DEFAULT_VOLUME);
     }
 
     private void OnDisable()
@@ -80,6 +74,11 @@ public class SoundManager : Singleton<SoundManager>
         }
 
         _bgmKeys = bgms.Keys.ToList();
+
+        SetMasterVolume(DEFAULT_VOLUME);
+        SetBGMVolume(DEFAULT_VOLUME);
+        SetSFXVolume(DEFAULT_VOLUME);
+
         PlayBGM();
     }
 
@@ -88,18 +87,24 @@ public class SoundManager : Singleton<SoundManager>
     /// </summary>
     private void SetMasterVolume(float value)
     {
+        CurrentMasterVolume = value;
+
         float db = (value / 100f) > 0f ? Mathf.Log10((value / 100f)) * 20f : -80f;
         audioMixer.SetFloat(PARAM_MASTER, db);
     }
 
     private void SetBGMVolume(float value)
     {
+        CurrentBGMVolume = value;
+
         float db = (value / 100f) > 0f ? Mathf.Log10((value / 100f)) * 20f : -80f;
         audioMixer.SetFloat(PARAM_BGM, db);
     }
 
     private void SetSFXVolume(float value)
     {
+        CurrentSFXVolume = value;
+
         float db = (value / 100f) > 0f ? Mathf.Log10((value / 100f)) * 20f : -80f;
         audioMixer.SetFloat(PARAM_SFX, db);
     }

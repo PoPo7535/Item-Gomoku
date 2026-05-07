@@ -4,8 +4,6 @@ using UnityEngine.UI;
 
 public class OptionSceneUI : MonoBehaviour
 {
-    private const float DEFAULT_VOLUME = 100f;
-
     [Header(":: Master")]
     [SerializeField] private Slider masterVolume;
     [SerializeField] private TextMeshProUGUI masterValueText;
@@ -27,13 +25,17 @@ public class OptionSceneUI : MonoBehaviour
     {
         if (OptionsManager.I == null) return;
 
+        masterVolume.value  = SoundManager.I.CurrentMasterVolume;
+        bgmSlider.value     = SoundManager.I.CurrentBGMVolume;
+        sfxSlider.value     = SoundManager.I.CurrentSFXVolume;
+
+        if (masterValueText != null) masterValueText.text = ((int)masterVolume.value).ToString() + "%";
+        if (bgmValueText != null) bgmValueText.text = ((int)bgmSlider.value).ToString() + "%";
+        if (sfxValueText != null) sfxValueText.text = ((int)sfxSlider.value).ToString() + "%";
+
         masterVolume.onValueChanged.AddListener(OnMasterChanged);
         bgmSlider.onValueChanged.AddListener(OnBGMChanged);
         sfxSlider.onValueChanged.AddListener(OnSFXChanged);
-
-        masterVolume.value = DEFAULT_VOLUME;
-        bgmSlider.value = DEFAULT_VOLUME;
-        sfxSlider.value = DEFAULT_VOLUME;
 
         nextBtn.onClick.AddListener(() =>
         {
@@ -82,16 +84,4 @@ public class OptionSceneUI : MonoBehaviour
         if (bgmTitleText == null) return;
         bgmTitleText.text = SoundManager.I.CurrentBGMTitle();
     }
-
-    //public void OnBGMNext()
-    //{
-    //    SoundManager.I.PlayNextBGM();
-    //    UpdateBGMTitleText();
-    //}
-
-    //public void OnBGMPrev()
-    //{
-    //    SoundManager.I.PlayPrevBGM();
-    //    UpdateBGMTitleText();
-    //}
 }
