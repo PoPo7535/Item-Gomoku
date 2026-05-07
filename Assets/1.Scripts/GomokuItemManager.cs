@@ -72,14 +72,12 @@ public class GomokuItemManager : MonoBehaviour
                 // 아이템 효과
                 GomokuManager.I.RPC_UseStoneSwapItem(); // 완성
                 Debug.Log("돌 바꾸기 실행댐");
-                success = false;
-                CurrentSelectedItem = null;  
+                success = true;
                 break;
             case "타이머 감소":
                 GomokuManager.I.RPC_UseTimerReductionItem();// 완성
                 _test.text = $"아이템 사용 : {CurrentSelectedItem.itemName}";
-                success = false;
-                CurrentSelectedItem = null;  
+                success = true;
                 break;
             case "투명 돌":
                 // 아이템 효과
