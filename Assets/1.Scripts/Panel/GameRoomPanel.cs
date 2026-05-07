@@ -61,8 +61,14 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
         shutdownButton.onClick.AddListener(() => App.I.GameQuit());
         readyButton.onClick.AddListener(() =>
         {
+            if (false == itemToggle.isOn)
+            {
+                RPC_StartGame();
+                return;
+            }
+
             if (Object.HasStateAuthority)
-                RPC_GameStart();
+                RPC_OpenItemSelectPanel();
             else
                 RPC_Ready(false == _clientReady);
         });
@@ -85,14 +91,14 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
         {
             var gm = GomokuManager.I;
 
-            StoneColor currentTurn = isBlackTurn ? StoneColor.Black : StoneColor.White;
-            bool isMyTurn = currentTurn == gm.hostColor;
+            var currentTurn = isBlackTurn ? StoneColor.Black : StoneColor.White;
+            var hostColor = currentTurn == gm.hostColor;
 
-            playerImg1.color = isMyTurn 
+            playerImg1.color = hostColor 
                 ? new Color32(255, 210, 210, 255) 
                 : Color.white;
 
-            playerImg2.color = !isMyTurn 
+            playerImg2.color = false == hostColor 
                 ? new Color32(210, 210, 255, 255) 
                 : Color.white;
         });
@@ -111,9 +117,14 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
     }
 
     [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
-    private void RPC_GameStart(RpcInfo info = default)
+    private void RPC_OpenItemSelectPanel(RpcInfo info = default)
     {
         itemSelectPanel.ActiveCg(true);
+    }
+    [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
+    private void RPC_StartGame(RpcInfo info = default)
+    {
+        GomokuManager.I.StartGame();
     }
     [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
     private void RPC_Ready(bool ready, RpcInfo info = default)

@@ -1,23 +1,29 @@
+using System;
+using System.Linq;
 using Fusion;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Random = UnityEngine.Random;
 
 public class ItemSelectPanel : NetworkBehaviour
 {
     [SerializeField] private CanvasGroup cg;
     [Header("아이템")]
     [SerializeField] private ItemPanel itemPanel;
+    [SerializeField] private ItemToggle[] itemToggles;
+    [SerializeField] private ItemToggle[] activeItemToggles;
     [SerializeField] private GomokuItem[] itemSO;
-    [SerializeField] private ItemToggle itemPrefab;
-    private ItemToggle[] _toggles;
-    [SerializeField] private Transform itemParent;
     private const int SelectMaxCount = 3;
     private int _currentSelectCount = 0;
     
     [Header("타이머")]
     [SerializeField] private Slider timerSlider;
     [SerializeField] private TMP_Text timerText;
+    
+    [Header("UI")]
+    [SerializeField] private TMP_Text itemNameText;
+    [SerializeField] private TMP_Text itemInfoText;
     [Networked] private TickTimer Timer { get; set; }
     public float timeLimit = 30f;
     [Networked, OnChangedRender(nameof(TryActiveCg))] private NetworkBool ClientIsSelect { get; set; }
@@ -26,7 +32,9 @@ public class ItemSelectPanel : NetworkBehaviour
     {
         if (ClientIsSelect && HostIsSelect)
         {
+            cg.interactable = true;
             ActiveCg(false);
+            Timer = TickTimer.None;
             GomokuManager.I.StartGame();
         }
     }
@@ -36,7 +44,7 @@ public class ItemSelectPanel : NetworkBehaviour
     
     private void Start()
     {
-        SetItems();
+        SetItemToggles();
         SetToggleEvent();
         SetButtonEvent();
     }
@@ -57,6 +65,7 @@ public class ItemSelectPanel : NetworkBehaviour
     {
         if (isActive)
         {
+            _timeOut = false;
             ClientIsSelect = false;
             HostIsSelect = false;
         }
@@ -72,7 +81,7 @@ public class ItemSelectPanel : NetworkBehaviour
     {
         var items = new GomokuItem[SelectMaxCount];
         var count = 0;
-        foreach (var itemToggle in _toggles)
+        foreach (var itemToggle in activeItemToggles)
         {
             if (itemToggle.toggle.isOn)
             {
@@ -85,33 +94,31 @@ public class ItemSelectPanel : NetworkBehaviour
         return items;
     }
 
+    private bool _timeOut = false;
     private void CheckTimeOut()
     {
-        var check = false;
+        if (_timeOut)
+            return;
         while (_currentSelectCount < SelectMaxCount)
         {
-            var randomValue = Random.Range(0, _toggles.Length - 1);
-            if (false == _toggles[randomValue].toggle.isOn)
-            {
-                _toggles[randomValue].toggle.isOn = true;
-            }
-
-            check = true;
+            var randomValue = Random.Range(0, activeItemToggles.Length - 1);
+            if (false == activeItemToggles[randomValue].toggle.isOn)
+                activeItemToggles[randomValue].toggle.isOn = true;
+            _timeOut = true;
         }
 
-        if (check)
+        if (_timeOut)
             okBtn.onClick.Invoke();
     }
     
     private void SetToggleEvent()
     {
         okBtn.interactable = false;
-        foreach (var item in _toggles)
+        foreach (var item in activeItemToggles)
         {
             item.toggle.onValueChanged.AddListener((isOn) =>
             {
                 var block = item.toggle.colors;
-                block.normalColor = isOn ? new Color32(150, 150, 150, 255) : Color.white;
                 item.toggle.colors = block;
                 if (isOn)
                     ++_currentSelectCount;
@@ -130,13 +137,13 @@ public class ItemSelectPanel : NetworkBehaviour
         {
             if (active)
             {
-                foreach (var item in _toggles)
+                foreach (var item in activeItemToggles)
                     item.toggle.interactable = true;
                 okBtn.interactable = false;
             }
             else
             {
-                foreach (var item in _toggles)
+                foreach (var item in activeItemToggles)
                     item.toggle.interactable = item.toggle.isOn;
                 okBtn.interactable = true;
             }
@@ -146,24 +153,47 @@ public class ItemSelectPanel : NetworkBehaviour
     {
         okBtn.onClick.AddListener(()=>
         {
+            _timeOut = true;
+            cg.interactable = false;
             var items = GetSelectItem();
             itemPanel.Set(items);
             if (false == Object.HasStateAuthority)
                 Rpc_Ready();
             else
                 HostIsSelect = true;
-            Timer = TickTimer.None;
         });
     }
 
-    private void SetItems()
+    private void SetItemToggles()
     {
-        _toggles = new ItemToggle[itemSO.Length];
-        for (var i = 0; i < itemSO.Length; i++)
+        for (var i = 0; i < itemToggles.Length; i++)
         {
-            var itemToggle = Instantiate(itemPrefab, itemParent);
-            _toggles[i] = itemToggle;
-            itemToggle.Set(itemSO[i]);
+            if (i < itemSO.Length)
+            {
+                var i1 = i;
+                itemToggles[i].toggle.onValueChanged.AddListener(isOn =>
+                {
+                    if (isOn)
+                    {
+                        itemNameText.text = itemSO[i1].itemName;   
+                        itemInfoText.text = itemSO[i1].description;   
+                    }
+                    else
+                    {
+                        itemNameText.text = string.Empty;   
+                        itemInfoText.text = string.Empty;   
+                    }
+
+                });
+                itemToggles[i].Set(itemSO[i]);
+                
+            }
+            else
+            {
+                itemToggles[i].gameObject.SetActive(false);
+            }
         }
+
+        activeItemToggles = itemToggles.Where(item => item.gameObject.activeSelf).ToArray();
     }
 }

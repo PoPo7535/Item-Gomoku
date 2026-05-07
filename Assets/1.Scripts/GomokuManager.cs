@@ -332,10 +332,10 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         
         BoardView?.UpdateGhostStone(Vector3.zero, false, false,false);
         if (BoardView.RealLastMoveMarker != null)
-        BoardView.RealLastMoveMarker.SetActive(false);
+            BoardView.RealLastMoveMarker.SetActive(false);
 
         if (BoardView.FakeLastMoveMarker != null)
-        BoardView.FakeLastMoveMarker.SetActive(false);
+            BoardView.FakeLastMoveMarker.SetActive(false);
         GomokuItemManager.I.ResetSelection();
         SetupPlayerColor();
         Debug.Log("게임 리셋 및 기록 초기화 완료");

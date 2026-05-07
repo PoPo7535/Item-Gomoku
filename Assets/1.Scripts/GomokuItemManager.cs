@@ -25,7 +25,7 @@ public class GomokuItemManager : MonoBehaviour
         }
 
    
-        if (CurrentSelectedItem != null && CurrentSelectedItem.name == item.name)
+        if (CurrentSelectedItem != null && CurrentSelectedItem.itemName == item.itemName)
         {
             CurrentSelectedItem = null;
             if (_test != null) _test.text = $"아이템 선택 해제 : {CurrentSelectedItem}";
@@ -51,11 +51,11 @@ public class GomokuItemManager : MonoBehaviour
 
         bool success = false;
    
-        switch (CurrentSelectedItem.name)
+        switch (CurrentSelectedItem.itemName)
         {
             case "더블 표시":
                 GomokuManager.I.RPC_UseDoubleMarkerItem();// 완성
-                _test.text = $"아이템 사용 : {CurrentSelectedItem.name}";
+                _test.text = $"아이템 사용 : {CurrentSelectedItem.itemName}";
                 success = true;
                 break;
 
@@ -65,7 +65,7 @@ public class GomokuItemManager : MonoBehaviour
                 break;
             case "착수 숨김":
                 GomokuManager.I.RPC_UseHideMoveItem(); // 완성
-                _test.text = $"아이템 사용 : {CurrentSelectedItem.name}";
+                _test.text = $"아이템 사용 : {CurrentSelectedItem.itemName}";
                 success = true;
                 break;
             case "돌 바꾸기":
@@ -75,7 +75,7 @@ public class GomokuItemManager : MonoBehaviour
                 break;
             case "타이머 감소":
                 GomokuManager.I.RPC_UseTimerReductionItem();// 완성
-                _test.text = $"아이템 사용 : {CurrentSelectedItem.name}";
+                _test.text = $"아이템 사용 : {CurrentSelectedItem.itemName}";
                 success = true;
                 break;
             case "투명 돌":

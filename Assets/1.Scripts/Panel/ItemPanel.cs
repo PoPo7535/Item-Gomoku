@@ -30,7 +30,6 @@ public class ItemPanel : MonoBehaviour
                     GomokuItemManager.I.SelectItem(null);
                     "해제".Log();
                 }
-                
             });
         }
     }

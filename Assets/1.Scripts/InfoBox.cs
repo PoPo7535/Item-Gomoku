@@ -13,14 +13,12 @@ public class InfoBox : MonoBehaviour
 
     public void PointEnter(BaseEventData eventData)
     {
-        1.Log();
         image.DOFade(1,0.3f);
         text.DOFade(1,0.3f);
     }
 
     public void PointExit(BaseEventData eventData)
     {
-        2.Log();
         image.DOFade(0,0.3f);
         text.DOFade(0,0.3f);
     }
