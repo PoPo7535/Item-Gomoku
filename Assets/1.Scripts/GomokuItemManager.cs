@@ -58,9 +58,7 @@ public class GomokuItemManager : MonoBehaviour
                 _test.text = $"아이템 사용 : {CurrentSelectedItem.itemName}";
                 success = true;
                 break;
-
             case "가짜 돌":
-                // 아이템 효과
                 success = true;
                 break;
             case "착수 숨김":
@@ -69,9 +67,7 @@ public class GomokuItemManager : MonoBehaviour
                 success = true;
                 break;
             case "돌 바꾸기":
-                // 아이템 효과
                 GomokuManager.I.RPC_UseStoneSwapItem(); // 완성
-                Debug.Log("돌 바꾸기 실행댐");
                 success = true;
                 break;
             case "타이머 감소":
@@ -80,7 +76,6 @@ public class GomokuItemManager : MonoBehaviour
                 success = true;
                 break;
             case "투명 돌":
-                // 아이템 효과
                 success = true;
                 break;
         }
