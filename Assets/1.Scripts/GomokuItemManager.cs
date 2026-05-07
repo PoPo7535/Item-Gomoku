@@ -70,7 +70,7 @@ public class GomokuItemManager : MonoBehaviour
                 break;
             case "돌 바꾸기":
                 // 아이템 효과
-                GomokuManager.I.RPC_UseStoneSwapItem();
+                GomokuManager.I.RPC_UseStoneSwapItem(); // 완성
                 Debug.Log("돌 바꾸기 실행댐");
                 success = true;
                 break;
