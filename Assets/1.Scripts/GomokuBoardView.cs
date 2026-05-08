@@ -15,6 +15,9 @@ public class GomokuBoardView : MonoBehaviour
     public GameObject WhiteGhostObj;
     [Header("금수 돌 설정")]
     public GameObject ForbiddenPrefab; 
+    [Header("투명 돌 프리팹")]
+    public GameObject BlackTransparentPrefab;
+    public GameObject WhiteTransparentPrefab;
 
     [Header("렌더 텍스처 & 카메라 설정")]
     public RawImage GameViewImage; 
@@ -301,5 +304,34 @@ public class GomokuBoardView : MonoBehaviour
         }
 
     }
+    // 1. 기존 돌을 투명 돌로 교체하는 함수
+    public void ConvertToTransparent(int x, int z, bool isBlack)
+    {
+        // 현재 칸에 돌 오브젝트가 있는지 확인
+        if (_stoneObjects[x, z] != null)
+        {
+            Vector3 currentPos = _stoneObjects[x, z].transform.position;
+            Destroy(_stoneObjects[x, z]); // 기존 돌 삭제
+
+            // [핵심] 내가 이 돌의 주인인지 확인
+            bool isOwner = (isBlack == (GomokuManager.I.MyColor == StoneColor.Black));
+
+            if (isOwner)
+            {
+                // 주인(나)에게는 투명 프리팹 생성
+                GameObject prefab = isBlack ? BlackTransparentPrefab : WhiteTransparentPrefab;
+                _stoneObjects[x, z] = Instantiate(prefab, currentPos, Quaternion.identity);
+                _stoneObjects[x, z].tag = "Stone";
+            }
+            else
+            {
+                // 상대방에게는 오브젝트를 생성하지 않음 (배열을 비워둠)
+                _stoneObjects[x, z] = null;
+            }
+        }
+    }
+
+    // 2. 헬퍼 함수: 특정 좌표에 돌 오브젝트가 '보이는지' 확인 (함정 체크용)
+    public GameObject GetStoneObject(int x, int z) => _stoneObjects[x, z];
 
 }

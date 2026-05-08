@@ -489,8 +489,6 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
     public void RPC_UseTimerReductionItem()
     {
-        // 아이템을 쓴 시점에 플래그를 켭니다. 
-        // 이 효과는 ChangeTurn이 일어날 때 적용
         IsTimerHalfEffect = true;
         Debug.Log("<color=red>[아이템 발동] 다음 상대의 턴 시간이 절반으로 줄어듭니다!</color>");
     }
@@ -500,9 +498,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
     public void RPC_UseDoubleMarkerItem()
     {
-        //모든 클라이언트에서 이 플래그키기
         IsDoubleMarkerEffect = true;
-
     }
     /// <summary>
     /// 판 위에 놓인 특정 색상의 돌 중 하나를 랜덤하게 좌표반환
@@ -581,4 +577,18 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// </summary>
     public StoneColor GetStoneColorAt(int x, int z) => _logic.Board[x, z].Color;
     
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    public void RPC_RequestMakeTransparent(int x, int z, bool isBlack)
+    {
+        // 서버가 모든 클라이언트에게 비주얼 교체 명령
+        RPC_ApplyTransparent(x, z, isBlack);
+        
+    }
+    // 2. 실제 비주얼 교체 실행 RPC
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ApplyTransparent(int x, int z, bool isBlack)
+    {
+        BoardView.ConvertToTransparent(x, z, isBlack);
+        Debug.Log($"<color=cyan>[아이템] ({x},{z}) 좌표의 돌이 투명해졌습니다.</color>");
+    }
 }
