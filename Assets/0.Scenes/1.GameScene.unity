@@ -20307,7 +20307,7 @@ MonoBehaviour:
   _IsPlaying:
     _value: 0
   hostColor: 0
-  _itemUsePanel: {fileID: 2130409141}
+  ItemPanel: {fileID: 2130409141}
   _IsTimerHalfEffect:
     _value: 0
   _IsDoubleMarkerEffect:
@@ -20800,6 +20800,8 @@ MonoBehaviour:
   BlackGhostObj: {fileID: 1597064273}
   WhiteGhostObj: {fileID: 2071426479}
   ForbiddenPrefab: {fileID: 4048474110738007399}
+  BlackTransparentPrefab: {fileID: 0}
+  WhiteTransparentPrefab: {fileID: 0}
   GameViewImage: {fileID: 1614487142}
   BoardCamera: {fileID: 2146248141}
   RealLastMoveMarker: {fileID: 7373900202575640706}

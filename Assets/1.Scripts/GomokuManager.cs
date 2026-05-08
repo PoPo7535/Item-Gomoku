@@ -53,7 +53,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
 
 
     ///------------------ 아이템 관련 변수---------------///
-    public ItemPanel ItemPanel;
+    public ItemUsePanel ItemPanel;
 
     // 착수 숨김 효과 활성 여부
     private bool _shouldHideNextMarker = false;
