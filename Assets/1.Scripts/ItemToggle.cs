@@ -24,9 +24,10 @@ public class ItemToggle : MonoBehaviour
             colors.normalColor = isOn ? new Color32(255, 237, 237, 255) : Color.white;
             colors.highlightedColor = isOn ? new Color32(255, 222, 222, 255) : new Color32(245, 245, 245, 255);
             toggle.colors = colors;
-            selectedImage.gameObject.SetActive(isOn);
             proceduralUI.profile = isOn ? onProfile : offProfile;
+            proceduralUI.ForceUpdate();
             proceduralUI.UpdateEffect(); 
+            selectedImage?.gameObject.SetActive(isOn);
         });
     }
 

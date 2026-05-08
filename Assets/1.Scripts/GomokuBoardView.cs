@@ -15,6 +15,9 @@ public class GomokuBoardView : MonoBehaviour
     public GameObject WhiteGhostObj;
     [Header("금수 돌 설정")]
     public GameObject ForbiddenPrefab; 
+    [Header("투명 돌 프리팹")]
+    public GameObject BlackTransparentPrefab;
+    public GameObject WhiteTransparentPrefab;
 
     [Header("렌더 텍스처 & 카메라 설정")]
     public RawImage GameViewImage; 
@@ -301,5 +304,6 @@ public class GomokuBoardView : MonoBehaviour
         }
 
     }
+
 
 }

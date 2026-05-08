@@ -53,7 +53,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
 
 
     ///------------------ 아이템 관련 변수---------------///
-    public ItemPanel ItemPanel;
+    public ItemUsePanel ItemPanel;
 
     // 착수 숨김 효과 활성 여부
     private bool _shouldHideNextMarker = false;
@@ -418,9 +418,9 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (IsBlackTurn == false)
             return;
 
-        OfflineUIManager.I.ToggleAiMsg();
-        await UniTask.Delay(TimeSpan.FromSeconds(1.5f));
-        OfflineUIManager.I.ToggleAiMsg();
+        OfflineUIManager.I.ToggleAiMsg(); // 토글 메세지용 on
+        await UniTask.Delay(TimeSpan.FromSeconds(1.5f)); // 1.5초후 시작
+        OfflineUIManager.I.ToggleAiMsg(); // off
 
         TryScheduleAiTurnIfNeeded();
     }
@@ -489,8 +489,6 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
     public void RPC_UseTimerReductionItem()
     {
-        // 아이템을 쓴 시점에 플래그를 켭니다. 
-        // 이 효과는 ChangeTurn이 일어날 때 적용
         IsTimerHalfEffect = true;
         Debug.Log("<color=red>[아이템 발동] 다음 상대의 턴 시간이 절반으로 줄어듭니다!</color>");
     }
@@ -500,9 +498,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
     public void RPC_UseDoubleMarkerItem()
     {
-        //모든 클라이언트에서 이 플래그키기
         IsDoubleMarkerEffect = true;
-
     }
     /// <summary>
     /// 판 위에 놓인 특정 색상의 돌 중 하나를 랜덤하게 좌표반환
@@ -581,4 +577,5 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// </summary>
     public StoneColor GetStoneColorAt(int x, int z) => _logic.Board[x, z].Color;
     
+
 }
