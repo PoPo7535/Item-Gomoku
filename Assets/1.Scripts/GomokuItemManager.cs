@@ -18,14 +18,15 @@ public class GomokuItemManager : MonoBehaviour
     /// 아이템 UI 선택 시 호출될 함수
     /// </summary>
     public void SelectItem(GomokuItem item)
-    {
+    {   
+        // 처음 부를 때 null 이면초기화
         if (item == null)
         {
             ResetSelection();
             return;
         }
 
-        // [수정] 이름 대신 Enum(type)으로 비교하여 중복 선택 시 해제
+        // 중복 선택 시 해제
         if (CurrentSelectedItem != null && CurrentSelectedItem.type == item.type)
         {
             ResetSelection();
@@ -87,7 +88,7 @@ public class GomokuItemManager : MonoBehaviour
                 break;
 
             case ItemType.Detect: // 간파하기
-                // 필요시 추가 로직 작성
+                //
                 success = true;
                 break;
         }
@@ -108,7 +109,7 @@ public class GomokuItemManager : MonoBehaviour
         if (_test != null) _test.text = "";
     }
 
-    // 아이템 사용 후 UI 제거 로직 (필요시 구현)
+    // 아이템 사용 후 UI 제거 로직 아직 미완성
     public void ConsumeItemUI()
     {
         if (CurrentSelectedItem == null) return;
