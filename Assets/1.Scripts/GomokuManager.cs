@@ -418,9 +418,9 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (IsBlackTurn == false)
             return;
 
-        OfflineUIManager.I.ToggleAiMsg();
-        await UniTask.Delay(TimeSpan.FromSeconds(1.5f));
-        OfflineUIManager.I.ToggleAiMsg();
+        OfflineUIManager.I.ToggleAiMsg(); // 토글 메세지용 on
+        await UniTask.Delay(TimeSpan.FromSeconds(1.5f)); // 1.5초후 시작
+        OfflineUIManager.I.ToggleAiMsg(); // off
 
         TryScheduleAiTurnIfNeeded();
     }
