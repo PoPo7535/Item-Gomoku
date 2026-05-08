@@ -5,7 +5,8 @@ public enum StoneColor { None, Black, White }
 public struct StoneData
 {
     public StoneColor Color;
-    public bool IsFake;
+    public bool IsFake; // 가짜돌 여부
+    public bool IsTransparent; // 투명돌 여부 
 }
 
 public class OmokuLogic
@@ -30,25 +31,27 @@ public class OmokuLogic
     /// <summary>
     /// 실제 바둑판에 착수 후 데이터 저장
     /// </summary>
-    public bool PlaceStone(int x, int y, StoneColor color, bool isFake = false)
+    public bool PlaceStone(int x, int y, StoneColor color, bool isFake = false, bool isTransparent = false)
     {
         if (!IsInside(x, y) || Board[x, y].Color != StoneColor.None)
             return false;
 
-        // 1. 논리 보드에 일단 돌을 확정적으로 둡니다.
-        Board[x, y] = new StoneData { Color = color, IsFake = isFake };
+        // 1. 논리 보드에 모든 상태를 포함해서 저장합니다.
+        Board[x, y] = new StoneData 
+        { 
+            Color = color, 
+            IsFake = isFake, 
+            IsTransparent = isTransparent // ★ 투명 상태 저장
+        };
 
-        // 2. 흑돌일 때만 렌주룰 금수 체크
+        // 2. 흑돌일 때만 렌주룰 금수 체크 (투명 돌은 진짜 돌이므로 금수 체크를 받아야 함)
         if (color == StoneColor.Black && !isFake)
         {
-            // 5목을 완성하는 수라면 금수 체크를 무시하고 통과!
             if (CheckWin(x, y, color)) return true;
 
-            // 금수 지점이라면 방금 둔 돌을 무효화하고 착수 취소
             if (IsForbidden(x, y, color))
             {
-                Board[x, y].Color = StoneColor.None; // 돌 다시 빼기
-                Debug.Log($"<color=red>[금수]</color> {x}, {y} 자리는 금수 지점입니다.");
+                Board[x, y].Color = StoneColor.None; 
                 return false;
             }
         }
