@@ -3,14 +3,16 @@ using System.Linq;
 using Fusion;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
 public class ItemSelectPanel : NetworkBehaviour
 {
     [SerializeField] private CanvasGroup cg;
+    [FormerlySerializedAs("itemPanel")]
     [Header("아이템")]
-    [SerializeField] private ItemPanel itemPanel;
+    [SerializeField] private ItemUsePanel _itemUsePanel;
     [SerializeField] private ItemToggle[] itemToggles;
     [SerializeField] private ItemToggle[] activeItemToggles;
     [SerializeField] private GomokuItem[] itemSO;
@@ -156,7 +158,7 @@ public class ItemSelectPanel : NetworkBehaviour
             _timeOut = true;
             cg.interactable = false;
             var items = GetSelectItem();
-            itemPanel.Set(items);
+            _itemUsePanel.Set(items);
             if (false == Object.HasStateAuthority)
                 Rpc_Ready();
             else
