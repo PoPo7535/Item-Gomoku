@@ -11423,6 +11423,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b17113c704f24a447ac41a7843f8f73f, type: 2}
   - {fileID: 11400000, guid: a953799b978499544a55add6c117e0d4, type: 2}
   - {fileID: 11400000, guid: a9c0d34b8b2d78b4fb8daaa998e03e29, type: 2}
+  detectItem: {fileID: 11400000, guid: c2d5a064fd1d39e4c93a33456c7da632, type: 2}
   timerSlider: {fileID: 1211706813}
   timerText: {fileID: 996610724}
   itemNameText: {fileID: 13975864}
@@ -21296,8 +21297,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -165, y: 120}
-  m_SizeDelta: {x: 330, y: 65}
+  m_AnchoredPosition: {x: -165, y: 126.86}
+  m_SizeDelta: {x: 330, y: 78.714}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1977361494
 MonoBehaviour:
@@ -21820,8 +21821,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -165, y: 32.5}
-  m_SizeDelta: {x: 330, y: 65}
+  m_AnchoredPosition: {x: -165, y: 26.907}
+  m_SizeDelta: {x: 330, y: 76.187}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2023027203
 MonoBehaviour:

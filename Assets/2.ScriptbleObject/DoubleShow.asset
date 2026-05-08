@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f774f0fe291af3d46ab15acf579ef130, type: 3}
   m_Name: DoubleShow
   m_EditorClassIdentifier: Assembly-CSharp::GomokuItem
-  name: "\uB354\uBE14 \uD45C\uC2DC"
+  itemName: "\uB354\uBE14 \uD45C\uC2DC"
   description: "\uB3CC\uC744 1\uAC1C \uB450\uC9C0\uB9CC, 2\uACF3\uC5D0 \uB454 \uAC83\uCC98\uB7FC
     \uD45C\uC2DC\uB428"
   sprite: {fileID: 1204650598, guid: 5ae053a50f18d8f408194c759a7101df, type: 3}
+  type: 1

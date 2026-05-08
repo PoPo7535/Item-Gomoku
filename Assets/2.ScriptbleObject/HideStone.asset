@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f774f0fe291af3d46ab15acf579ef130, type: 3}
   m_Name: HideStone
   m_EditorClassIdentifier: Assembly-CSharp::GomokuItem
-  name: "\uCC29\uC218 \uC228\uAE40"
+  itemName: "\uCC29\uC218 \uC228\uAE40"
   description: "\uB3CC\uC744 \uB450\uC5C8\uC744 \uB54C \u201C\uCD5C\uADFC \uCC29\uC218
     \uC704\uCE58 \uD45C\uC2DC\u201D\uB97C \uBCF4\uC5EC\uC8FC\uC9C0 \uC54A\uC74C"
   sprite: {fileID: 21045457, guid: 5ae053a50f18d8f408194c759a7101df, type: 3}
+  type: 3

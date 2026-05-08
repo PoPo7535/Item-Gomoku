@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f774f0fe291af3d46ab15acf579ef130, type: 3}
   m_Name: TransparentStone
   m_EditorClassIdentifier: Assembly-CSharp::GomokuItem
-  name: "\uD22C\uBA85 \uB3CC"
+  itemName: "\uD22C\uBA85 \uB3CC"
   description: "\uC790\uC2E0\uC758 \uB3CC 1\uAC1C\uB97C \uD22C\uBA85\uD654(\uC0C1\uB300
     \uD654\uBA74\uC5D0\uC11C \uBCF4\uC774\uC9C0 \uC54A\uC74C, \uD310\uC815 \uD3EC\uD568)"
   sprite: {fileID: -1410788977, guid: 5ae053a50f18d8f408194c759a7101df, type: 3}
+  type: 6
