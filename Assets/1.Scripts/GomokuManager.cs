@@ -156,6 +156,14 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             
             if (_logic.CheckWin(x, z, color)) { RPC_GameEnd(); return; }
             ChangeTurn();
+        }else 
+        {
+         
+            if (_logic.Board[x, z].Color != StoneColor.None && BoardView.GetStoneObject(x, z) == null)
+            {
+                Debug.Log("<color=red>[함정 발동]</color> 투명 돌을 건드렸습니다! 강제 턴 종료.");
+                if (Object.HasStateAuthority) ChangeTurn();
+            }
         }
     }
     public void SetAIDifficulty(GomokuAIDifficulty difficulty)
