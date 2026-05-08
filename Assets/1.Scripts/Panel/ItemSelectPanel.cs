@@ -68,7 +68,7 @@ public class ItemSelectPanel : NetworkBehaviour
         if (isActive)
         {
             _timeOut = false;
-            ClientIsSelect = false;
+            ClientIsSelect = App.I.PlayMode != GamePlayMode.Multi;
             HostIsSelect = false;
         }
         cg.ActiveCG(isActive);

@@ -32,7 +32,6 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
     public override void Spawned()
     {
         InspectorInit();
-        SetupGameStartButton();
         SetNickName();
     }
 
@@ -59,6 +58,7 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
     private void InspectorInit()
     {
         shutdownButton.onClick.AddListener(() => App.I.GameQuit());
+
         readyButton.onClick.AddListener(() =>
         {
             if (false == itemToggle.isOn)
@@ -73,8 +73,9 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
                 RPC_Ready(false == _clientReady);
         });
         readyText.text = Object.HasStateAuthority ? "게임시작" : "준비";
-        readyButton.interactable = false == Object.HasStateAuthority;
-        
+        readyButton.interactable = false == Object.HasStateAuthority || 
+                                   App.I.PlayMode != GamePlayMode.Multi;
+
         roomCodeText.text = App.I.Runner.SessionInfo.Name;
         OpenRoomToggleBool = App.I.Runner.SessionInfo.IsVisible;
         itemToggle.isOn = ItemToggleBool;
@@ -146,19 +147,4 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
     {
         Player2Str = nickName;
     }
-
-    private void SetupGameStartButton() //추가
-    {   
-        if (App.I.PlayMode == GamePlayMode.Multi) 
-            return;
-        readyButton.interactable = true;
-        readyText.text = "게임시작";
-
-        readyButton.onClick.RemoveAllListeners();
-        readyButton.onClick.AddListener(() =>
-        {
-            GomokuManager.I.StartGame();
-        }); 
-    }
- 
 }
