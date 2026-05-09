@@ -16,6 +16,7 @@ public class ItemSelectPanel : NetworkBehaviour
     [SerializeField] private ItemToggle[] itemToggles;
     [SerializeField] private ItemToggle[] activeItemToggles;
     [SerializeField] private GomokuItem[] itemSO;
+    [SerializeField] private GomokuItem detectItem;
     private const int SelectMaxCount = 3;
     private int _currentSelectCount = 0;
     
@@ -81,18 +82,17 @@ public class ItemSelectPanel : NetworkBehaviour
     }
     private GomokuItem[] GetSelectItem()
     {
-        var items = new GomokuItem[SelectMaxCount];
+        var items = new GomokuItem[SelectMaxCount + 1];
         var count = 0;
         foreach (var itemToggle in activeItemToggles)
         {
-            if (itemToggle.toggle.isOn)
-            {
-                items[count] = itemToggle.gomokuItem;
-                itemToggle.toggle.isOn = false;
-                ++count;
-            }
+            if (false == itemToggle.toggle.isOn) continue;
+            items[count] = itemToggle.gomokuItem;
+            itemToggle.toggle.isOn = false;
+            ++count;
         }
 
+        items[SelectMaxCount] = detectItem;
         return items;
     }
 

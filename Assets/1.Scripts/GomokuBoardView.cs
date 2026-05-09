@@ -18,6 +18,9 @@ public class GomokuBoardView : MonoBehaviour
     [Header("투명 돌 프리팹")]
     public GameObject BlackTransparentPrefab;
     public GameObject WhiteTransparentPrefab;
+    [Header("가짜 돌 프리팹")]
+    public GameObject BlackFakePrefab;
+    public GameObject WhiteFakePrefab;
 
     [Header("렌더 텍스처 & 카메라 설정")]
     public RawImage GameViewImage; 
@@ -265,44 +268,77 @@ public class GomokuBoardView : MonoBehaviour
             _stoneObjects[x, z] = null;
         }
     }
+
     /// <summary>
-    /// 현재 판에 렌더링된 모든 돌 오브젝트를 삭제하고 상태에 따라 다시 생성 
+    /// 모든 돌을 다시 렌더링합니다. 투명돌과 가짜돌은 스왑(색상 반전)의 영향을 받지 않습니다.
     /// </summary>
     public void SwapAllStonesVisual(bool isSwapped)
-    {   
-
+    {
         for (int x = 0; x < LineCount; x++)
         {
             for (int z = 0; z < LineCount; z++)
             {
                 if (_stoneObjects[x, z] != null)
                 {
-                    
-                    Vector3 currentPos = _stoneObjects[x, z].transform.position;
                     Destroy(_stoneObjects[x, z]);
+                    _stoneObjects[x, z] = null;
+                }
 
-                    StoneColor actualColor = GomokuManager.I.GetStoneColorAt(x, z);
-                    bool shouldBeBlack;
-                    if (isSwapped)
+                StoneData data = GomokuManager.I.GetStoneDataAt(x, z);
+                if (data.Color == StoneColor.None) continue;
+
+                bool isOriginalBlack = (data.Color == StoneColor.Black);
+
+                // --- [A. 투명돌 처리] ---
+                if (data.IsTransparent)
+                {
+                    if (data.Color == GomokuManager.I.MyColor)
                     {
-                        // 반전 모드: 실제가 흑이면 백으로 실제가 백이면 흑으로
-                        shouldBeBlack = (actualColor == StoneColor.White); 
+                        GameObject tPrefab = isOriginalBlack ? BlackTransparentPrefab : WhiteTransparentPrefab;
+                        SpawnVisualStone(x, z, tPrefab);
                     }
+                    continue; 
+                }
+
+                // --- [B. 가짜돌 처리] ---
+                if (data.IsFake)
+                {
+                    // 1. 내 가짜돌인 경우: 내가 알 수 있도록 가짜 프리팹 생성
+                    if (data.Color == GomokuManager.I.MyColor)
+                    {
+                        GameObject fPrefab = isOriginalBlack ? BlackFakePrefab : WhiteFakePrefab;
+                        SpawnVisualStone(x, z, fPrefab);
+                    }
+                    // 2. 상대방 가짜돌인 경우: 나를 속여야 하므로 '일반돌' 생성
                     else
                     {
-                        // 일반 모드: 실제 색상 그대로
-                        shouldBeBlack = (actualColor == StoneColor.Black);
+                        // 일반돌과 동일하게 Swap 로직 적용
+                        bool renderAsBlack = isOriginalBlack;
+                        if (isSwapped) renderAsBlack = !renderAsBlack;
+                        
+                        GameObject prefab = renderAsBlack ? BlackStonePrefab : WhiteStonePrefab;
+                        SpawnVisualStone(x, z, prefab);
                     }
-                    // ----------------------------------------------
-
-                    GameObject prefab = shouldBeBlack ? BlackStonePrefab : WhiteStonePrefab;
-                    GameObject newStone = Instantiate(prefab, currentPos, Quaternion.identity);
-                    newStone.tag = "Stone";
-                    _stoneObjects[x, z] = newStone;
+                    continue;
                 }
+
+                // --- [C. 일반 돌 처리] ---
+                bool normalRenderAsBlack = isOriginalBlack;
+                if (isSwapped) normalRenderAsBlack = !normalRenderAsBlack;
+
+                GameObject normalPrefab = normalRenderAsBlack ? BlackStonePrefab : WhiteStonePrefab;
+                SpawnVisualStone(x, z, normalPrefab);
             }
         }
-
+    }
+    private void SpawnVisualStone(int x, int z, GameObject prefab)
+    {
+        if (TryGetWorldPositionByCoord(x, z, out Vector3 pos))
+        {
+            GameObject stone = Instantiate(prefab, pos + new Vector3(0, 0.15f, 0), Quaternion.identity);
+            stone.tag = "Stone";
+            _stoneObjects[x, z] = stone;
+        }
     }
 
 
