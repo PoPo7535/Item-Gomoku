@@ -36,41 +36,47 @@ public class OmokuLogic
         // 1. 범위를 벗어나면 바로 탈락
         if (!IsInside(x, y)) return false;
 
-        // --- [수정된 체크 로직] ---
         bool isCurrentEmpty = Board[x, y].Color == StoneColor.None;
         bool isMyFakeStone = (Board[x, y].Color == color && Board[x, y].IsFake);
         bool isUpgradingToReal = !isFake; // 새로 두는 돌이 진짜돌인가?
 
-        // 착수가 불가능한 경우: 
-        // 빈칸이 아니면서 + (내 가짜돌을 진짜로 업그레이드하는 상황도 아닐 때)
+        // 착수가 불가능한 경우: 빈칸도 아니고, 내 가짜돌을 업그레이드하는 상황도 아닐 때
         if (!isCurrentEmpty && !(isMyFakeStone && isUpgradingToReal))
         {
             return false;
         }
-        // ------------------------
 
-        // 데이터 업데이트 (덮어쓰기)
-        Board[x, y] = new StoneData 
-        { 
-            Color = color, 
-            IsFake = isFake, 
-            IsTransparent = isTransparent 
-        };
+        // [핵심 해결법] 금수 체크를 위해 일단 무조건 '진짜 돌'이라고 가정하고 판에 올립니다.
+        Board[x, y] = new StoneData { Color = color, IsFake = false, IsTransparent = isTransparent };
 
-        // 2. 흑돌일 때만 렌주룰 금수 체크 (투명 돌은 진짜 돌이므로 금수 체크 대상)
-        if (color == StoneColor.Black && !isFake)
+        // 2. 흑돌일 경우 렌주룰 금수 체크 (진짜든 가짜든 이제 금수 자리에 못 둡니다!)
+        if (color == StoneColor.Black)
         {
-            if (CheckWin(x, y, color)) return true;
-
+            // 방금 올린 돌이 금수(33, 44, 장목)를 만들었는지 확인
             if (IsForbidden(x, y, color))
             {
-                // 금수일 경우 아예 지우는 게 아니라, 가짜돌 상태로 되돌림 (데이터 복구)
-                // 실제 돌은 보이지만 판정은 가짜인상태
-                Board[x, y] = new StoneData { Color = color, IsFake = true, IsTransparent = false };
-                return false;
+                // 금수라면 착수 무효! 원래 상태로 롤백합니다.
+                if (isMyFakeStone)
+                {
+                    // 업그레이드 시도였다면 다시 내 가짜돌로 복구
+                    Board[x, y] = new StoneData { Color = color, IsFake = true, IsTransparent = false };
+                }
+                else
+                {
+                    // 아예 빈칸에 두려던 거면 다시 빈칸으로 복구
+                    Board[x, y].Color = StoneColor.None;
+                }
+                
+                Debug.Log("<color=red>[경고]</color> 금수 자리입니다! 가짜돌도 둘 수 없습니다.");
+                return false; 
             }
+
+            // 승리 체크는 '진짜 돌'일 때만 수행합니다 (가짜돌 5개로는 못 이김)
+            if (!isFake && CheckWin(x, y, color)) return true;
         }
 
+        // 3. 금수 체크를 무사히 통과했다면, 원래 의도(가짜or진짜)대로 데이터를 최종 확정!
+        Board[x, y] = new StoneData { Color = color, IsFake = isFake, IsTransparent = isTransparent };
         return true;
     }
 
