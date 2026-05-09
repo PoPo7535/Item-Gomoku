@@ -185,6 +185,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
                     Debug.Log($"<color=red>[실패]</color> ({x},{z}) 자리에 상대방의 투명돌이 숨겨져 있습니다.");
                 else
                     Debug.Log($"<color=red>[실패]</color> ({x},{z}) 이미 돌이 있는 자리입니다.");
+                    GomokuItemManager.I.ResetSelection();
             }
             else if (isBlackStone && _logic.IsForbidden(x, z, StoneColor.Black))
             {
