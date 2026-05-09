@@ -48,14 +48,23 @@ public class ItemUsePanel : MonoBehaviour
         rect.DOAnchorPosY(isActive ? 100 : -100, 0.5f);
         gameView.DOAnchorPosY(isActive ? 80 : 0, 0.5f);
     }
+
     /// <summary>
-    /// 턴 바낄때 토글 초기화
+    /// 모든 아이템 버튼의 클릭 가능 여부를 설정
     /// </summary>
-    public void ClearAllToggles()
+    public void SetInteractable(bool isInteractable)
     {
         foreach (var t in _toggles)
         {
-            t.toggle.isOn = false; 
+            if (t.toggle != null)
+            {
+                t.toggle.interactable = isInteractable;
+            }
         }
+    }
+
+    public void ClearAllToggles()
+    {
+        _toggleGroup.SetAllTogglesOff(); // 토글그룹에 속한 모든 토글을 꺼버림
     }
 }

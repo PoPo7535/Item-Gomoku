@@ -14,8 +14,10 @@ public class GomokuItemManager : MonoBehaviour
     public static GomokuItemManager I;
     public GomokuItem CurrentSelectedItem; // 선택된 아이템 담기
     public TMP_Text _test;
+    // 현재 선턱된 아이템 모드 
     public InputMode CurrentMode = InputMode.Normal;
-    bool isSpecialModeItem = false;
+    // 이번 턴에 이미 아이템을 사용했는지 여부
+    private bool _hasUsedItemInTurn = false;
     private void Awake()
     {
         I = this;
@@ -26,6 +28,7 @@ public class GomokuItemManager : MonoBehaviour
     /// </summary>
     public void SelectItem(GomokuItem item)
     {   
+        if (_hasUsedItemInTurn) return;
         // 처음 부를 때 null 이면초기화
         if (item == null)
         {
@@ -50,14 +53,9 @@ public class GomokuItemManager : MonoBehaviour
     /// </summary>
     public bool TryUseItem(int x, int z) 
     {
-        if (CurrentSelectedItem == null)
-            return false;
-
-        if (!GomokuManager.I.IsMyTurn())
-        {
-            Debug.Log("내 턴 아님");
-            return false;
-        }
+        if (_hasUsedItemInTurn) return false; // 아이템을 사용했다면
+        if (CurrentSelectedItem == null) return false; // 현재선택된 아이템이 없다면
+        if (!GomokuManager.I.IsMyTurn()) return false; // 현재 내턴이라면
 
         bool success = false;
    
@@ -70,7 +68,7 @@ public class GomokuItemManager : MonoBehaviour
                 break;
 
             case ItemType.FakeStone: // 가짜 돌
-                CurrentMode = InputMode.UseFakeStone; // 완성????
+                CurrentMode = InputMode.UseFakeStone; // 완성
                 success = true; 
                 break;
 
@@ -95,7 +93,7 @@ public class GomokuItemManager : MonoBehaviour
                 break;
 
             case ItemType.Detect: // 간파하기
-                CurrentMode = InputMode.UseDetect;
+                CurrentMode = InputMode.UseDetect; // 완성
                 success = true;
                 break;
             default:
@@ -104,11 +102,12 @@ public class GomokuItemManager : MonoBehaviour
         }
 
         if (success)
-        {
+        {   
+            _hasUsedItemInTurn = true; 
             if (_test != null) _test.text = $"아이템 사용 완료 : {CurrentSelectedItem.itemName}";
             if (CurrentSelectedItem.type == ItemType.FakeStone || CurrentSelectedItem.type == ItemType.TransparentStone)
             {
-                // 모드형 아이템은 여기서 null로 만들지 않음
+                
             }
             else
             {
@@ -119,19 +118,35 @@ public class GomokuItemManager : MonoBehaviour
         return success;
     }
 
-    // 상태 초기화
+    /// <summary>
+    /// 아이템 초기화  + 모드 
+    /// </summary>
     public void ResetSelection()
     {
         CurrentSelectedItem = null;
         CurrentMode = InputMode.Normal;
         if (_test != null) _test.text = "";
     }
-
-    // 아이템 사용 후 UI 제거 로직 아직 미완성
+    /// <summary>
+    /// 턴이 바낄때 호출할 UI 아이템 초기화
+    /// </summary>
+    public void ResetTurnLimit()
+    {
+        _hasUsedItemInTurn = false;
+        GomokuManager.I.ItemPanel.SetInteractable(true); // UI 다시 활성화
+    }
+    /// <summary>
+    /// 아이템 사용시 또 사용못하게 잠구기
+    /// </summary>
     public void ConsumeItemUI()
     {
         if (CurrentSelectedItem == null) return;
-        // UI 버튼 비활성화 등의 처리
+
+        // [추가] 패널의 모든 버튼을 클릭 불가능하게 만듦
+        GomokuManager.I.ItemPanel.ClearAllToggles();
+        GomokuManager.I.ItemPanel.SetInteractable(false);
+
         CurrentSelectedItem = null;
+        CurrentMode = InputMode.Normal;
     }
 }

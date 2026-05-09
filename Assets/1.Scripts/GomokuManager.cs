@@ -468,6 +468,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
 
         // 3. AI 차례 확인 (모든 플레이어 공통 체크)
         ProcessAiTurn();
+        GomokuItemManager.I.ResetTurnLimit();
     }
     /// <summary>
     /// 턴이 변경된 이후 AI 착수 
@@ -626,8 +627,6 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         Debug.Log("<color=cyan>[아이템 발동] 가짜 마커가 간파되어 사라졌습니다!</color>");
     }
 
-
-
     /// 돌바꾸기 쓰이는 로직
     /// <summary>
     /// 돌 바꾸기 RPC 요청
@@ -654,6 +653,9 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// </summary>
     public StoneColor GetStoneColorAt(int x, int z) => _logic.Board[x, z].Color;
     
+    /// <summary>
+    /// 좌표형 아이템(투명/가짜/간파) 모드일 때의 클릭 입력 분기 처리
+    /// </summary>
     private bool HandleSpecialItemInput((Vector3 pos, int x, int z) result)
     {
         switch (GomokuItemManager.I.CurrentMode)
@@ -667,7 +669,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
                 return true;
 
             case InputMode.UseDetect:
-                // UseDetect(result.x, result.z);
+                UseDetect(result.x, result.z);
                 return true;
         }
 
@@ -684,7 +686,6 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// 플레이어의 투명돌 아이템 사용 시도를 처리하는 로직
     /// 로컬 클라이언트에서 조건을 검사한 뒤 호스트에게 승인을 요청
     /// </summary>
-
     private void UseTransparentStone(int x, int z)
     {
         // 1. 해당 좌표의 돌 데이터 가져오기
@@ -754,6 +755,81 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         
         // 아이템 사용 후 모드 리셋
         GomokuItemManager.I.ResetSelection();
+    }
+
+    /// <summary>
+    /// 간파하기 아이템 로직 처리
+    /// </summary>
+    private void UseDetect(int x, int z)
+    {
+        // 1. 데이터 확인
+        StoneData data = _logic.Board[x, z];
+        StoneColor myColor = MyColor;
+
+        // 2. 더블 표시(가짜 마커) 간파 체크
+        // 돌이 있든 없든, 가짜 마커 좌표를 클릭했다면 마커 제거 시도
+        if (x == CurrentFakeX && z == CurrentFakeZ)
+        {
+            Debug.Log("<color=cyan>[간파 성공]</color> 가짜 마커를 제거했습니다!");
+            RPC_DestroyFakeMarker(); 
+            GomokuItemManager.I.ConsumeItemUI();
+            GomokuItemManager.I.ResetSelection();
+            return;
+        }
+
+        // 3. 상대방의 특수 돌(투명, 가짜) 간파 체크
+        if (data.Color != StoneColor.None && data.Color != myColor)
+        {
+            if (data.IsTransparent)
+            {
+                Debug.Log("<color=cyan>[간파 성공]</color> 상대의 투명 돌을 발견하여 제거했습니다!");
+                RPC_RequestRemoveSpecialStone(x, z, "투명");
+                FinishDetect();
+                return;
+            }
+            else if (data.IsFake)
+            {
+                Debug.Log("<color=cyan>[간파 성공]</color> 상대의 가짜 돌을 간파하여 제거했습니다!");
+                RPC_RequestRemoveSpecialStone(x, z, "가짜");
+                FinishDetect();
+                return;
+            }
+        }
+
+        Debug.Log("<color=white>아무것도 찾지 못했습니다.</color>");
+        GomokuItemManager.I.ResetSelection();
+    }
+    private void FinishDetect()
+    {
+        GomokuItemManager.I.ConsumeItemUI();
+        GomokuItemManager.I.ResetSelection();
+    }
+
+    /// <summary>
+    /// [RPC] 특수 돌 제거 요청 (투명/가짜 돌)
+    /// </summary>
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    public void RPC_RequestRemoveSpecialStone(int x, int z, string type)
+    {
+        RPC_BroadcastRemoveStone(x, z, type);
+    }
+
+    /// <summary>
+    /// [RPC] 전원에게 돌 제거 및 시각적 갱신 알림
+    /// </summary>
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_BroadcastRemoveStone(int x, int z, string type)
+    {
+        // 논리 보드에서 제거
+        _logic.Board[x, z].Color = StoneColor.None;
+        _logic.Board[x, z].IsTransparent = false;
+        _logic.Board[x, z].IsFake = false;
+
+        // 시각적 갱신
+        BoardView.RemoveStone(x, z);
+        BoardView.SwapAllStonesVisual(IsStoneSwapped);
+        
+        Debug.Log($"<color=yellow>[알림]</color> ({x}, {z})의 {type} 돌이 제거되었습니다.");
     }
 
 }
