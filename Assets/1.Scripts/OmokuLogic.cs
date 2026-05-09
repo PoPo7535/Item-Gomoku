@@ -33,24 +33,38 @@ public class OmokuLogic
     /// </summary>
     public bool PlaceStone(int x, int y, StoneColor color, bool isFake = false, bool isTransparent = false)
     {
-        if (!IsInside(x, y) || Board[x, y].Color != StoneColor.None)
-            return false;
+        // 1. 범위를 벗어나면 바로 탈락
+        if (!IsInside(x, y)) return false;
 
-        // 1. 논리 보드에 모든 상태를 포함해서 저장합니다.
+        // --- [수정된 체크 로직] ---
+        bool isCurrentEmpty = Board[x, y].Color == StoneColor.None;
+        bool isMyFakeStone = (Board[x, y].Color == color && Board[x, y].IsFake);
+        bool isUpgradingToReal = !isFake; // 새로 두는 돌이 진짜돌인가?
+
+        // 착수가 불가능한 경우: 
+        // 빈칸이 아니면서 + (내 가짜돌을 진짜로 업그레이드하는 상황도 아닐 때)
+        if (!isCurrentEmpty && !(isMyFakeStone && isUpgradingToReal))
+        {
+            return false;
+        }
+        // ------------------------
+
+        // 데이터 업데이트 (덮어쓰기)
         Board[x, y] = new StoneData 
         { 
             Color = color, 
             IsFake = isFake, 
-            IsTransparent = isTransparent // ★ 투명 상태 저장
+            IsTransparent = isTransparent 
         };
 
-        // 2. 흑돌일 때만 렌주룰 금수 체크 (투명 돌은 진짜 돌이므로 금수 체크를 받아야 함)
+        // 2. 흑돌일 때만 렌주룰 금수 체크 (투명 돌은 진짜 돌이므로 금수 체크 대상)
         if (color == StoneColor.Black && !isFake)
         {
             if (CheckWin(x, y, color)) return true;
 
             if (IsForbidden(x, y, color))
             {
+                // 금수면 돌 다시 빼기
                 Board[x, y].Color = StoneColor.None; 
                 return false;
             }

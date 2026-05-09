@@ -70,7 +70,7 @@ public class GomokuItemManager : MonoBehaviour
                 break;
 
             case ItemType.FakeStone: // 가짜 돌
-                CurrentMode = InputMode.UseFakeStone;
+                CurrentMode = InputMode.UseFakeStone; // 완성????
                 success = true; 
                 break;
 
@@ -106,10 +106,14 @@ public class GomokuItemManager : MonoBehaviour
         if (success)
         {
             if (_test != null) _test.text = $"아이템 사용 완료 : {CurrentSelectedItem.itemName}";
-            if (!isSpecialModeItem)
+            if (CurrentSelectedItem.type == ItemType.FakeStone || CurrentSelectedItem.type == ItemType.TransparentStone)
+            {
+                // 모드형 아이템은 여기서 null로 만들지 않음
+            }
+            else
             {
                 CurrentSelectedItem = null;
-            }               
+            }             
         }
 
         return success;
