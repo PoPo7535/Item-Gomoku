@@ -6,6 +6,7 @@ using Utility;
 using Cysharp.Threading.Tasks;
 using UnityEngine.EventSystems;
 
+
 // 얘는 오목 규칙 + 턴 + 네트워크 + 게임 진행 전체 흐름 관리하자
 public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
 {
@@ -126,9 +127,24 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     public void PlaceStoneProcess(Vector3 pos, int x, int z, bool isBlackStone, int fX = -1, int fZ = -1)
     {   
         if (pos == Vector3.zero) return;
-        StoneColor color = isBlackStone ? StoneColor.Black : StoneColor.White;
+        // 1. 현재 돌을 두려는 플레이어의 색상 (매개변수 isBlackStone 기반)
+        StoneColor actingPlayerColor = isBlackStone ? StoneColor.Black : StoneColor.White;
+        StoneData targetData = _logic.Board[x, z];
 
-        if (_logic.PlaceStone(x, z, color))
+            // --- [함정 체크 수정] ---
+            // 핵심: targetData.Color가 '돌을 두려는 사람(actingPlayerColor)'과 다른지 체크해야 합니다.
+            if (targetData.Color != StoneColor.None && targetData.IsTransparent && targetData.Color != actingPlayerColor)
+            {
+                Debug.Log($"<color=red>[함정 발동!]</color> {actingPlayerColor}이 상대방의 투명돌을 건드렸습니다!");
+                
+                // 권한자(호스트)만 네트워크 변수를 수정하여 턴을 넘깁니다.
+                if (Object.HasStateAuthority)
+                {
+                    ChangeTurn();
+                }
+                return; 
+            }
+        if (_logic.PlaceStone(x, z, actingPlayerColor))
         {   
             GomokuItemManager.I.ConsumeItemUI(); //아이템 ui 삭제 아직 껍데기임
             BoardView.SpawnStone(x, z, isBlackStone, pos); 
@@ -154,8 +170,26 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             if (isBlackStone) _blackHistory.Add($"{x},{z}");
             else _whiteHistory.Add($"{x},{z}");
             
-            if (_logic.CheckWin(x, z, color)) { RPC_GameEnd(); return; }
+            if (_logic.CheckWin(x, z, actingPlayerColor)) { RPC_GameEnd(); return; }
             ChangeTurn();
+        }
+        else
+        {
+            // 어떤 이유로 실패했는지 데이터로 확인
+            StoneData targetData_ = _logic.Board[x, z];
+
+            if (targetData_.Color != StoneColor.None)
+            {
+                // 렌더링된 돌은 없는데(상대방 시점) 데이터엔 돌이 있다면? -> 투명돌!
+                if (targetData_.IsTransparent)
+                    Debug.Log($"<color=red>[실패]</color> ({x},{z}) 자리에 상대방의 투명돌이 숨겨져 있습니다.");
+                else
+                    Debug.Log($"<color=red>[실패]</color> ({x},{z}) 이미 돌이 있는 자리입니다.");
+            }
+            else if (isBlackStone && _logic.IsForbidden(x, z, StoneColor.Black))
+            {
+                Debug.Log($"<color=red>[실패]</color> ({x},{z}) 금수 자리입니다 (33/44/장목).");
+            }
         }
     }
     public void SetAIDifficulty(GomokuAIDifficulty difficulty)
@@ -168,25 +202,56 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// </summary>
     private void HandleGhost((Vector3 pos, int x, int z) result)
     {
-        bool canPlace = result.pos != Vector3.zero &&
-                        _logic.Board[result.x, result.z].Color == StoneColor.None;
+        bool canPlace = false;
 
-        StoneColor currentTurn = IsBlackTurn ? StoneColor.Black : StoneColor.White;
+        // 좌표가 유효할 때만 검사
+        if (result.pos != Vector3.zero)
+        {
+            StoneData stoneData = _logic.Board[result.x, result.z];
 
-        if (App.I.PlayMode == GamePlayMode.Multi && currentTurn != _myColor)
+            // 일반 빈칸이면 착수 가능
+            if (stoneData.Color == StoneColor.None)
+            {
+                canPlace = true;
+            }
+            // 상대 입장에서 "투명돌"은 빈칸처럼 보여야 함
+            else if (stoneData.IsTransparent)
+            {
+                StoneColor currentTurn = IsBlackTurn ? StoneColor.Black : StoneColor.White;
+
+                // 내 돌이면 그대로 보여야 하니까 제외
+                // 상대 돌의 투명돌만 빈칸처럼 처리
+                if (stoneData.Color != currentTurn)
+                {
+                    canPlace = true;
+                }
+            }
+        }
+
+        StoneColor turnColor = IsBlackTurn ? StoneColor.Black : StoneColor.White;
+
+        // 멀티에서 내 턴 아닐 때
+        if (App.I.PlayMode == GamePlayMode.Multi && turnColor != _myColor)
             canPlace = false;
 
+        // AI 모드 제한
         if (App.I.PlayMode == GamePlayMode.AI && (!IsPlayerTurn || _isAiThinking))
             canPlace = false;
 
-        bool isForbidden = false; // 금수 구분
+        bool isForbidden = false;
 
-        if (canPlace && IsBlackTurn) // 금수일시 
-        {
-            _logic.Board[result.x, result.z].Color = StoneColor.Black; // 임시로 보드데이터에 돌 두고
-            isForbidden = _logic.IsForbidden(result.x, result.z, StoneColor.Black); // 여기서 금수결정
-            _logic.Board[result.x, result.z].Color = StoneColor.None; // 원상복귀 
-        }
+        // 금수 체크
+        // 실제 빈칸일 때만 검사해야 함
+        if (canPlace &&
+            IsBlackTurn &&
+            _logic.Board[result.x, result.z].Color == StoneColor.None)
+            {
+                _logic.Board[result.x, result.z].Color = StoneColor.Black;
+
+                isForbidden = _logic.IsForbidden(result.x, result.z, StoneColor.Black);
+
+                _logic.Board[result.x, result.z].Color = StoneColor.None;
+            }
 
         BoardView?.UpdateGhostStone(result.pos, canPlace, IsBlackTurn, isForbidden);
     }
@@ -233,7 +298,8 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
 
         // 아이템 선택 중일 때 처리
         if (GomokuItemManager.I.CurrentSelectedItem != null)
-        {
+        {   
+
             bool used = GomokuItemManager.I.TryUseItem(result.x, result.z);
             if (!used) return;
         }
@@ -249,6 +315,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             fakeX = randomStone.x;
             fakeZ = randomStone.z;
         }
+        if (HandleSpecialItemInput(result))    return;
 
         // 서버에 착수 요청 (가짜 좌표 포함)
         Rpc_RequestPlaceStone(result.pos, result.x, result.z, IsBlackTurn, fakeX, fakeZ);
@@ -492,6 +559,8 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         IsTimerHalfEffect = true;
         Debug.Log("<color=red>[아이템 발동] 다음 상대의 턴 시간이 절반으로 줄어듭니다!</color>");
     }
+
+    /// 더블표사에 쓰이는 로직
     /// <summary>
     /// 더블 표시 아이템 사용 RPC
     /// </summary>
@@ -511,14 +580,21 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         {
             for (int j = 0; j < 15; j++)
             {
-                if (_logic.Board[i, j].Color == color)
-                {
-                    stones.Add((i, j));
-                }
+                // 해당 색 돌인지 확인
+                if (_logic.Board[i, j].Color != color)
+                    continue;
+
+                // 투명돌이면 제외
+                if (_logic.Board[i,j].IsTransparent)
+                    continue;
+
+                stones.Add((i, j));
             }
         }
 
-        if (stones.Count == 0) return (-1, -1); // 돌이 없으면 -1 반환
+        // 표시 가능한 돌이 없음
+        if (stones.Count == 0)
+            return (-1, -1);
 
         int randomIndex = UnityEngine.Random.Range(0, stones.Count);
         return stones[randomIndex];
@@ -551,7 +627,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
 
 
 
-
+    /// 돌바꾸기 쓰이는 로직
     /// <summary>
     /// 돌 바꾸기 RPC 요청
     /// </summary>
@@ -577,5 +653,83 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// </summary>
     public StoneColor GetStoneColorAt(int x, int z) => _logic.Board[x, z].Color;
     
+    private bool HandleSpecialItemInput((Vector3 pos, int x, int z) result)
+    {
+        switch (GomokuItemManager.I.CurrentMode)
+        {
+            case InputMode.UseTransparent:
+                UseTransparentStone(result.x, result.z);
+                return true;
 
+            case InputMode.UseFakeStone:
+                // UseFakeStone(result.x, result.z);
+                return true;
+
+            case InputMode.UseDetect:
+                // UseDetect(result.x, result.z);
+                return true;
+        }
+
+        return false;
+    }
+    public StoneData GetStoneDataAt(int x, int z)
+    {
+        return _logic.Board[x, z];
+    }
+    
+    // 투명돌에 쓰이는 로직 
+
+    /// <summary>
+    /// 플레이어의 투명돌 아이템 사용 시도를 처리하는 로직
+    /// 로컬 클라이언트에서 조건을 검사한 뒤 호스트에게 승인을 요청
+    /// </summary>
+    private void UseTransparentStone(int x, int z)
+    {
+        // 1. 해당 좌표에 돌이 있는지, 그리고 내 돌이 맞는지 확인
+        StoneData data = _logic.Board[x, z];
+        StoneColor myColor = MyColor;
+
+        if (data.Color == StoneColor.None || data.Color != myColor)
+        {
+            Debug.Log("자신의 돌에만 투명화를 사용할 수 있습니다.");
+            GomokuItemManager.I.ResetSelection();
+            return;
+        }
+
+        if (data.IsTransparent)
+        {
+            Debug.Log("이미 투명화된 돌입니다.");
+            GomokuItemManager.I.ResetSelection();
+            return;
+        }
+
+        // 2. 서버/다른 클라이언트에게 투명화 적용 요청
+        RPC_RequestApplyTransparency(x, z);
+        
+        // 아이템 모드 해제
+        GomokuItemManager.I.ResetSelection();
+    }
+
+    /// <summary>
+    /// [RPC] 클라이언트가 호스트(StateAuthority)에게 특정 좌표의 돌을 투명화요청
+    /// </summary>
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    public void RPC_RequestApplyTransparency(int x, int z)
+    {
+        // 호스트(StateAuthority)에서 데이터를 변경하고 모두에게 알림
+        RPC_BroadcastTransparency(x, z);
+    }
+    /// <summary>
+    /// [RPC] 호스트가 모든 클라이언트의 논리 보드 데이터를 갱신하고 시각적 동기화를 수행
+    /// </summary>
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_BroadcastTransparency(int x, int z)
+    {
+        // 3. 논리 보드 데이터 갱신
+        _logic.Board[x, z].IsTransparent = true;
+
+        // 4. 시각적 업데이트 실행
+        BoardView.SwapAllStonesVisual(IsStoneSwapped);
+        
+    }
 }
