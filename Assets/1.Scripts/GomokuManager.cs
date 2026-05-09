@@ -481,10 +481,16 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             return;
 
         OfflineUIManager.I.ToggleAiMsg(); // 토글 메세지용 on
-        await UniTask.Delay(TimeSpan.FromSeconds(1.5f)); // 1.5초후 시작
+        await UniTask.Delay(TimeSpan.FromSeconds(ReturnTime())); // 좀 기다리고 시작
         OfflineUIManager.I.ToggleAiMsg(); // off
 
         TryScheduleAiTurnIfNeeded();
+    }
+    private float ReturnTime()
+    {
+        float[] num = { 1.2f, 1.4f, 1.6f, 1.8f,2.0f};
+        int randomIndex = UnityEngine.Random.Range(0, num.Length);
+        return num[randomIndex];
     }
     /// <summary>
     /// 타이머 시작 로직 수정
