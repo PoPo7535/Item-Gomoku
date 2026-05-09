@@ -16161,6 +16161,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GomokuItemManager
   CurrentSelectedItem: {fileID: 0}
   _test: {fileID: 1256456529}
+  CurrentMode: 0
 --- !u!1 &1476256430
 GameObject:
   m_ObjectHideFlags: 0
@@ -20999,8 +21000,8 @@ MonoBehaviour:
   BlackGhostObj: {fileID: 1597064273}
   WhiteGhostObj: {fileID: 2071426479}
   ForbiddenPrefab: {fileID: 4048474110738007399}
-  BlackTransparentPrefab: {fileID: 0}
-  WhiteTransparentPrefab: {fileID: 0}
+  BlackTransparentPrefab: {fileID: 6137473338564080170, guid: 578e8ed6fbc564c47bf4c478aa076bfc, type: 3}
+  WhiteTransparentPrefab: {fileID: 4744781026894999395, guid: 6ba90282ea56ed9498d806b7fd2a22cd, type: 3}
   GameViewImage: {fileID: 1614487142}
   BoardCamera: {fileID: 2146248141}
   RealLastMoveMarker: {fileID: 7373900202575640706}
