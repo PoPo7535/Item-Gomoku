@@ -16159,7 +16159,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e91167c0bec199740876f586b2b310f3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GomokuItemManager
-  itemUsePanel: {fileID: 2130409141}
   CurrentSelectedItem: {fileID: 0}
   _test: {fileID: 1256456529}
   CurrentMode: 0
@@ -21003,8 +21002,8 @@ MonoBehaviour:
   ForbiddenPrefab: {fileID: 4048474110738007399}
   BlackTransparentPrefab: {fileID: 6137473338564080170, guid: 578e8ed6fbc564c47bf4c478aa076bfc, type: 3}
   WhiteTransparentPrefab: {fileID: 4744781026894999395, guid: 6ba90282ea56ed9498d806b7fd2a22cd, type: 3}
-  BlackFakePrefab: {fileID: 0}
-  WhiteFakePrefab: {fileID: 0}
+  BlackFakePrefab: {fileID: 9126950547641344875, guid: ac63fdf56ac754543a44724aea1e7c02, type: 3}
+  WhiteFakePrefab: {fileID: 8113395107229059385, guid: d5d85f78f6550ab43a8dcf0cd8ec5f09, type: 3}
   GameViewImage: {fileID: 1614487142}
   BoardCamera: {fileID: 2146248141}
   RealLastMoveMarker: {fileID: 7373900202575640706}
