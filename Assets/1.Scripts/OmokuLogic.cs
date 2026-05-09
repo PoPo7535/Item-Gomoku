@@ -64,8 +64,9 @@ public class OmokuLogic
 
             if (IsForbidden(x, y, color))
             {
-                // 금수면 돌 다시 빼기
-                Board[x, y].Color = StoneColor.None; 
+                // 금수일 경우 아예 지우는 게 아니라, 가짜돌 상태로 되돌림 (데이터 복구)
+                // 실제 돌은 보이지만 판정은 가짜인상태
+                Board[x, y] = new StoneData { Color = color, IsFake = true, IsTransparent = false };
                 return false;
             }
         }
