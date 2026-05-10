@@ -149,7 +149,7 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
     }
 
 
-    // 게임 종료 후 버튼 상태 초기화
+    // 게임 종료 후 버튼 상태 초기화 추가한부분
     public void SetReadyButtonStateAfterGame()
     {
         _clientReady = false; 
