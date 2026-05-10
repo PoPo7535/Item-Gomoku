@@ -21011,6 +21011,7 @@ MonoBehaviour:
   _aiDifficulty: 5
   _maxAiSearchTimeSeconds: 7
   BoardView: {fileID: 1954883595}
+  WinPanel: {fileID: 1844196826}
   TurnTimeLimit: 10
   _IsBlackTurn:
     _value: 1

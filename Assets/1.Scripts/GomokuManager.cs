@@ -12,6 +12,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
 {
     [Header("참조 설정")]
     public GomokuBoardView BoardView;
+    public WinPanel WinPanel;
 
     [Header("게임 설정")]
     public float TurnTimeLimit = 30f;
@@ -179,7 +180,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
                 {
                     if (_logic.CheckWin(x, z, actingPlayerColor))
                     { 
-                        RPC_GameEnd_ALL();
+                        RPC_GameEnd_ALL(actingPlayerColor);
                         return; 
                     }
                     ChangeTurn(); // 턴 교체
@@ -862,13 +863,15 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         Debug.Log($"<color=yellow>[알림]</color> ({x}, {z})의 {type} 돌이 제거되었습니다.");
     }
     [Rpc(RpcSources.All, RpcTargets.All)]
-    private void RPC_GameEnd_ALL()
+    private void RPC_GameEnd_ALL(StoneColor WinColor)
     {
         IsPlaying = false;
         if (Object.HasStateAuthority) TickTimer = TickTimer.None;
         
         // 모든돌을 일반돌로 보이게함
         BoardView.SwapAllStonesVisual(false, true);
+
+        bool isWin = (MyColor == WinColor);
 
         // UI 게임 종료 패널 띄우기 
         if (App.I.PlayMode == GamePlayMode.Multi)
@@ -878,6 +881,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             {
                 panel.SetReadyButtonStateAfterGame(); 
             }
+            WinPanel.OpPanel(WinColor);
         }
         if (App.I.PlayMode == GamePlayMode.Single)
         {
