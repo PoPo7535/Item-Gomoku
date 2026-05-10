@@ -110,7 +110,7 @@ public class GomokuBoardView : MonoBehaviour
     }
 
     /// <summary>
-    /// 실제 돌 프리팹을 화면에 생성하고 배열에 저장
+    /// 실제 돌 프리팹을 화면에 생성하고 배열에 저장 현재안씀 X
     /// </summary>
     public void SpawnStone(int x, int z, bool isBlack, Vector3 pos)
     {
@@ -271,10 +271,10 @@ public class GomokuBoardView : MonoBehaviour
 
     /// <summary>
     /// 모든 돌을 다시 렌더링합니다. 투명돌과 가짜돌은 스왑(색상 반전)의 영향을 받지 않습니다.
-    /// showEverything이 true이면 투명/가짜 효과를 무시하고 일반 돌로 보여줌 게임종료후 에쓸거임
+    /// showEverything이 true이면 투명/가짜 효과를 무시하고 일반 돌로 보여줌 
+    /// revealSpecial  true 면 양쪽 플레이어 돌이 다 공개댐 (투명돌 ,가짜돌 포함) 게임끝나고 보여줄거
     /// </summary>
-    /// <summary>
-    public void SwapAllStonesVisual(bool isSwapped, bool showEverything = false)
+    public void SwapAllStonesVisual(bool isSwapped, bool showEverything = false, bool revealSpecial = false)
     {
         for (int x = 0; x < LineCount; x++)
         {
@@ -291,7 +291,28 @@ public class GomokuBoardView : MonoBehaviour
                 if (data.Color == StoneColor.None) continue;
 
                 bool isOriginalBlack = (data.Color == StoneColor.Black);
-
+                if (revealSpecial)
+                {
+                if (data.IsTransparent)
+                {
+                    // 투명 돌이면 모든 플레이어에게 투명 프리팹으로 공개
+                    GameObject tPrefab = isOriginalBlack ? BlackTransparentPrefab : WhiteTransparentPrefab;
+                    SpawnVisualStone(x, z, tPrefab);
+                }
+                else if (data.IsFake)
+                {
+                    // 가짜 돌이면 모든 플레이어에게 가짜 프리팹으로 공개
+                    GameObject fPrefab = isOriginalBlack ? BlackFakePrefab : WhiteFakePrefab;
+                    SpawnVisualStone(x, z, fPrefab);
+                }
+                else
+                {
+                    // 일반 돌
+                    GameObject nPrefab = isOriginalBlack ? BlackStonePrefab : WhiteStonePrefab;
+                    SpawnVisualStone(x, z, nPrefab);
+                }
+                continue;
+            }
                 if (showEverything)
                 {   // 게임종료 후 프리팹 일반돌로 함
                     GameObject endPrefab = isOriginalBlack ? BlackStonePrefab : WhiteStonePrefab;

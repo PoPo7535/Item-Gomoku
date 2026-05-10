@@ -869,7 +869,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (Object.HasStateAuthority) TickTimer = TickTimer.None;
         
         // 모든돌을 일반돌로 보이게함
-        BoardView.SwapAllStonesVisual(false, true);
+        BoardView.SwapAllStonesVisual(false, false, true);
 
         bool isWin = (MyColor == WinColor);
 
