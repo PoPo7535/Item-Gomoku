@@ -177,7 +177,11 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             
             if (!isFake) // 진짜 돌일 때만!
                 {
-                    if (_logic.CheckWin(x, z, actingPlayerColor)) { RPC_GameEnd(); return; }
+                    if (_logic.CheckWin(x, z, actingPlayerColor))
+                    { 
+                        RPC_GameEnd_ALL();
+                        return; 
+                    }
                     ChangeTurn(); // 턴 교체
                 }
                 else
@@ -379,17 +383,28 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// </summary>
     public void ResetGame()
     {   
-        //호스트만 초기화 
+        //AI 관련 초기화 
         CancelAiSearchRequest();
+        ResetAiBoardState();
         if (Object.HasStateAuthority)
-        {
+        {   
+            
             IsPlaying = false;
             TickTimer = TickTimer.None;
+            // 네트워크 아이템 상태 초기화 ---
+            IsTimerHalfEffect = false;
+            IsDoubleMarkerEffect = false;
+            NetFakeX = -1;
+            NetFakeZ = -1;
+            CurrentFakeX = -1;
+            CurrentFakeZ = -1;
+            IsStoneSwapped = false;
+            SwapUsedByBlack = false;
         }
+        
        
         IsBlackTurn = true;
         _logic = new OmokuLogic();
-        ResetAiBoardState();
         _blackHistory.Clear();
         _whiteHistory.Clear();
         _lastX = 0; _lastZ = 0;
@@ -401,7 +416,8 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
 
         if (BoardView.FakeLastMoveMarker != null)
             BoardView.FakeLastMoveMarker.SetActive(false);
-        GomokuItemManager.I.ResetSelection();
+        _shouldHideNextMarker = false;
+        GomokuItemManager.I.FullReset(); //아이템 매니저 전체 리셋
         SetupPlayerColor();
         Debug.Log("게임 리셋 및 기록 초기화 완료");
     }
@@ -412,6 +428,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     {   
         if(IsPlaying) return;
         if (App.I.PlayMode == GamePlayMode.Multi && !Object.HasStateAuthority) return;
+        RPC_GameEnd();
         SetupPlayerColor();
         IsPlaying = true;
         StartTurnTimer();
@@ -563,6 +580,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     }
 
     /// 더블표사에 쓰이는 로직
+    /// 
     /// <summary>
     /// 더블 표시 아이템 사용 RPC
     /// </summary>
@@ -831,5 +849,32 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         
         Debug.Log($"<color=yellow>[알림]</color> ({x}, {z})의 {type} 돌이 제거되었습니다.");
     }
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    private void RPC_GameEnd_ALL()
+    {
+        IsPlaying = false;
+        if (Object.HasStateAuthority) TickTimer = TickTimer.None;
+        
+        // 모든돌을 일반돌로 보이게함
+        BoardView.SwapAllStonesVisual(false, true);
 
+        // 여기서 ResetGame()을 바로 호출하지 않고, UI에서 상태만 업데이트
+        // UI 게임 종료 패널 띄우기 
+        if (App.I.PlayMode == GamePlayMode.Multi)
+        {
+            var panel = FindObjectOfType<GameRoomPanel>();
+            if (panel != null)
+            {
+                panel.SetReadyButtonStateAfterGame(); 
+            }
+        }
+        if (App.I.PlayMode == GamePlayMode.Single)
+        {
+            Debug.Log("싱글 확인용");
+        }
+        if (App.I.PlayMode == GamePlayMode.AI)
+        {
+            Debug.Log("AI 확인용");
+        }
+    }
 }

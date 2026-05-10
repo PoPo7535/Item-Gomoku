@@ -271,13 +271,16 @@ public class GomokuBoardView : MonoBehaviour
 
     /// <summary>
     /// 모든 돌을 다시 렌더링합니다. 투명돌과 가짜돌은 스왑(색상 반전)의 영향을 받지 않습니다.
+    /// showEverything이 true이면 투명/가짜 효과를 무시하고 일반 돌로 보여줌 게임종료후 에쓸거임
     /// </summary>
-    public void SwapAllStonesVisual(bool isSwapped)
+    /// <summary>
+    public void SwapAllStonesVisual(bool isSwapped, bool showEverything = false)
     {
         for (int x = 0; x < LineCount; x++)
         {
             for (int z = 0; z < LineCount; z++)
             {
+                // 기존 오브젝트 제거
                 if (_stoneObjects[x, z] != null)
                 {
                     Destroy(_stoneObjects[x, z]);
@@ -289,7 +292,16 @@ public class GomokuBoardView : MonoBehaviour
 
                 bool isOriginalBlack = (data.Color == StoneColor.Black);
 
-                // --- [A. 투명돌 처리] ---
+                if (showEverything)
+                {
+                    // 게임이 끝났을 때는 색상 반전(Swap) 효과도 보통 끄는 것이 명확하므로 isSwapped를 무시하거나 결정해야 합니다.
+                    // 여기서는 원래 색상대로 보여주도록 설정합니다.
+                    GameObject endPrefab = isOriginalBlack ? BlackStonePrefab : WhiteStonePrefab;
+                    SpawnVisualStone(x, z, endPrefab);
+                    continue; // 아래 아이템 처리 로직을 타지 않음
+                }
+
+                // --- [기존 아이템 처리 로직] ---
                 if (data.IsTransparent)
                 {
                     if (data.Color == GomokuManager.I.MyColor)
@@ -300,32 +312,26 @@ public class GomokuBoardView : MonoBehaviour
                     continue; 
                 }
 
-                // --- [B. 가짜돌 처리] ---
                 if (data.IsFake)
                 {
-                    // 1. 내 가짜돌인 경우: 내가 알 수 있도록 가짜 프리팹 생성
                     if (data.Color == GomokuManager.I.MyColor)
                     {
                         GameObject fPrefab = isOriginalBlack ? BlackFakePrefab : WhiteFakePrefab;
                         SpawnVisualStone(x, z, fPrefab);
                     }
-                    // 2. 상대방 가짜돌인 경우: 나를 속여야 하므로 '일반돌' 생성
                     else
                     {
-                        // 일반돌과 동일하게 Swap 로직 적용
                         bool renderAsBlack = isOriginalBlack;
                         if (isSwapped) renderAsBlack = !renderAsBlack;
-                        
                         GameObject prefab = renderAsBlack ? BlackStonePrefab : WhiteStonePrefab;
                         SpawnVisualStone(x, z, prefab);
                     }
                     continue;
                 }
 
-                // --- [C. 일반 돌 처리] ---
+                // 일반 돌 처리
                 bool normalRenderAsBlack = isOriginalBlack;
                 if (isSwapped) normalRenderAsBlack = !normalRenderAsBlack;
-
                 GameObject normalPrefab = normalRenderAsBlack ? BlackStonePrefab : WhiteStonePrefab;
                 SpawnVisualStone(x, z, normalPrefab);
             }
