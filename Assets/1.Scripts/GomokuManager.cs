@@ -433,12 +433,21 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     {   
         if(IsPlaying) return;
         if (App.I.PlayMode == GamePlayMode.Multi && !Object.HasStateAuthority) return;
-        RPC_GameEnd();
+
+        // 모든 클라이언트의 보드를 비우고 리셋
+        RPC_GameEnd(); 
+        
         SetupPlayerColor();
         IsPlaying = true;
+        
+        // 첫 턴 시작 시 아이템 사용 가능 상태로 강제 설정
+        if (GomokuItemManager.I != null)
+        {
+            GomokuItemManager.I.ResetTurnLimit();
+        }
+
         StartTurnTimer();
         TryScheduleAiTurnIfNeeded();
-        GomokuItemManager.I.ResetSelection();
     }
     /// <summary>
     /// 게임 재시작 UI 버튼용

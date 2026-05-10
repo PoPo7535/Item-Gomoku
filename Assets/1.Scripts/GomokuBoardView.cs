@@ -293,9 +293,7 @@ public class GomokuBoardView : MonoBehaviour
                 bool isOriginalBlack = (data.Color == StoneColor.Black);
 
                 if (showEverything)
-                {
-                    // 게임이 끝났을 때는 색상 반전(Swap) 효과도 보통 끄는 것이 명확하므로 isSwapped를 무시하거나 결정해야 합니다.
-                    // 여기서는 원래 색상대로 보여주도록 설정합니다.
+                {   // 게임종료 후 프리팹 일반돌로 함
                     GameObject endPrefab = isOriginalBlack ? BlackStonePrefab : WhiteStonePrefab;
                     SpawnVisualStone(x, z, endPrefab);
                     continue; // 아래 아이템 처리 로직을 타지 않음
