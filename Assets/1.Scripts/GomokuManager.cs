@@ -103,7 +103,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         }
         else if (App.I.PlayMode == GamePlayMode.AI)
         {
-            _myColor = StoneColor.White;
+            _myColor = PlayerStoneColor;
         }
         else
         {
@@ -326,12 +326,35 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             return;
         }
 
-        if (result.pos == Vector3.zero || !CanPlaceStoneSafely(result.x, result.z, PlayerStoneColor))
+        if (result.pos == Vector3.zero)
         {
             return;
         }
 
-        PlaceStoneProcess(result.pos, result.x, result.z, PlayerStoneColor == StoneColor.Black);
+        if (GomokuItemManager.I.CurrentSelectedItem != null)
+        {
+            bool used = GomokuItemManager.I.TryUseItem(result.x, result.z);
+            if (!used) return;
+        }
+
+        int fakeX = -1;
+        int fakeZ = -1;
+
+        if (IsDoubleMarkerEffect)
+        {
+            var randomStone = GetRandomExistStone(PlayerStoneColor);
+            fakeX = randomStone.x;
+            fakeZ = randomStone.z;
+        }
+
+        if (HandleSpecialItemInput(result)) return;
+
+        if (!CanPlaceStoneSafely(result.x, result.z, PlayerStoneColor))
+        {
+            return;
+        }
+
+        PlaceStoneProcess(result.pos, result.x, result.z, PlayerStoneColor == StoneColor.Black, fakeX, fakeZ, false);
         
     }
 
@@ -539,6 +562,11 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (App.I.PlayMode == GamePlayMode.Multi)
         {
             return currentTurn == _myColor;
+        }
+
+        if (App.I.PlayMode == GamePlayMode.AI)
+        {
+            return IsPlayerTurn && !_isAiThinking;
         }
 
         return false;
