@@ -142,11 +142,25 @@ public class GomokuItemManager : MonoBehaviour
     {
         if (CurrentSelectedItem == null) return;
 
-        // [추가] 패널의 모든 버튼을 클릭 불가능하게 만듦
+        // 패널의 모든 버튼을 클릭 차단
         GomokuManager.I.ItemPanel.ClearAllToggles();
         GomokuManager.I.ItemPanel.SetInteractable(false);
 
         CurrentSelectedItem = null;
         CurrentMode = InputMode.Normal;
+    }
+
+    public void FullReset()
+    {
+        _hasUsedItemInTurn = false;    
+        CurrentSelectedItem = null;   
+        CurrentMode = InputMode.Normal; // 확실하게 노멀 모드로!
+        
+        if (GomokuManager.I != null && GomokuManager.I.ItemPanel != null)
+        {
+            GomokuManager.I.ItemPanel.ClearAllToggles();
+            GomokuManager.I.ItemPanel.SetInteractable(true);
+        }
+        
     }
 }
