@@ -293,26 +293,26 @@ public class GomokuBoardView : MonoBehaviour
                 bool isOriginalBlack = (data.Color == StoneColor.Black);
                 if (revealSpecial)
                 {
-                if (data.IsTransparent)
-                {
-                    // 투명 돌이면 모든 플레이어에게 투명 프리팹으로 공개
-                    GameObject tPrefab = isOriginalBlack ? BlackTransparentPrefab : WhiteTransparentPrefab;
-                    SpawnVisualStone(x, z, tPrefab);
+                    if (data.IsTransparent)
+                    {
+                        // 투명 돌이면 모든 플레이어에게 투명 프리팹으로 공개
+                        GameObject tPrefab = isOriginalBlack ? BlackTransparentPrefab : WhiteTransparentPrefab;
+                        SpawnVisualStone(x, z, tPrefab);
+                    }
+                    else if (data.IsFake)
+                    {
+                        // 가짜 돌이면 모든 플레이어에게 가짜 프리팹으로 공개
+                        GameObject fPrefab = isOriginalBlack ? BlackFakePrefab : WhiteFakePrefab;
+                        SpawnVisualStone(x, z, fPrefab);
+                    }
+                    else
+                    {
+                        // 일반 돌
+                        GameObject nPrefab = isOriginalBlack ? BlackStonePrefab : WhiteStonePrefab;
+                        SpawnVisualStone(x, z, nPrefab);
+                    }
+                    continue;
                 }
-                else if (data.IsFake)
-                {
-                    // 가짜 돌이면 모든 플레이어에게 가짜 프리팹으로 공개
-                    GameObject fPrefab = isOriginalBlack ? BlackFakePrefab : WhiteFakePrefab;
-                    SpawnVisualStone(x, z, fPrefab);
-                }
-                else
-                {
-                    // 일반 돌
-                    GameObject nPrefab = isOriginalBlack ? BlackStonePrefab : WhiteStonePrefab;
-                    SpawnVisualStone(x, z, nPrefab);
-                }
-                continue;
-            }
                 if (showEverything)
                 {   // 게임종료 후 프리팹 일반돌로 함
                     GameObject endPrefab = isOriginalBlack ? BlackStonePrefab : WhiteStonePrefab;
