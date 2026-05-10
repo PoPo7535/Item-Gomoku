@@ -78,7 +78,7 @@ public class GomokuItemManager : MonoBehaviour
                 break;
 
             case ItemType.SwapStone: // 돌 바꾸기
-                GomokuManager.I.RPC_UseStoneSwapItem(); // 완성 
+                GomokuManager.I.RPC_UseStoneSwapItem(GomokuManager.I.MyColor); // 완성 
                 success = true;
                 break;
 

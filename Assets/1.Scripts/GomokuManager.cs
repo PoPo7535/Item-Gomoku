@@ -69,7 +69,13 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     [Networked] public int CurrentFakeZ { get; set; } = -1; // 가짜 마커 위치 저장용
     // 돌바꾸기 효과 활성 여부 
     [Networked] public NetworkBool IsStoneSwapped { get; set; } 
-    [Networked] public NetworkBool SwapUsedByBlack { get; set; } // 아이템 쓴사람이 누구인지 확인 // 흑인지 백인지 
+    [Networked] public NetworkBool IsBlackSwapActive { get; set; } // 흑돌 플레이어가 발동시킨 돌 바꾸기 효과가 현재 유지 중인지 여부
+    [Networked] public NetworkBool IsWhiteSwapActive { get; set; } // 백돌 플레이어가 발동시킨 돌 바꾸기 효과가 현재 유지 중인지 여부
+
+    // 실제로 보드의 돌 색상을 뒤집어서 보여줄지 결정하는 계산기
+    // 두 플레이어의 '뒤집기' 스위치가 서로 다른 상태인가? 체크
+    public bool IsVisualSwapped => IsBlackSwapActive ^ IsWhiteSwapActive;
+    
 
     public override void Spawned()
     {   
@@ -364,11 +370,11 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// </summary>
     public void RemoveStoneProcess(int x, int z)
     {
-        // 1. 로직 제거
+        // 로직 제거
         _logic.Board[x, z].Color = StoneColor.None;
         NotifyBoardChanged();
 
-        // 2. 뷰 제거
+        // 뷰 제거
         BoardView.RemoveStone(x, z);
     }
     /// <summary>
@@ -384,6 +390,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// </summary>
     public void ResetGame()
     {   
+        // AI 관련 초기화
         CancelAiSearchRequest();
         ResetAiBoardState();
 
@@ -400,7 +407,10 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             CurrentFakeX = -1;
             CurrentFakeZ = -1;
             IsStoneSwapped = false;
-            SwapUsedByBlack = false;
+
+           // 바꾸기 변수 초기화 ---
+            IsBlackSwapActive = false;
+            IsWhiteSwapActive = false;
         }
         
         // 공통 로직
@@ -479,24 +489,21 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             NetFakeX = -1;
             NetFakeZ = -1;
 
-            // 돌 바꾸기 아이템 효과가 활성 상태인지 확인
-            if (IsStoneSwapped)
-            {
-                // 한 턴이 지나서, 다시 내 턴이 오면 다시원상복구
-                if (IsBlackTurn == SwapUsedByBlack) 
-                {
-                    IsStoneSwapped = false; //효과초기화
-                    // 호스트가 RPC를 쏴서 모든 사람의 화면을 원상복구시킴
-                    RPC_ApplyStoneSwap(false); 
-                    Debug.Log("<color=green>돌 바꾸기 효과 종료 (호스트 명령)</color>");
-                }
-            }
-            // ----------------------------------------------
+            // 돌바꾸기 아이템 효과 초기화
+            // 누가 썼든 상관없이, 내 턴이 오면 "내 플래그"를 그냥 끔
+            if (IsBlackTurn) 
+                IsBlackSwapActive = false; // 이제 흑 차례가 되었으니, 흑이 이전에 썼던 효과를 끔
+            else 
+                IsWhiteSwapActive = false; // 이제 백 차례가 되었으니, 백이 이전에 썼던 효과를 끔
+
+            // 만약 백이 흑의 효과를 상쇄 시켰다면, 여기서 꺼도 어차피 아무 일 안 일어남 
+            IsStoneSwapped = IsVisualSwapped; 
+            RPC_ApplyStoneSwap(IsStoneSwapped);
 
             StartTurnTimer(); // 타이머도 호스트만 관리
         }
 
-        // 3. AI 차례 확인 (모든 플레이어 공통 체크)
+        // AI 차례 확인 (모든 플레이어 공통 체크)
         ProcessAiTurn();
         GomokuItemManager.I.ResetTurnLimit();
     }
@@ -593,7 +600,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     }
 
     /// 더블표사에 쓰이는 로직
-    /// 
+    
     /// <summary>
     /// 더블 표시 아이템 사용 RPC
     /// </summary>
@@ -659,17 +666,36 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     }
 
     /// 돌바꾸기 쓰이는 로직
+    
     /// <summary>
     /// 돌 바꾸기 RPC 요청
     /// </summary>
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    public void RPC_UseStoneSwapItem()
-    {
-        IsStoneSwapped = true; 
-        SwapUsedByBlack = IsBlackTurn; //아이템을 쓴 순간의 턴을 기억함
+    public void RPC_UseStoneSwapItem(StoneColor userColor)
+    {   
+        // 둘중 한명이라 효과를 발동시킨 상태에서 사용되면 상쇄 해버림
+        if (IsVisualSwapped) 
+        {
+            // 원래색으로 초기화
+            IsBlackSwapActive = false;
+            IsWhiteSwapActive = false;
+        }
+        else 
+        {
+            // 아무도 아이템을 안 쓴 '정상' 상태라면, 사용자의 색상에 맞춰 플래그 활성화
+            if (userColor == StoneColor.Black) 
+                IsBlackSwapActive = true;  // 흑이 판을 뒤집음
+            else 
+                IsWhiteSwapActive = true;  // 백이 판을 뒤집음
+                
+            Debug.Log($"<color=magenta>[아이템 발동]</color> {userColor}가 판을 뒤집었습니다!");
+        }
+
+        // 3. [최종 결과 저장] XOR 연산 결과를 네트워크 동기화 변수에 업데이트
+        IsStoneSwapped = IsVisualSwapped;
         
-        RPC_ApplyStoneSwap(true); 
-        Debug.Log("돌 바꾸기 아이템 사용됨 (서버)");
+        // 4. [비주얼 동기화] 모든 클라이언트의 화면을 최종 결정된 반전 상태에 맞춰 다시 그림
+        RPC_ApplyStoneSwap(IsStoneSwapped);
     }
     /// <summary>
     /// 실제 보드판에 있는 돌 색상 반전 
@@ -892,4 +918,5 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             Debug.Log("AI 확인용");
         }
     }
+
 }

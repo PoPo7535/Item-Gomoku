@@ -291,7 +291,7 @@ public class GomokuBoardView : MonoBehaviour
                 if (data.Color == StoneColor.None) continue;
 
                 bool isOriginalBlack = (data.Color == StoneColor.Black);
-                if (revealSpecial)
+                if (revealSpecial) 
                 {
                     if (data.IsTransparent)
                     {
@@ -313,11 +313,12 @@ public class GomokuBoardView : MonoBehaviour
                     }
                     continue;
                 }
-                if (showEverything)
-                {   // 게임종료 후 프리팹 일반돌로 함
+                
+                if (showEverything) 
+                {   
                     GameObject endPrefab = isOriginalBlack ? BlackStonePrefab : WhiteStonePrefab;
                     SpawnVisualStone(x, z, endPrefab);
-                    continue; // 아래 아이템 처리 로직을 타지 않음
+                    continue; 
                 }
 
            
