@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
@@ -320,17 +320,19 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// </summary>
     private void HandleAIInput((Vector3 pos, int x, int z) result)
     {
-        // 플레이어만 입력 근데지금 흑고정이라 선택하게하면 바꿔야함여기
+        // AI 사고 중이거나 플레이어 턴이 아니면 입력 받지 않음.
         if (_isAiThinking || !IsPlayerTurn)
         {
             return;
         }
 
+        // 보드 위 유효 좌표를 찍지 못한 입력은 무시함.
         if (result.pos == Vector3.zero)
         {
             return;
         }
 
+        // 선택된 아이템이 있으면 일반 착수보다 먼저 사용 처리함.
         if (GomokuItemManager.I.CurrentSelectedItem != null)
         {
             bool used = GomokuItemManager.I.TryUseItem(result.x, result.z);
@@ -342,20 +344,23 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
 
         if (IsDoubleMarkerEffect)
         {
+            // AI 색상 선택을 고려해 가짜 마커는 실제 플레이어 색상 기준으로 고름.
             var randomStone = GetRandomExistStone(PlayerStoneColor);
             fakeX = randomStone.x;
             fakeZ = randomStone.z;
         }
 
+        // 좌표형 아이템은 기존 돌/마커를 대상으로 할 수 있어 일반 착수 검사보다 먼저 처리함.
         if (HandleSpecialItemInput(result)) return;
 
+        // 아이템 처리가 끝난 뒤 일반 착수 가능 여부를 최종 확인함.
         if (!CanPlaceStoneSafely(result.x, result.z, PlayerStoneColor))
         {
             return;
         }
 
+        // AI 대전의 플레이어 색상과 더블 표시 좌표를 함께 기존 착수 경로로 전달함.
         PlaceStoneProcess(result.pos, result.x, result.z, PlayerStoneColor == StoneColor.Black, fakeX, fakeZ, false);
-        
     }
 
     /// <summary>
