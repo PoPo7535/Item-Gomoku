@@ -881,7 +881,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             {
                 panel.SetReadyButtonStateAfterGame(); 
             }
-            WinPanel.OpPanel(WinColor);
+            WinPanel.OpPanel(WinColor); // 승리패널
         }
         if (App.I.PlayMode == GamePlayMode.Single)
         {
