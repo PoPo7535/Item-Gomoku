@@ -149,18 +149,19 @@ public class GomokuItemManager : MonoBehaviour
         CurrentSelectedItem = null;
         CurrentMode = InputMode.Normal;
     }
-    // GomokuItemManager.cs 내부
     public void FullReset()
     {
+        // 모든 상태 강제 초기화
         _hasUsedItemInTurn = false;    
         CurrentSelectedItem = null;   
         CurrentMode = InputMode.Normal; 
-        ResetSelection();
+        
+        // UI 패널 리셋
         if (GomokuManager.I.ItemPanel != null)
         {
             GomokuManager.I.ItemPanel.ClearAllToggles();
             GomokuManager.I.ItemPanel.SetInteractable(true);
         }
-        if (_test != null) _test.text = "아이템 시스템 리셋 완료";
+        
     }
 }

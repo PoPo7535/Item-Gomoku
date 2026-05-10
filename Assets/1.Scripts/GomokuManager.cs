@@ -383,15 +383,15 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// </summary>
     public void ResetGame()
     {   
-        //AI 관련 초기화 
         CancelAiSearchRequest();
         ResetAiBoardState();
+
         if (Object.HasStateAuthority)
         {   
-            
             IsPlaying = false;
             TickTimer = TickTimer.None;
-            // 네트워크 아이템 상태 초기화 ---
+            
+            // 네트워크 변수들은 호스트가 확실히 리셋
             IsTimerHalfEffect = false;
             IsDoubleMarkerEffect = false;
             NetFakeX = -1;
@@ -402,24 +402,29 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             SwapUsedByBlack = false;
         }
         
-       
+        // 공통 로직
         IsBlackTurn = true;
         _logic = new OmokuLogic();
         _blackHistory.Clear();
         _whiteHistory.Clear();
         _lastX = 0; _lastZ = 0;
-        if (BoardView != null) BoardView.ClearBoard();
-        
-        BoardView?.UpdateGhostStone(Vector3.zero, false, false,false);
-        if (BoardView.RealLastMoveMarker != null)
-            BoardView.RealLastMoveMarker.SetActive(false);
+        _shouldHideNextMarker = false; // 로컬 변수 리셋
 
-        if (BoardView.FakeLastMoveMarker != null)
-            BoardView.FakeLastMoveMarker.SetActive(false);
-        _shouldHideNextMarker = false;
-        GomokuItemManager.I.FullReset(); //아이템 매니저 전체 리셋
+        // 보드 지우기
+        if (BoardView != null) 
+        {
+            BoardView.ClearBoard();
+            if (BoardView.RealLastMoveMarker != null) BoardView.RealLastMoveMarker.SetActive(false);
+            if (BoardView.FakeLastMoveMarker != null) BoardView.FakeLastMoveMarker.SetActive(false);
+        }
+
+        // [핵심] 아이템 매니저 리셋
+        if (GomokuItemManager.I != null)
+        {
+            GomokuItemManager.I.FullReset();
+        }
+
         SetupPlayerColor();
-        Debug.Log("게임 리셋 및 기록 초기화 완료");
     }
     /// <summary>
     /// 게임 시작 UI 버튼용
