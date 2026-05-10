@@ -149,15 +149,14 @@ public class GomokuItemManager : MonoBehaviour
         CurrentSelectedItem = null;
         CurrentMode = InputMode.Normal;
     }
+
     public void FullReset()
     {
-        // 모든 상태 강제 초기화
         _hasUsedItemInTurn = false;    
         CurrentSelectedItem = null;   
-        CurrentMode = InputMode.Normal; 
+        CurrentMode = InputMode.Normal; // 확실하게 노멀 모드로!
         
-        // UI 패널 리셋
-        if (GomokuManager.I.ItemPanel != null)
+        if (GomokuManager.I != null && GomokuManager.I.ItemPanel != null)
         {
             GomokuManager.I.ItemPanel.ClearAllToggles();
             GomokuManager.I.ItemPanel.SetInteractable(true);

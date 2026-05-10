@@ -299,7 +299,7 @@ public class GomokuBoardView : MonoBehaviour
                     continue; // 아래 아이템 처리 로직을 타지 않음
                 }
 
-                // --- [기존 아이템 처리 로직] ---
+           
                 if (data.IsTransparent)
                 {
                     if (data.Color == GomokuManager.I.MyColor)

@@ -131,7 +131,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         StoneData targetData = _logic.Board[x, z];
 
         // --- [함정 체크 수정] ---
-        // 상대방의 투명돌이거나, '상대방'의 가짜돌일 때만 함정 발동!
+        // 상대방의 투명돌이거나, 상대방 의 가짜돌일 때만 함정 발동!
         // (내 가짜돌을 내가 클릭하는 건 업그레이드 시도로 간주하여 통과시킴)
         bool isOpponentSpecialStone = (targetData.IsTransparent || targetData.IsFake) && targetData.Color != actingPlayerColor;
 
@@ -147,11 +147,11 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         {   
             GomokuItemManager.I.ConsumeItemUI(); 
             GomokuItemManager.I.ResetSelection();
-            // [수정 포인트] SpawnStone 대신 전체 시각적 갱신 호출
-            // 이렇게 해야 본인 화면에는 '가짜 프리팹'이, 상대 화면에는 '일반 프리팹'이 즉시 나타납니다.
+
+            // 돌시각적 갱신 
             BoardView.SwapAllStonesVisual(IsStoneSwapped); 
             
-            // 3. 마지막 마커 표시 로직
+            // 마지막 마커 표시 로직
             if (_shouldHideNextMarker) 
             {
                 _shouldHideNextMarker = false;
@@ -171,7 +171,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
 
             NotifyBoardChanged();
             
-            // 4. 기록 저장
+            // 전체 기록 저장 현재는안씀 X 
             if (isBlackStone) _blackHistory.Add($"{x},{z}");
             else _whiteHistory.Add($"{x},{z}");
             
@@ -408,7 +408,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         _blackHistory.Clear();
         _whiteHistory.Clear();
         _lastX = 0; _lastZ = 0;
-        _shouldHideNextMarker = false; // 로컬 변수 리셋
+        _shouldHideNextMarker = false; 
 
         // 보드 지우기
         if (BoardView != null) 
@@ -418,7 +418,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             if (BoardView.FakeLastMoveMarker != null) BoardView.FakeLastMoveMarker.SetActive(false);
         }
 
-        // [핵심] 아이템 매니저 리셋
+        // 아이템 매니저 리셋
         if (GomokuItemManager.I != null)
         {
             GomokuItemManager.I.FullReset();
@@ -434,16 +434,14 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         if(IsPlaying) return;
         if (App.I.PlayMode == GamePlayMode.Multi && !Object.HasStateAuthority) return;
 
-        // 모든 클라이언트의 보드를 비우고 리셋
-        RPC_GameEnd(); 
+        RPC_GameEnd(); // 게임한번초기화
         
         SetupPlayerColor();
-        IsPlaying = true;
+        IsPlaying = true; 
         
-        // 첫 턴 시작 시 아이템 사용 가능 상태로 강제 설정
         if (GomokuItemManager.I != null)
         {
-            GomokuItemManager.I.ResetTurnLimit();
+            GomokuItemManager.I.ResetTurnLimit(); // 턴 제한만 풀어줍니다.
         }
 
         StartTurnTimer();
@@ -872,7 +870,6 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         // 모든돌을 일반돌로 보이게함
         BoardView.SwapAllStonesVisual(false, true);
 
-        // 여기서 ResetGame()을 바로 호출하지 않고, UI에서 상태만 업데이트
         // UI 게임 종료 패널 띄우기 
         if (App.I.PlayMode == GamePlayMode.Multi)
         {
