@@ -110,7 +110,7 @@ public class GomokuBoardView : MonoBehaviour
     }
 
     /// <summary>
-    /// 실제 돌 프리팹을 화면에 생성하고 배열에 저장
+    /// 실제 돌 프리팹을 화면에 생성하고 배열에 저장 현재안씀 X
     /// </summary>
     public void SpawnStone(int x, int z, bool isBlack, Vector3 pos)
     {
@@ -271,13 +271,16 @@ public class GomokuBoardView : MonoBehaviour
 
     /// <summary>
     /// 모든 돌을 다시 렌더링합니다. 투명돌과 가짜돌은 스왑(색상 반전)의 영향을 받지 않습니다.
+    /// showEverything이 true이면 투명/가짜 효과를 무시하고 일반 돌로 보여줌 
+    /// revealSpecial  true 면 양쪽 플레이어 돌이 다 공개댐 (투명돌 ,가짜돌 포함) 게임끝나고 보여줄거
     /// </summary>
-    public void SwapAllStonesVisual(bool isSwapped)
+    public void SwapAllStonesVisual(bool isSwapped, bool showEverything = false, bool revealSpecial = false)
     {
         for (int x = 0; x < LineCount; x++)
         {
             for (int z = 0; z < LineCount; z++)
             {
+                // 기존 오브젝트 제거
                 if (_stoneObjects[x, z] != null)
                 {
                     Destroy(_stoneObjects[x, z]);
@@ -288,8 +291,37 @@ public class GomokuBoardView : MonoBehaviour
                 if (data.Color == StoneColor.None) continue;
 
                 bool isOriginalBlack = (data.Color == StoneColor.Black);
+                if (revealSpecial) 
+                {
+                    if (data.IsTransparent)
+                    {
+                        // 투명 돌이면 모든 플레이어에게 투명 프리팹으로 공개
+                        GameObject tPrefab = isOriginalBlack ? BlackTransparentPrefab : WhiteTransparentPrefab;
+                        SpawnVisualStone(x, z, tPrefab);
+                    }
+                    else if (data.IsFake)
+                    {
+                        // 가짜 돌이면 모든 플레이어에게 가짜 프리팹으로 공개
+                        GameObject fPrefab = isOriginalBlack ? BlackFakePrefab : WhiteFakePrefab;
+                        SpawnVisualStone(x, z, fPrefab);
+                    }
+                    else
+                    {
+                        // 일반 돌
+                        GameObject nPrefab = isOriginalBlack ? BlackStonePrefab : WhiteStonePrefab;
+                        SpawnVisualStone(x, z, nPrefab);
+                    }
+                    continue;
+                }
+                
+                if (showEverything) 
+                {   
+                    GameObject endPrefab = isOriginalBlack ? BlackStonePrefab : WhiteStonePrefab;
+                    SpawnVisualStone(x, z, endPrefab);
+                    continue; 
+                }
 
-                // --- [A. 투명돌 처리] ---
+           
                 if (data.IsTransparent)
                 {
                     if (data.Color == GomokuManager.I.MyColor)
@@ -300,32 +332,26 @@ public class GomokuBoardView : MonoBehaviour
                     continue; 
                 }
 
-                // --- [B. 가짜돌 처리] ---
                 if (data.IsFake)
                 {
-                    // 1. 내 가짜돌인 경우: 내가 알 수 있도록 가짜 프리팹 생성
                     if (data.Color == GomokuManager.I.MyColor)
                     {
                         GameObject fPrefab = isOriginalBlack ? BlackFakePrefab : WhiteFakePrefab;
                         SpawnVisualStone(x, z, fPrefab);
                     }
-                    // 2. 상대방 가짜돌인 경우: 나를 속여야 하므로 '일반돌' 생성
                     else
                     {
-                        // 일반돌과 동일하게 Swap 로직 적용
                         bool renderAsBlack = isOriginalBlack;
                         if (isSwapped) renderAsBlack = !renderAsBlack;
-                        
                         GameObject prefab = renderAsBlack ? BlackStonePrefab : WhiteStonePrefab;
                         SpawnVisualStone(x, z, prefab);
                     }
                     continue;
                 }
 
-                // --- [C. 일반 돌 처리] ---
+                // 일반 돌 처리
                 bool normalRenderAsBlack = isOriginalBlack;
                 if (isSwapped) normalRenderAsBlack = !normalRenderAsBlack;
-
                 GameObject normalPrefab = normalRenderAsBlack ? BlackStonePrefab : WhiteStonePrefab;
                 SpawnVisualStone(x, z, normalPrefab);
             }

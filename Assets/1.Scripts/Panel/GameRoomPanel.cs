@@ -147,4 +147,23 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
     {
         Player2Str = nickName;
     }
+
+
+    // 게임 종료 후 버튼 상태 초기화 추가한부분
+    public void SetReadyButtonStateAfterGame()
+    {
+        _clientReady = false; 
+
+        if (Object.HasStateAuthority)
+        {
+            readyButton.interactable = false;
+            readyText.text = "게임 시작";
+        }
+        else
+        {
+            readyButton.interactable = true;
+            readyText.text = "준비";
+        }
+
+    }
 }

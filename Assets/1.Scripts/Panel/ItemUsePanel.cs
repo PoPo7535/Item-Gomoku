@@ -11,6 +11,7 @@ public class ItemUsePanel : MonoBehaviour
     [SerializeField] private Transform bg;
     [SerializeField] private List<ItemToggle> _toggles = new();
     private List<ItemToggle> _activeToggles = new();
+
     public void Set(GomokuItem[] items)
     {
         ActivePanel(true);
@@ -20,6 +21,10 @@ public class ItemUsePanel : MonoBehaviour
             {
                 var item = items[i];
                 _toggles[i].Set(item);
+                
+                // 기존에 있는 이벤트 싹다 제거함 추가한부분
+                _toggles[i].toggle.onValueChanged.RemoveAllListeners(); 
+                
                 _toggles[i].toggle.group = _toggleGroup;
                 _toggles[i].toggle.gameObject.SetActive(true);
                 _toggles[i].toggle.onValueChanged.AddListener((isOn) =>
@@ -39,7 +44,6 @@ public class ItemUsePanel : MonoBehaviour
                 _toggles[i].gameObject.SetActive(false);
             }
         }
-        _activeToggles = _toggles.Where(toggle => toggle.toggle.isOn).ToList();
     }
 
     private void ActivePanel(bool isActive)
