@@ -18,6 +18,7 @@ public class GomokuItemManager : MonoBehaviour
     public InputMode CurrentMode = InputMode.Normal;
     // 이번 턴에 이미 아이템을 사용했는지 여부
     private bool _hasUsedItemInTurn = false;
+
     private void Awake()
     {
         I = this;
@@ -28,7 +29,12 @@ public class GomokuItemManager : MonoBehaviour
     /// </summary>
     public void SelectItem(GomokuItem item)
     {   
-        if (_hasUsedItemInTurn) return;
+        // 1. 이미 아이템을 썼거나, 2. 내 턴이 아니면 아예 선택조차 못하게 함
+        if (_hasUsedItemInTurn || !GomokuManager.I.IsMyTurn()) 
+        {
+            ResetSelection();
+            return;
+        }
         // 처음 부를 때 null 이면초기화
         if (item == null)
         {
