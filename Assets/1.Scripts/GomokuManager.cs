@@ -804,7 +804,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         BoardView.SwapAllStonesVisual(IsStoneSwapped);
         
     }
-
+    
     ///가짜돌 함수
     /// <summary>
     /// 가짜돌 아이템 사용 시 호출될 함수
@@ -892,7 +892,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         
         Debug.Log($"<color=yellow>[알림]</color> ({x}, {z})의 {type} 돌이 제거되었습니다.");
     }
-    
+
     [Rpc(RpcSources.All, RpcTargets.All)]
     private void RPC_GameEnd_ALL(StoneColor WinColor)
     {

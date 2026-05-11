@@ -71,6 +71,19 @@ public class ItemSelectPanel : NetworkBehaviour
             _timeOut = false;
             ClientIsSelect = App.I.PlayMode != GamePlayMode.Multi;
             HostIsSelect = false;
+
+            // 카운트 및 아이템 토글 상태 초기화 // 추가 된부분
+            _currentSelectCount = 0;
+            if (activeItemToggles != null)
+            {
+                foreach (var itemToggle in activeItemToggles)
+                {
+                    
+                    itemToggle.toggle.SetIsOnWithoutNotify(false);// 이벤트 트리거 없이 체크 상태만 끄기
+                    itemToggle.toggle.interactable = true;
+                }
+            }
+            okBtn.interactable = false;
         }
         cg.ActiveCG(isActive);
         Timer = isActive ? TickTimer.CreateFromSeconds(App.I.Runner, timeLimit) : TickTimer.None;
