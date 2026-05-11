@@ -935,11 +935,6 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         // UI 게임 종료 패널 띄우기 
         if (App.I.PlayMode == GamePlayMode.Multi)
         {
-            var panel = FindObjectOfType<GameRoomPanel>();
-            if (panel != null)
-            {
-                panel.SetReadyButtonStateAfterGame(); 
-            }
             WinPanel.OpPanel(WinColor); // 승리패널
         }
         if (App.I.PlayMode == GamePlayMode.Single)

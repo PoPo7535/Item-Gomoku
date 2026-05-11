@@ -73,8 +73,9 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
                 RPC_Ready(false == _clientReady);
         });
         readyText.text = Object.HasStateAuthority ? "게임시작" : "준비";
-        readyButton.interactable = false == Object.HasStateAuthority || 
-                                   App.I.PlayMode != GamePlayMode.Multi;
+        readyButton.interactable = 
+            false == Object.HasStateAuthority || 
+            App.I.PlayMode != GamePlayMode.Multi;
 
         roomCodeText.text = App.I.Runner.SessionInfo.Name;
         OpenRoomToggleBool = App.I.Runner.SessionInfo.IsVisible;
@@ -105,10 +106,25 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
         });
         GomokuManager.I.PlayEvents.Add(isPlay =>
         {
-            if (false == isPlay)
+            _clientReady = false;
+            if (isPlay)
+            {
+                readyButton.interactable = false;
+                openRoomToggle.interactable = false;
+                itemToggle.interactable = false;
+            }
+            else
             {
                 playerImg1.color = Color.white;
                 playerImg2.color = Color.white;
+                readyButton.interactable = 
+                    false == Object.HasStateAuthority || 
+                    App.I.PlayMode != GamePlayMode.Multi;
+                if (Object.HasStateAuthority)
+                {
+                    openRoomToggle.interactable = true;
+                    itemToggle.interactable = true;
+                }
             }
         });
         roomCodeButton.onClick.AddListener(() =>
@@ -146,24 +162,5 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
     private void Rpc_SetNickName(string nickName)
     {
         Player2Str = nickName;
-    }
-
-
-    // 게임 종료 후 버튼 상태 초기화 추가한부분
-    public void SetReadyButtonStateAfterGame()
-    {
-        _clientReady = false; 
-
-        if (Object.HasStateAuthority)
-        {
-            readyButton.interactable = false;
-            readyText.text = "게임 시작";
-        }
-        else
-        {
-            readyButton.interactable = true;
-            readyText.text = "준비";
-        }
-
     }
 }

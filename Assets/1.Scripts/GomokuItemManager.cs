@@ -53,11 +53,15 @@ public class GomokuItemManager : MonoBehaviour
     /// </summary>
     public bool TryUseItem(int x, int z) 
     {
-        if (_hasUsedItemInTurn) return false; // 아이템을 사용했다면
-        if (CurrentSelectedItem == null) return false; // 현재선택된 아이템이 없다면
-        if (!GomokuManager.I.IsMyTurn()) return false; // 현재 내턴이라면
+            if (_hasUsedItemInTurn) return false;
+            if (CurrentSelectedItem == null) return false;
+            if (!GomokuManager.I.IsMyTurn()) return false;
 
-        bool success = false;
+            // 에러 방지: 아이템 정보를 미리 변수에 저장해둡니다.
+            string usedItemName = CurrentSelectedItem.itemName;
+            ItemType usedType = CurrentSelectedItem.type;
+
+            bool success = false;
    
         // [수정] itemName 대신 Enum 타입으로 분기 처리
         switch (CurrentSelectedItem.type)
@@ -103,16 +107,25 @@ public class GomokuItemManager : MonoBehaviour
 
         if (success)
         {   
-            _hasUsedItemInTurn = true; 
-            if (_test != null) _test.text = $"아이템 사용 완료 : {CurrentSelectedItem.itemName}";
-            if (CurrentSelectedItem.type == ItemType.FakeStone || CurrentSelectedItem.type == ItemType.TransparentStone)
+            _hasUsedItemInTurn = true;
+
+            // 로그 출력을 가장 먼저 수행 (CurrentSelectedItem이 null이 되기 전)
+            if (_test != null) _test.text = $"아이템 사용 완료 : {usedItemName}";
+
+            // 즉시 발동형 아이템 처리
+            if (usedType != ItemType.FakeStone && 
+                usedType != ItemType.TransparentStone && 
+                usedType != ItemType.Detect)
             {
-                
+                ConsumeItemUI(); 
             }
             else
             {
-                CurrentSelectedItem = null;
-            }             
+                // 좌표 선택형 아이템들의 경우, 여기서 null 처리를 하면 
+                // 나중에 실제 착수 시점에 데이터가 없어 에러가 날 수 있습니다.
+                // ConsumeItemUI()가 실제 착수 시(PlaceStoneProcess 등)에 호출되므로 
+                // 여기서는 중복 처리를 하지 않도록 주의해야 합니다.
+            }         
         }
 
         return success;
@@ -142,6 +155,7 @@ public class GomokuItemManager : MonoBehaviour
     {
         if (CurrentSelectedItem == null) return;
 
+        GomokuManager.I.ItemPanel.HideUsedItem(CurrentSelectedItem); // 사용한 아이템 안보이게함
         // 패널의 모든 버튼을 클릭 차단
         GomokuManager.I.ItemPanel.ClearAllToggles();
         GomokuManager.I.ItemPanel.SetInteractable(false);
