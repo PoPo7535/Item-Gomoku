@@ -22,7 +22,7 @@ public class BrushPanel : MonoBehaviour
         switch (itemType)
         {
             case ItemType.TransparentStone:
-                itemName = "착수숨김";
+                itemName = "투명 돌";
                 break;
             default:
                 "예외발생".WarningLog();
