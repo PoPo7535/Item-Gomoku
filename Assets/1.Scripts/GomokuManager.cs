@@ -927,7 +927,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         IsPlaying = false;
         if (Object.HasStateAuthority) TickTimer = TickTimer.None;
         
-        // 모든돌을 일반돌로 보이게함
+        // 각플레이어에 모든 돌 공개 
         BoardView.SwapAllStonesVisual(false, false, true);
 
         bool isWin = (MyColor == WinColor);
@@ -943,11 +943,13 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             WinPanel.OpPanel(WinColor); // 승리패널
         }
         if (App.I.PlayMode == GamePlayMode.Single)
-        {
+        {   
+            WinPanel.OpPanel(WinColor); // 승리패널
             Debug.Log("싱글 확인용");
         }
         if (App.I.PlayMode == GamePlayMode.AI)
-        {
+        {   
+            WinPanel.OpPanel(WinColor); // 승리패널
             Debug.Log("AI 확인용");
         }
     }
