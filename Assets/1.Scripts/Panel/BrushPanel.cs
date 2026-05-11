@@ -21,9 +21,8 @@ public class BrushPanel : MonoBehaviour
         var itemName = string.Empty;
         switch (itemType)
         {
-            case ItemType.HideStone:
-                break;
             case ItemType.TransparentStone:
+                itemName = "착수숨김";
                 break;
             default:
                 "예외발생".WarningLog();
