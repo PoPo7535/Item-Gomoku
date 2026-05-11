@@ -79,6 +79,7 @@ public class GomokuItemManager : MonoBehaviour
         {
             case ItemType.DoubleShow: // 더블 표시
                 GomokuManager.I.RPC_UseDoubleMarkerItem(); // 완성
+                GomokuManager.I.brushPanel.DoubleMarker();
                 success = true;
                 break;
 
@@ -89,6 +90,7 @@ public class GomokuItemManager : MonoBehaviour
 
             case ItemType.HideStone: // 착수 숨김 
                 GomokuManager.I.RPC_UseHideMoveItem(); // 완성 
+                GomokuManager.I.brushPanel.shouldHideNextMarker();
                 success = true;
                 break;
 
@@ -98,7 +100,7 @@ public class GomokuItemManager : MonoBehaviour
                 break;
 
             case ItemType.TimerDecreasing: // 타이머 감소
-                GomokuManager.I.RPC_UseTimerReductionItem(); // 완성 
+                GomokuManager.I.RPC_UseTimerReductionItem(GomokuManager.I.MyColor);
                 success = true;
                 break;
 
