@@ -22542,6 +22542,78 @@ MonoBehaviour:
   NetworkedBehaviours:
   - {fileID: 2005178762}
   ForceRemoteRenderTimeframe: 0
+--- !u!1 &2013646201
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2013646203}
+  - component: {fileID: 2013646202}
+  m_Layer: 0
+  m_Name: UiSoundHelper
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2013646202
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2013646201}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a857f274f48b3254fa752f59ebbe8c9a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UISoundHelper
+  toggles:
+  - {fileID: 736317929}
+  - {fileID: 137270480}
+  - {fileID: 1998833081}
+  - {fileID: 947457508}
+  - {fileID: 1025733908}
+  - {fileID: 605709805}
+  - {fileID: 1309376825}
+  - {fileID: 1864272885}
+  - {fileID: 345770031}
+  - {fileID: 2084661477}
+  - {fileID: 301360844}
+  - {fileID: 992527644}
+  - {fileID: 905023044}
+  - {fileID: 1592847946}
+  - {fileID: 471868625}
+  - {fileID: 2528155263347930372}
+  - {fileID: 2093034978}
+  buttons:
+  - {fileID: 1549023715}
+  - {fileID: 1977361494}
+  - {fileID: 1521034047}
+  - {fileID: 311929003}
+  - {fileID: 530821645}
+  - {fileID: 1896314377}
+  - {fileID: 120147073}
+  - {fileID: 1429454003}
+  - {fileID: 2023027203}
+--- !u!4 &2013646203
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2013646201}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2023027201
 GameObject:
   m_ObjectHideFlags: 0
@@ -23850,6 +23922,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: df94ca7e1abeb9c4dba3192710e9f4be, type: 3}
+--- !u!114 &2528155263347930372 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1672291378976103571, guid: df94ca7e1abeb9c4dba3192710e9f4be, type: 3}
+  m_PrefabInstance: {fileID: 2528155263347930371}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9085046f02f69544eb97fd06b6048fe2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Toggle
 --- !u!1001 &4048474110738007397
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -24113,3 +24196,4 @@ SceneRoots:
   - {fileID: 1613987969}
   - {fileID: 1954883594}
   - {fileID: 1472558137}
+  - {fileID: 2013646203}
