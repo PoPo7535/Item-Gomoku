@@ -747,7 +747,12 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         
         // 4. [비주얼 동기화] 모든 클라이언트의 화면을 최종 결정된 반전 상태에 맞춰 다시 그림
         RPC_ApplyStoneSwap(IsStoneSwapped);
-        brushPanel?.StoneSwap();
+        RPC_ShowStoneSwapUI(userColor);
+    }
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void RPC_ShowStoneSwapUI(StoneColor userColor)
+    {
+        brushPanel?.StoneSwap(); // 모든 클라이언트에서 실행
     }
     /// <summary>
     /// 실제 보드판에 있는 돌 색상 반전 
