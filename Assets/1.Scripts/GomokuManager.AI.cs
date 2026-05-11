@@ -76,6 +76,7 @@ public partial class GomokuManager
         _isAiThinking = false;
         _boardVersion = 0;
         _aiSearchRequestId++;
+        ResetAiItemAwarenessMemory();
     }
 
     /// <summary>
@@ -141,7 +142,7 @@ public partial class GomokuManager
         CancellationTokenSource searchCancellationTokenSource = new CancellationTokenSource();
         _aiSearchCancellationTokenSource = searchCancellationTokenSource;
 
-        GomokuBoardSnapshot snapshot = GomokuBoardSnapshot.CreateForViewer(_logic.Board, _boardVersion, AiStoneColor);
+        GomokuBoardSnapshot snapshot = CreateAiSearchSnapshot();
         GomokuAISearchRequest request = new GomokuAISearchRequest(
             requestId,
             _aiAlgorithmType,
@@ -309,7 +310,13 @@ public partial class GomokuManager
             return false;
         }
 
+        bool wasOpponentSpecialStone = IsAiItemAwarenessEnabled() && IsOpponentSpecialStone(x, z, stoneColor);
         PlaceStoneProcess(pos, x, z, stoneColor == StoneColor.Black);
+        if (wasOpponentSpecialStone)
+        {
+            RememberAiOpponentSpecialStone(x, z, stoneColor);
+        }
+
         return true;
     }
 
@@ -327,12 +334,23 @@ public partial class GomokuManager
             return false;
         }
 
-        if (IsOpponentSpecialStone(x, z, stoneColor))
+        if (CanPlaceStoneSafely(x, z, stoneColor))
         {
             return true;
         }
 
-        return CanPlaceStoneSafely(x, z, stoneColor);
+        if (!IsAiItemAwarenessEnabled())
+        {
+            return false;
+        }
+
+        if (IsKnownAiOpponentSpecialStone(x, z, stoneColor))
+        {
+            // 이미 밟아본 함정 좌표는 다시 시도하지 않음.
+            return false;
+        }
+
+        return IsOpponentSpecialStone(x, z, stoneColor);
     }
 
     /// <summary>
