@@ -137,6 +137,7 @@ public partial class GomokuManager
         CancelAiSearchRequest();
         _isAiThinking = true;
         BoardView?.UpdateGhostStone(Vector3.zero, false, false,false);
+        TryUseAiDetectOnKnownSpecialStone();
 
         int requestId = ++_aiSearchRequestId;
         CancellationTokenSource searchCancellationTokenSource = new CancellationTokenSource();

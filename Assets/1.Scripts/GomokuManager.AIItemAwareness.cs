@@ -1,11 +1,23 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 /// <summary>
 /// AI 전용 아이템 인식 기억 상태를 관리함.
 /// </summary>
 public partial class GomokuManager
 {
+    [Header("AI 아이템 인식")]
+    [SerializeField, Min(0)] private int _initialAiDetectItemCount;     // 간파하기 아이템 초기 개수
+    [SerializeField, Min(0)] private int _aiDetectUseThreshold = 80;    // 간파하기 사용 판단을 위한 최소 점수 임계값
+
+    private const int AiTransparentDetectBaseScore = 100;
+    private const int AiFakeDetectBaseScore = 60;
+    private const int AiDetectNearbyStoneScore = 8;
+    private const int AiDetectCenterBonusMax = 6;
+    private const int AiDetectNearbyRange = 2;
+
     private readonly HashSet<int> _knownAiOpponentSpecialStoneKeys = new HashSet<int>();
+    private int _remainingAiDetectItemCount;
 
     /// <summary>
     /// 아이템 인식 설정에 맞춰 AI 탐색용 보드 스냅샷을 생성함.
@@ -28,6 +40,27 @@ public partial class GomokuManager
     private void ResetAiItemAwarenessMemory()
     {
         _knownAiOpponentSpecialStoneKeys.Clear();
+        _remainingAiDetectItemCount = _initialAiDetectItemCount;
+    }
+
+    /// <summary>
+    /// AI가 기억 중인 상대 특수돌 중 가치가 충분한 좌표에 간파하기를 사용함.
+    /// </summary>
+    private void TryUseAiDetectOnKnownSpecialStone()
+    {
+        if (!IsAiItemAwarenessEnabled() ||
+            _remainingAiDetectItemCount <= 0 ||
+            !TryFindBestKnownSpecialStoneToDetect(AiStoneColor, out int x, out int z, out int score))
+        {
+            return;
+        }
+
+        if (score < _aiDetectUseThreshold)
+        {
+            return;
+        }
+
+        TryRemoveKnownSpecialStoneForAi(x, z, AiStoneColor);
     }
 
     /// <summary>
@@ -72,6 +105,141 @@ public partial class GomokuManager
     }
 
     /// <summary>
+    /// 간파하기를 사용할 가치가 가장 높은 기억된 상대 특수돌 좌표를 찾음.
+    /// </summary>
+    /// <param name="stoneColor">AI 돌 색상.</param>
+    /// <param name="bestX">선택된 X 좌표.</param>
+    /// <param name="bestZ">선택된 Z 좌표.</param>
+    /// <param name="bestScore">선택된 좌표의 평가 점수.</param>
+    /// <returns>후보 탐색 성공 여부.</returns>
+    private bool TryFindBestKnownSpecialStoneToDetect(StoneColor stoneColor, out int bestX, out int bestZ, out int bestScore)
+    {
+        IReadOnlyCollection<int> knownKeys = GetKnownAiOpponentSpecialStoneKeys(stoneColor);
+        int boardSize = GetBoardSize();
+        bestX = -1;
+        bestZ = -1;
+        bestScore = int.MinValue;
+
+        foreach (int key in knownKeys)
+        {
+            int x = key / boardSize;
+            int z = key % boardSize;
+            if (!IsOpponentSpecialStone(x, z, stoneColor))
+            {
+                continue;
+            }
+
+            int score = EvaluateKnownSpecialStoneDetectValue(x, z);
+            if (score <= bestScore)
+            {
+                continue;
+            }
+
+            bestX = x;
+            bestZ = z;
+            bestScore = score;
+        }
+
+        return bestX >= 0 && bestZ >= 0;
+    }
+
+    /// <summary>
+    /// AI 간파하기로 기억된 상대 특수돌을 live board에서 제거함.
+    /// </summary>
+    /// <param name="x">제거할 X 좌표.</param>
+    /// <param name="z">제거할 Z 좌표.</param>
+    /// <param name="stoneColor">AI 돌 색상.</param>
+    /// <returns>제거 성공 여부.</returns>
+    private bool TryRemoveKnownSpecialStoneForAi(int x, int z, StoneColor stoneColor)
+    {
+        if (_remainingAiDetectItemCount <= 0 || !IsOpponentSpecialStone(x, z, stoneColor))
+        {
+            return false;
+        }
+
+        StoneData removedStoneData = _logic.Board[x, z];
+        _logic.Board[x, z] = new StoneData { Color = StoneColor.None, IsFake = false, IsTransparent = false };
+
+        BoardView?.RemoveStone(x, z);
+        BoardView?.SwapAllStonesVisual(IsStoneSwapped);
+
+        ForgetAiOpponentSpecialStone(x, z);
+        _remainingAiDetectItemCount--;
+        NotifyBoardChanged();
+
+        string stoneType = removedStoneData.IsTransparent ? "투명돌" : "가짜돌";
+        Debug.Log($"<color=cyan>[AI 간파]</color> AI가 ({x}, {z})의 상대 {stoneType}을 제거했습니다.");
+        return true;
+    }
+
+    /// <summary>
+    /// 기억된 상대 특수돌 좌표의 간파하기 사용 가치를 계산함.
+    /// </summary>
+    /// <param name="x">평가할 X 좌표.</param>
+    /// <param name="z">평가할 Z 좌표.</param>
+    /// <returns>간파하기 사용 가치 점수.</returns>
+    private int EvaluateKnownSpecialStoneDetectValue(int x, int z)
+    {
+        StoneData stoneData = _logic.Board[x, z];
+        int score = stoneData.IsTransparent ? AiTransparentDetectBaseScore : AiFakeDetectBaseScore;
+        score += CountNearbyRealStones(x, z, AiDetectNearbyRange) * AiDetectNearbyStoneScore;
+        score += GetCenterProximityBonus(x, z);
+        return score;
+    }
+
+    /// <summary>
+    /// 지정 좌표 주변의 실제 돌 개수를 계산함.
+    /// </summary>
+    /// <param name="centerX">중심 X 좌표.</param>
+    /// <param name="centerZ">중심 Z 좌표.</param>
+    /// <param name="range">확인할 주변 범위.</param>
+    /// <returns>주변 실제 돌 개수.</returns>
+    private int CountNearbyRealStones(int centerX, int centerZ, int range)
+    {
+        int count = 0;
+        int boardSize = GetBoardSize();
+        for (int x = centerX - range; x <= centerX + range; x++)
+        {
+            for (int z = centerZ - range; z <= centerZ + range; z++)
+            {
+                if (x == centerX && z == centerZ)
+                {
+                    continue;
+                }
+
+                if (x < 0 || x >= boardSize || z < 0 || z >= boardSize)
+                {
+                    continue;
+                }
+
+                StoneData stoneData = _logic.Board[x, z];
+                if (stoneData.Color == StoneColor.None || stoneData.IsFake || stoneData.IsTransparent)
+                {
+                    continue;
+                }
+
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    /// <summary>
+    /// 중앙에 가까운 좌표에 소량 보너스를 부여함.
+    /// </summary>
+    /// <param name="x">평가할 X 좌표.</param>
+    /// <param name="z">평가할 Z 좌표.</param>
+    /// <returns>중앙 근접 보너스.</returns>
+    private int GetCenterProximityBonus(int x, int z)
+    {
+        int boardSize = GetBoardSize();
+        int center = boardSize / 2;
+        int manhattanDistance = Mathf.Abs(x - center) + Mathf.Abs(z - center);
+        return Mathf.Max(0, AiDetectCenterBonusMax - manhattanDistance);
+    }
+
+    /// <summary>
     /// 라이브 보드에 아직 존재하는 기억된 상대 특수돌 키를 반환함.
     /// </summary>
     /// <param name="stoneColor">AI 돌 색상.</param>
@@ -80,6 +248,16 @@ public partial class GomokuManager
     {
         RemoveStaleAiItemAwarenessKeys(stoneColor);
         return new List<int>(_knownAiOpponentSpecialStoneKeys);
+    }
+
+    /// <summary>
+    /// AI가 기억하는 상대 특수돌 좌표를 제거함.
+    /// </summary>
+    /// <param name="x">제거할 X 좌표.</param>
+    /// <param name="z">제거할 Z 좌표.</param>
+    private void ForgetAiOpponentSpecialStone(int x, int z)
+    {
+        _knownAiOpponentSpecialStoneKeys.Remove(CreateAiItemAwarenessKey(x, z));
     }
 
     /// <summary>

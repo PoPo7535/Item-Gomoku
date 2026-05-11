@@ -21253,6 +21253,8 @@ MonoBehaviour:
   _aiDifficulty: 5
   _maxAiSearchTimeSeconds: 7
   _enableAiItemAwareness: 1
+  _initialAiDetectItemCount: 0
+  _aiDetectUseThreshold: 80
   BoardView: {fileID: 1954883595}
   WinPanel: {fileID: 1844196826}
   TurnTimeLimit: 10
