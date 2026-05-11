@@ -86,6 +86,11 @@ public class OfflineUIManager : LocalSingleton<OfflineUIManager>
         {
             App.I.PlayMode = GamePlayMode.Single;
             SetUIVisible(false);
+            // GameRoomPanel roomPanel = FindObjectOfType<GameRoomPanel>();
+            // if (roomPanel != null)
+            // {
+            //     roomPanel.ResetToSingleMode();
+            // }
         }
     }
     /// <summary>
