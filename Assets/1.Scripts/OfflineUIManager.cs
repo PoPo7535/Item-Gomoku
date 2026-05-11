@@ -11,8 +11,9 @@ public class OfflineUIManager : LocalSingleton<OfflineUIManager>
     [SerializeField] private TMP_Text _laveltext;
     [SerializeField] private TMP_Text _aimsg;
     
+    
     private bool _isAIActive = false;
-
+    private GameRoomPanel roomPanel;
     private void Start()
     {   
        
@@ -26,6 +27,7 @@ public class OfflineUIManager : LocalSingleton<OfflineUIManager>
         _AIBtn.onClick.AddListener(OnClickAIButton);
         _difficultyDropdown.onValueChanged.AddListener(OnChanged);
         OnChanged(_difficultyDropdown.value);
+        roomPanel = FindObjectOfType<GameRoomPanel>();
     }
 
     void Update()
@@ -81,11 +83,13 @@ public class OfflineUIManager : LocalSingleton<OfflineUIManager>
         {
             App.I.PlayMode = GamePlayMode.AI;
             RefreshUIVisibility();
+            roomPanel.SetAIModeUI();
         }
         else
         {
             App.I.PlayMode = GamePlayMode.Single;
             SetUIVisible(false);
+            roomPanel.ResetToSingleMode();
         }
     }
     /// <summary>

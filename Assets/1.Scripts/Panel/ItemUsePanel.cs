@@ -30,11 +30,11 @@ public class ItemUsePanel : MonoBehaviour
                 var item = items[i];
                 _toggles[i].Set(item);
                 
-                // 기존에 있는 이벤트 싹다 제거함 추가한부분
                 
                 _toggles[i].toggle.group = _toggleGroup;
                 _toggles[i].toggle.gameObject.SetActive(true);
                 _toggles[i].toggle.onValueChanged.RemoveListener(ToggleAction); 
+                _toggles[i].toggle.onValueChanged.RemoveAllListeners(); // 전에 등록되어있는 이벤트 싹다제거
                 _toggles[i].toggle.onValueChanged.AddListener(ToggleAction);
                 void ToggleAction(bool isOn)
                 {
