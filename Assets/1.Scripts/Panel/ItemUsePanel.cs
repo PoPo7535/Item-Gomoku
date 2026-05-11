@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using DG.Tweening;
@@ -12,6 +13,15 @@ public class ItemUsePanel : MonoBehaviour
     [SerializeField] private List<ItemToggle> _toggles = new();
     private List<ItemToggle> _activeToggles = new();
 
+    public void Start()
+    {
+        GomokuManager.I.PlayEvents.Add((isPlay) =>
+        {
+            if (false == isPlay)
+                ActivePanel(false);
+        });
+    }
+
     public void Set(GomokuItem[] items)
     {
         ActivePanel(true);
@@ -22,8 +32,8 @@ public class ItemUsePanel : MonoBehaviour
                 var item = items[i];
                 _toggles[i].Set(item);
                 
-                // 기존에 있는 이벤트 싹다 제거함 추가한부분
-                _toggles[i].toggle.onValueChanged.RemoveAllListeners(); 
+                // // 기존에 있는 이벤트 싹다 제거함 추가한부분
+                // _toggles[i].toggle.onValueChanged.RemoveAllListeners(); 
                 
                 _toggles[i].toggle.group = _toggleGroup;
                 _toggles[i].toggle.gameObject.SetActive(true);
