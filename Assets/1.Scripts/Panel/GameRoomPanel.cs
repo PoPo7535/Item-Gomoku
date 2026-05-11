@@ -172,4 +172,29 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
     {
         Player2Str = nickName;
     }
+
+    // AI 토글 켰을대 사용할 것들
+    // Ai 켰을때 : AI 모드
+    public void SetAIModeUI()
+    {
+        ItemToggleBool = false;
+        itemToggle.isOn = false;
+        itemToggle.interactable = true; 
+        
+        OpenRoomToggleBool = false;
+        openRoomToggle.isOn = false;
+        openRoomToggle.interactable = false; 
+    }
+
+    //  AI 껐을 때: 싱글용 
+    public void ResetToSingleMode()
+    {
+        ItemToggleBool = false;
+        itemToggle.isOn = false;
+        itemToggle.interactable = false;
+        
+        OpenRoomToggleBool = false;
+        openRoomToggle.isOn = false;
+        openRoomToggle.interactable = false;
+    }
 }
