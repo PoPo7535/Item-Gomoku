@@ -61,14 +61,13 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
 
         readyButton.onClick.AddListener(() =>
         {
-            if (false == itemToggle.isOn)
-            {
-                RPC_StartGame();
-                return;
-            }
-
             if (Object.HasStateAuthority)
-                RPC_OpenItemSelectPanel();
+            {
+                if (false == itemToggle.isOn)
+                    RPC_StartGame();
+                else
+                    RPC_OpenItemSelectPanel();
+            }
             else
                 RPC_Ready(false == _clientReady);
         });
