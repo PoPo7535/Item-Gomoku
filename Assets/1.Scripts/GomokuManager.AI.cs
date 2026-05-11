@@ -15,10 +15,11 @@ public partial class GomokuManager
     }
 
     [Header("AI 설정")]
-    [SerializeField] private GomokuAIStoneColor _aiStoneColor = GomokuAIStoneColor.White;
-    [SerializeField] private GomokuAIAlgorithmType _aiAlgorithmType = GomokuAIAlgorithmType.Minimax;
-    [SerializeField] private GomokuAIDifficulty _aiDifficulty = GomokuAIDifficulty.Normal;
-    [SerializeField] private float _maxAiSearchTimeSeconds = 7f;
+    [SerializeField] private GomokuAIStoneColor _aiStoneColor = GomokuAIStoneColor.White;               // AI 돌 색상
+    [SerializeField] private GomokuAIAlgorithmType _aiAlgorithmType = GomokuAIAlgorithmType.Minimax;    // AI 탐색 알고리즘 유형
+    [SerializeField] private GomokuAIDifficulty _aiDifficulty = GomokuAIDifficulty.Normal;              // AI 탐색 난이도
+    [SerializeField] private float _maxAiSearchTimeSeconds = 7f;                                        // AI 탐색 최대 시간 (초)
+    [SerializeField] private bool _enableAiItemAwareness;                                               // 해당 옵션이 켜지면 AI가 아이템 효과를 인식하여 착수할 수 있게 됨
 
     private bool _isAiThinking;
     private int _boardVersion;
@@ -109,6 +110,16 @@ public partial class GomokuManager
                IsPlaying &&
                !_isAiThinking &&
                IsAiTurn &&
+               _logic != null;
+    }
+
+    /// <summary>
+    /// AI 전용 아이템전 인식 로직을 사용할 수 있는 상태인지 반환함.
+    /// </summary>
+    private bool IsAiItemAwarenessEnabled()
+    {
+        return App.I.PlayMode == GamePlayMode.AI &&
+               _enableAiItemAwareness &&
                _logic != null;
     }
 

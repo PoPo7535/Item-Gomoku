@@ -21010,6 +21010,7 @@ MonoBehaviour:
   _aiAlgorithmType: 0
   _aiDifficulty: 5
   _maxAiSearchTimeSeconds: 7
+  _enableAiItemAwareness: 1
   BoardView: {fileID: 1954883595}
   WinPanel: {fileID: 1844196826}
   TurnTimeLimit: 10
@@ -21029,7 +21030,9 @@ MonoBehaviour:
   _CurrentFakeZ: -1
   _IsStoneSwapped:
     _value: 0
-  _SwapUsedByBlack:
+  _IsBlackSwapActive:
+    _value: 0
+  _IsWhiteSwapActive:
     _value: 0
 --- !u!4 &1912329768
 Transform:
