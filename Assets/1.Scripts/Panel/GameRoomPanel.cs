@@ -61,25 +61,34 @@ public class GameRoomPanel : NetworkBehaviour, IPlayerLeft
 
         readyButton.onClick.AddListener(() =>
         {
-            if (false == itemToggle.isOn)
-            {
-                RPC_StartGame();
-                return;
-            }
-
             if (Object.HasStateAuthority)
-                RPC_OpenItemSelectPanel();
+            {
+                if (false == itemToggle.isOn)
+                    RPC_StartGame();
+                else
+                    RPC_OpenItemSelectPanel();
+            }
             else
                 RPC_Ready(false == _clientReady);
         });
         readyText.text = Object.HasStateAuthority ? "게임시작" : "준비";
+        
+        if (App.I.PlayMode == GamePlayMode.Single)
+        {
+            ItemToggleBool = false;
+            OpenRoomToggleBool = false;
+        }
+
         readyButton.interactable = 
             false == Object.HasStateAuthority || 
             App.I.PlayMode != GamePlayMode.Multi;
 
         roomCodeText.text = App.I.Runner.SessionInfo.Name;
-        OpenRoomToggleBool = App.I.Runner.SessionInfo.IsVisible;
+        OpenRoomToggleBool = App.I.Runner.SessionInfo.IsVisible && 
+                             App.I.PlayMode != GamePlayMode.Single;
         itemToggle.isOn = ItemToggleBool;
+        openRoomToggle.isOn = OpenRoomToggleBool;
+
         openRoomToggle.onValueChanged.AddListener((isOn) =>
         {
             OpenRoomToggleBool= isOn;

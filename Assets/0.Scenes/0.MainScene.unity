@@ -5591,6 +5591,10 @@ MonoBehaviour:
       value: {fileID: 8300000, guid: 796be28d2f2e40e4a84452e4f61bbe82, type: 3}
     - key: onmouse
       value: {fileID: 8300000, guid: d97e183d8dfa8f64fa144f73e70154d7, type: 3}
+    - key: useItem1
+      value: {fileID: 8300000, guid: 44ebadd17bf0b7047a2e85df20b8ed72, type: 3}
+    - key: useItem2
+      value: {fileID: 8300000, guid: 62b0c75ae5e4bd542a63332764a436d2, type: 3}
   sfxGroup: {fileID: -8071323255793865170, guid: 3a1b5c70bf07fb742ab9b59ad3c8b90b, type: 2}
   audioMixer: {fileID: 24100000, guid: 3a1b5c70bf07fb742ab9b59ad3c8b90b, type: 2}
 --- !u!4 &1177159581

@@ -16,10 +16,8 @@ public class ToggleSlider : NetworkBehaviour
     private readonly Color32 _activeColor = new(220,220,220,255);
     private readonly Color32 _deActiveColor = new(30,30,30,255);
 
-    public override void Spawned()
+    public void Awake()
     {
-        if (false == Object.HasStateAuthority)
-            toggle.interactable = false;
         toggle.onValueChanged.AddListener((isOn) =>
         {
             var xSize = slider.sizeDelta.x / 2;
@@ -31,7 +29,8 @@ public class ToggleSlider : NetworkBehaviour
             slider.SetAnchorKeepPosition(new Vector2(isOn ? 0 : 1, 0), new Vector2(isOn ? 0 : 1, 1));
             slider.DOAnchorPosX(isOn ? xSize : -xSize, 0.3f).OnComplete(() =>
             {
-                if (Object.HasStateAuthority)
+                if (Object.HasStateAuthority && 
+                    App.I.PlayMode != GamePlayMode.Single)
                     toggle.interactable = true;
             });
         });
