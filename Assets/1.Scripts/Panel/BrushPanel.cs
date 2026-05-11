@@ -24,6 +24,12 @@ public class BrushPanel : MonoBehaviour
             case ItemType.TransparentStone:
                 itemName = "투명 돌";
                 break;
+            case ItemType.FakeStone:
+                itemName = "가짜돌";
+                break;
+            case ItemType.Detect:
+                itemName = "간파하기";
+                break;
             default:
                 "예외발생".WarningLog();
                 break;

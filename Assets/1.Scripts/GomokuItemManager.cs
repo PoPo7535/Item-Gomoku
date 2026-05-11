@@ -19,9 +19,14 @@ public class GomokuItemManager : MonoBehaviour
     // 이번 턴에 이미 아이템을 사용했는지 여부
     private bool _hasUsedItemInTurn = false;
 
+    [Header("간파하기 아이템 설정")]
+    public int MaxDetectUseCount = 4; // 인스펙터에서 조정하면댐
+    private int _currentDetectUseCount; // 현재 남은 간파하기 횟수
+
     private void Awake()
     {
         I = this;
+        _currentDetectUseCount = MaxDetectUseCount; // 시작 시 초기화
     }
 
     /// <summary>
@@ -127,10 +132,7 @@ public class GomokuItemManager : MonoBehaviour
             }
             else
             {
-                // 좌표 선택형 아이템들의 경우, 여기서 null 처리를 하면 
-                // 나중에 실제 착수 시점에 데이터가 없어 에러가 날 수 있습니다.
-                // ConsumeItemUI()가 실제 착수 시(PlaceStoneProcess 등)에 호출되므로 
-                // 여기서는 중복 처리를 하지 않도록 주의해야 합니다.
+                //
             }         
         }
 
@@ -161,7 +163,24 @@ public class GomokuItemManager : MonoBehaviour
     {
         if (CurrentSelectedItem == null) return;
 
-        GomokuManager.I.ItemPanel.HideUsedItem(CurrentSelectedItem); // 사용한 아이템 안보이게함
+        if (CurrentSelectedItem.type == ItemType.Detect)
+        {
+            _currentDetectUseCount--;
+            Debug.Log($"<color=cyan>간파하기 아이템 사용! 남은 횟수: {_currentDetectUseCount}</color>");
+
+            // 남은 횟수가 0 이하일 때만 UI에서 숨김 처리
+            if (_currentDetectUseCount <= 0)
+            {
+                GomokuManager.I.ItemPanel.HideUsedItem(CurrentSelectedItem);
+            }
+        }
+        else
+        {
+            // 일반 아이템은 무조건 1회용이므로 바로 숨김
+            GomokuManager.I.ItemPanel.HideUsedItem(CurrentSelectedItem);// 사용한 아이템 안보이게함
+        }
+
+
         // 패널의 모든 버튼을 클릭 차단
         GomokuManager.I.ItemPanel.ClearAllToggles();
         GomokuManager.I.ItemPanel.SetInteractable(false);
@@ -175,7 +194,7 @@ public class GomokuItemManager : MonoBehaviour
         _hasUsedItemInTurn = false;    
         CurrentSelectedItem = null;   
         CurrentMode = InputMode.Normal; // 확실하게 노멀 모드로!
-        
+        _currentDetectUseCount = MaxDetectUseCount;
         if (GomokuManager.I != null && GomokuManager.I.ItemPanel != null)
         {
             GomokuManager.I.ItemPanel.ClearAllToggles();

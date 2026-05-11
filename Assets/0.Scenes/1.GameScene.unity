@@ -16513,6 +16513,7 @@ MonoBehaviour:
   CurrentSelectedItem: {fileID: 0}
   _test: {fileID: 1256456529}
   CurrentMode: 0
+  MaxDetectUseCount: 4
 --- !u!1 &1476256430
 GameObject:
   m_ObjectHideFlags: 0
@@ -21255,6 +21256,7 @@ MonoBehaviour:
   _enableAiItemAwareness: 1
   BoardView: {fileID: 1954883595}
   WinPanel: {fileID: 1844196826}
+  brushPanel: {fileID: 1043141241}
   TurnTimeLimit: 10
   _IsBlackTurn:
     _value: 1

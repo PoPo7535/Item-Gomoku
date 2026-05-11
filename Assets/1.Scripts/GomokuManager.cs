@@ -13,6 +13,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     [Header("참조 설정")]
     public GomokuBoardView BoardView;
     public WinPanel WinPanel;
+    public BrushPanel brushPanel;
 
     [Header("게임 설정")]
     public float TurnTimeLimit = 30f;
@@ -865,6 +866,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (x == CurrentFakeX && z == CurrentFakeZ)
         {
             Debug.Log("<color=cyan>[간파 성공]</color> 가짜 마커를 제거했습니다!");
+            brushPanel?.ShowFindItem(ItemType.DoubleShow);
             RPC_DestroyFakeMarker(); 
             GomokuItemManager.I.ConsumeItemUI();
             GomokuItemManager.I.ResetSelection();
@@ -877,6 +879,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             if (data.IsTransparent)
             {
                 Debug.Log("<color=cyan>[간파 성공]</color> 상대의 투명 돌을 발견하여 제거했습니다!");
+                brushPanel?.ShowFindItem(ItemType.TransparentStone);
                 RPC_RequestRemoveSpecialStone(x, z, "투명");
                 FinishDetect();
                 return;
@@ -884,14 +887,16 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             else if (data.IsFake)
             {
                 Debug.Log("<color=cyan>[간파 성공]</color> 상대의 가짜 돌을 간파하여 제거했습니다!");
+                brushPanel?.ShowFindItem(ItemType.FakeStone);
                 RPC_RequestRemoveSpecialStone(x, z, "가짜");
                 FinishDetect();
                 return;
             }
         }
 
-        Debug.Log("<color=white>아무것도 찾지 못했습니다.</color>");
-        GomokuItemManager.I.ResetSelection();
+        Debug.Log("<color=white>아무것도 찾지 못했습니다.</color>"); 
+        brushPanel?.ShowFindFail();
+        FinishDetect();
     }
     private void FinishDetect()
     {
