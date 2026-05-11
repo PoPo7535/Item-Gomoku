@@ -130,7 +130,7 @@ public partial class GomokuManager
         CancellationTokenSource searchCancellationTokenSource = new CancellationTokenSource();
         _aiSearchCancellationTokenSource = searchCancellationTokenSource;
 
-        GomokuBoardSnapshot snapshot = new GomokuBoardSnapshot(_logic.Board, _boardVersion);
+        GomokuBoardSnapshot snapshot = GomokuBoardSnapshot.CreateForViewer(_logic.Board, _boardVersion, AiStoneColor);
         GomokuAISearchRequest request = new GomokuAISearchRequest(
             requestId,
             _aiAlgorithmType,
@@ -208,7 +208,7 @@ public partial class GomokuManager
     {
         return CanApplyAiSearchRequest(request) &&
                move.IsValid &&
-               CanPlaceStoneSafely(move.X, move.Y, request.AiStoneColor);
+               CanAiAttemptMove(move.X, move.Y, request.AiStoneColor);
     }
 
     /// <summary>
@@ -291,7 +291,7 @@ public partial class GomokuManager
     /// <returns>착수 요청 성공 여부.</returns>
     private bool PlaceStoneProcess(int x, int z, StoneColor stoneColor)
     {
-        if (!CanPlaceStoneSafely(x, z, stoneColor) ||
+        if (!CanAiAttemptMove(x, z, stoneColor) ||
             BoardView == null ||
             !BoardView.TryGetWorldPositionByCoord(x, z, out Vector3 pos))
         {
@@ -300,6 +300,48 @@ public partial class GomokuManager
 
         PlaceStoneProcess(pos, x, z, stoneColor == StoneColor.Black);
         return true;
+    }
+
+    /// <summary>
+    /// AI가 지정 좌표에 일반 착수 또는 상대 특수돌 함정 발동을 시도할 수 있는지 확인함.
+    /// </summary>
+    /// <param name="x">검사할 X 좌표.</param>
+    /// <param name="z">검사할 Z 좌표.</param>
+    /// <param name="stoneColor">AI 돌 색상.</param>
+    /// <returns>AI가 해당 좌표를 시도할 수 있으면 true.</returns>
+    private bool CanAiAttemptMove(int x, int z, StoneColor stoneColor)
+    {
+        if (_logic == null || !_logic.IsInside(x, z))
+        {
+            return false;
+        }
+
+        if (IsOpponentSpecialStone(x, z, stoneColor))
+        {
+            return true;
+        }
+
+        return CanPlaceStoneSafely(x, z, stoneColor);
+    }
+
+    /// <summary>
+    /// 지정 좌표가 AI 기준 상대 투명돌 또는 가짜돌인지 확인함.
+    /// </summary>
+    /// <param name="x">검사할 X 좌표.</param>
+    /// <param name="z">검사할 Z 좌표.</param>
+    /// <param name="stoneColor">AI 돌 색상.</param>
+    /// <returns>상대 특수돌이면 true.</returns>
+    private bool IsOpponentSpecialStone(int x, int z, StoneColor stoneColor)
+    {
+        if (_logic == null || !_logic.IsInside(x, z))
+        {
+            return false;
+        }
+
+        StoneData stoneData = _logic.Board[x, z];
+        return stoneData.Color != StoneColor.None &&
+               stoneData.Color != stoneColor &&
+               (stoneData.IsTransparent || stoneData.IsFake);
     }
 
     /// <summary>
