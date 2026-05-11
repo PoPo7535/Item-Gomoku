@@ -71,4 +71,21 @@ public class ItemUsePanel : MonoBehaviour
     {
         _toggleGroup.SetAllTogglesOff(); // 토글그룹에 속한 모든 토글을 꺼버림
     }
+    /// <summary>
+    /// 특정 아이템 찾아 끄기 
+    /// </summary>
+    public void HideUsedItem(GomokuItem item)
+    {
+        if (item == null) return;
+
+        foreach (var t in _toggles)
+        {
+            
+            if (t.gameObject.activeSelf && t.gomokuItem == item)
+            {
+                t.gameObject.SetActive(false); // UI에서 아예 안 보이게 처리
+                break;
+            }
+        }
+    }
 }
