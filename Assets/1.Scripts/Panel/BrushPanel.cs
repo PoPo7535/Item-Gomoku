@@ -102,6 +102,13 @@ public class BrushPanel : MonoBehaviour
     {
         await SetText("<color=#E53935>타이머감소</color> 제한시간 감소 되었습니다.");
     }
+    /// <summary>
+    /// 금수 메세지
+    /// </summary>
+    public async void forbidden() // 금수 위치 클릭때 나올메세지
+    {
+        await SetText("<color=#FF0000>[경고]</color> 금수 자리입니다.");
+    }
     public async void ShowFindItem(ItemType itemType)
     {
         var itemName = string.Empty;

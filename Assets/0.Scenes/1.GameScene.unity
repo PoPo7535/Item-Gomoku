@@ -21257,7 +21257,7 @@ MonoBehaviour:
   BoardView: {fileID: 1954883595}
   WinPanel: {fileID: 1844196826}
   brushPanel: {fileID: 1043141241}
-  TurnTimeLimit: 10
+  TurnTimeLimit: 20
   _IsBlackTurn:
     _value: 1
   _IsPlaying:

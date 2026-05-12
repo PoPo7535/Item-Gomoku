@@ -67,7 +67,7 @@ public class OmokuLogic
                     Board[x, y].Color = StoneColor.None;
                 }
                 
-                Debug.Log("<color=red>[경고]</color> 금수 자리입니다! 가짜돌도 둘 수 없습니다.");
+                GomokuManager.I.Forbidden_msg();
                 return false; 
             }
 

@@ -206,11 +206,6 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
                     }
                     ChangeTurn(); // 턴 교체
                 }
-                else
-                {
-                    // 가짜돌일 때는 턴을 넘기지 않고 로그만 출력
-                    Debug.Log("<color=blue>[아이템]</color> 가짜돌을 설치했습니다. 이제 진짜 돌을 착수하세요!");
-                }
         }
     }
     public void SetAIDifficulty(GomokuAIDifficulty difficulty)
@@ -984,5 +979,9 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             Debug.Log("AI 확인용");
         }
     }
-
+    
+    public void Forbidden_msg()
+    {
+        brushPanel?.forbidden();
+    }
 }
