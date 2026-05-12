@@ -5607,6 +5607,8 @@ MonoBehaviour:
   bgmSource: {fileID: 0}
   bgms:
     Dictionary:
+    - key: Schelper
+      value: {fileID: 8300000, guid: 9e2493ba68b79554ab971e28df8c54d7, type: 3}
     - key: I Heard I'm Bad For You
       value: {fileID: 8300000, guid: e82de39f58aed6943891f55751884f8e, type: 3}
     - key: I No Longer Need You
@@ -5615,6 +5617,12 @@ MonoBehaviour:
       value: {fileID: 8300000, guid: 3096e7ebfd3f27c45b6d1873aa3ce8b6, type: 3}
     - key: Through a Snowy Wood
       value: {fileID: 8300000, guid: 1fc0e00fa8c32684098db6944e4e424a, type: 3}
+    - key: Totrisss
+      value: {fileID: 8300000, guid: b28bf22568fe25340ad1090e0f28370a, type: 3}
+    - key: Demend
+      value: {fileID: 8300000, guid: 3f4876267ee080646b000e9ee53964b4, type: 3}
+    - key: Colep
+      value: {fileID: 8300000, guid: 2ecedecaba7b95c4c9c3e970daef921a, type: 3}
   bgmGroup: {fileID: 4212469525803591198, guid: 3a1b5c70bf07fb742ab9b59ad3c8b90b, type: 2}
   sfxSource: {fileID: 0}
   sounds:
@@ -5627,6 +5635,8 @@ MonoBehaviour:
       value: {fileID: 8300000, guid: ddbefa6c308e9194895365851df94152, type: 3}
     - key: timer
       value: {fileID: 8300000, guid: e19d98ad738546743a8d6fb4349efef3, type: 3}
+    - key: timer2
+      value: {fileID: 8300000, guid: 272b51d52214fdf47977be9faabec7ae, type: 3}
     - key: mistake
       value: {fileID: 8300000, guid: 7f6d429c526c1e94f830a7a8f07c3015, type: 3}
     - key: victory1
@@ -5646,11 +5656,19 @@ MonoBehaviour:
     - key: onmouse
       value: {fileID: 8300000, guid: d97e183d8dfa8f64fa144f73e70154d7, type: 3}
     - key: useItem1
-      value: {fileID: 8300000, guid: 976a14fc7eba89e41b863c59c312b370, type: 3}
+      value: {fileID: 8300000, guid: cbccbb99602ca8a4781b3602f69b1e75, type: 3}
     - key: useItem2
-      value: {fileID: 8300000, guid: 09904774ed0ae724995d6a8c8b5a927c, type: 3}
+      value: {fileID: 8300000, guid: 286413de139b49c48b15e3aa7def2366, type: 3}
     - key: useItem3
-      value: {fileID: 8300000, guid: f8417bc2b036bb34abfd6e8f3ed31ec1, type: 3}
+      value: {fileID: 8300000, guid: 32f823ceb3c0be942ad7f26388d38f87, type: 3}
+    - key: useItem4
+      value: {fileID: 8300000, guid: 59aa3aee2e227dd46a84bb8eef167696, type: 3}
+    - key: useItem5
+      value: {fileID: 8300000, guid: d9ae378a9dfa040408b63d12d6caf7f8, type: 3}
+    - key: useItem6
+      value: {fileID: 8300000, guid: 7d378f83a05dfb542bbf90f7c11c62e3, type: 3}
+    - key: useItem7
+      value: {fileID: 8300000, guid: 0de20167c0a4e9f4db6e7f543f3ce5d7, type: 3}
   sfxGroup: {fileID: -8071323255793865170, guid: 3a1b5c70bf07fb742ab9b59ad3c8b90b, type: 2}
   audioMixer: {fileID: 24100000, guid: 3a1b5c70bf07fb742ab9b59ad3c8b90b, type: 2}
 --- !u!4 &1177159581
