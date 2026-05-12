@@ -6,7 +6,7 @@ using UnityEngine;
 /// </summary>
 public partial class GomokuManager
 {
-    [Header("AI 아이템 인식")]
+    [Header("AI 간파하기 사용 임계값")]
     [SerializeField, Min(0)] private int _aiDetectUseThreshold = 80;    // 간파하기 사용 판단을 위한 최소 점수 임계값
 
     private const int AiInitialDetectItemCount = 3;

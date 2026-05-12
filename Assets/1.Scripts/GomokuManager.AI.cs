@@ -214,7 +214,13 @@ public partial class GomokuManager
         int fakeZ = -1;
         if (CanPlaceStoneSafely(move.X, move.Y, request.AiStoneColor))
         {
-            TryUseAiItemBeforePlace(out fakeX, out fakeZ);
+            TryUseAiItemBeforePlace(move, out fakeX, out fakeZ);
+        }
+
+        if (!CanAiAttemptMove(move.X, move.Y, request.AiStoneColor))
+        {
+            // 아이템 사용 후 원래 착수 후보가 막혔으면 적용하지 않음.
+            return false;
         }
 
         return PlaceStoneProcess(move.X, move.Y, request.AiStoneColor, fakeX, fakeZ);
@@ -310,6 +316,8 @@ public partial class GomokuManager
     /// <param name="x">착수 X 좌표.</param>
     /// <param name="z">착수 Z 좌표.</param>
     /// <param name="stoneColor">착수 돌 색상.</param>
+    /// <param name="fakeX">더블 표시 가짜 마커 X 좌표.</param>
+    /// <param name="fakeZ">더블 표시 가짜 마커 Z 좌표.</param>
     /// <returns>착수 요청 성공 여부.</returns>
     private bool PlaceStoneProcess(int x, int z, StoneColor stoneColor, int fakeX = -1, int fakeZ = -1)
     {

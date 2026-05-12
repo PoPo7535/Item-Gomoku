@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -9,13 +9,18 @@ public partial class GomokuManager
     [Header("AI 아이템")]
     [SerializeField, Min(0)] private int _aiRandomItemGrantCount = 3;
     [SerializeField, Min(0)] private int _aiItemMinStoneCount = 4;
-    [SerializeField, Range(0f, 1f)] private float _aiBeforeSearchItemUseChance = 0.25f;
-    [SerializeField, Range(0f, 1f)] private float _aiBeforePlaceItemUseChance = 0.25f;
+    [SerializeField, Range(0f, 1f)] private float _aiBeforeSearchItemUseChance = 0.125f;
+    [SerializeField, Range(0f, 1f)] private float _aiBeforePlaceItemUseChance = 0.125f;
+
+    private const int AiSpecialStoneSearchRange = 2;
+    private const int AiSpecialStoneMoveProximityScore = 4;
 
     private static readonly ItemType[] AiRandomItemPool =
     {
         ItemType.TimerDecreasing,
         ItemType.HideStone,
+        ItemType.TransparentStone,
+        ItemType.FakeStone,
         ItemType.DoubleShow,
         ItemType.SwapStone,
     };
@@ -76,10 +81,11 @@ public partial class GomokuManager
     /// <summary>
     /// AI 착수 전에 사용할 수 있는 착수형 아이템을 우선순위에 따라 시도함.
     /// </summary>
+    /// <param name="move">AI가 적용하려는 정상 착수 후보.</param>
     /// <param name="fakeX">더블 표시 가짜 마커 X 좌표.</param>
     /// <param name="fakeZ">더블 표시 가짜 마커 Z 좌표.</param>
     /// <returns>아이템 사용 성공 여부.</returns>
-    private bool TryUseAiItemBeforePlace(out int fakeX, out int fakeZ)
+    private bool TryUseAiItemBeforePlace(GomokuMove move, out int fakeX, out int fakeZ)
     {
         fakeX = -1;
         fakeZ = -1;
@@ -90,6 +96,18 @@ public partial class GomokuManager
         }
 
         if (TryUseAiHideStoneItem())
+        {
+            _hasAiUsedItemThisTurn = true;
+            return true;
+        }
+
+        if (TryUseAiTransparentStoneBeforePlace(move))
+        {
+            _hasAiUsedItemThisTurn = true;
+            return true;
+        }
+
+        if (TryUseAiFakeStoneBeforePlace(move))
         {
             _hasAiUsedItemThisTurn = true;
             return true;
@@ -176,6 +194,51 @@ public partial class GomokuManager
     }
 
     /// <summary>
+    /// AI가 투명돌 아이템 사용을 시도함.
+    /// </summary>
+    /// <param name="move">AI가 적용하려는 정상 착수 후보.</param>
+    /// <returns>투명돌 아이템 사용 성공 여부.</returns>
+    private bool TryUseAiTransparentStoneBeforePlace(GomokuMove move)
+    {
+        if (!ShouldUseAiRandomItem(_aiBeforePlaceItemUseChance) ||
+            !_aiItemInventory.Contains(ItemType.TransparentStone) ||
+            !TryFindAiTransparentStoneTarget(move, out int x, out int z))
+        {
+            return false;
+        }
+
+        _logic.Board[x, z].IsTransparent = true;
+        BoardView?.SwapAllStonesVisual(IsStoneSwapped);
+        NotifyBoardChanged();
+
+        ConsumeAiItem(ItemType.TransparentStone);
+        Debug.Log($"<color=yellow>[AI 아이템]</color> AI가 ({x}, {z}) 돌에 투명돌 아이템을 사용했습니다.");
+        return true;
+    }
+
+    /// <summary>
+    /// AI가 가짜돌 아이템 사용을 시도함.
+    /// </summary>
+    /// <param name="move">AI가 적용하려는 정상 착수 후보.</param>
+    /// <returns>가짜돌 아이템 사용 성공 여부.</returns>
+    private bool TryUseAiFakeStoneBeforePlace(GomokuMove move)
+    {
+        if (!ShouldUseAiRandomItem(_aiBeforePlaceItemUseChance) ||
+            !_aiItemInventory.Contains(ItemType.FakeStone) ||
+            !TryFindAiFakeStoneTarget(move, out int x, out int z) ||
+            BoardView == null ||
+            !BoardView.TryGetWorldPositionByCoord(x, z, out Vector3 pos))
+        {
+            return false;
+        }
+
+        PlaceStoneProcess(pos, x, z, AiStoneColor == StoneColor.Black, -1, -1, true);
+        ConsumeAiItem(ItemType.FakeStone);
+        Debug.Log($"<color=yellow>[AI 아이템]</color> AI가 ({x}, {z})에 가짜돌 아이템을 사용했습니다.");
+        return true;
+    }
+
+    /// <summary>
     /// AI가 더블 표시 아이템 사용을 시도함.
     /// </summary>
     /// <param name="fakeX">가짜 마커 X 좌표.</param>
@@ -208,6 +271,118 @@ public partial class GomokuManager
         fakeZ = randomStone.z;
         Debug.Log("<color=yellow>[AI 아이템]</color> AI가 더블 표시 아이템을 사용했습니다.");
         return true;
+    }
+
+    /// <summary>
+    /// AI 투명돌 아이템을 적용할 자기 일반 돌 좌표를 찾음.
+    /// </summary>
+    /// <param name="move">AI가 적용하려는 정상 착수 후보.</param>
+    /// <param name="bestX">선택된 X 좌표.</param>
+    /// <param name="bestZ">선택된 Z 좌표.</param>
+    /// <returns>대상 좌표 탐색 성공 여부.</returns>
+    private bool TryFindAiTransparentStoneTarget(GomokuMove move, out int bestX, out int bestZ)
+    {
+        bestX = -1;
+        bestZ = -1;
+        int bestScore = int.MinValue;
+        int boardSize = GetBoardSize();
+
+        for (int x = 0; x < boardSize; x++)
+        {
+            for (int z = 0; z < boardSize; z++)
+            {
+                if (!IsAiNormalStone(x, z))
+                {
+                    continue;
+                }
+
+                int score = EvaluateAiSpecialStoneTargetValue(x, z, move);
+                if (score <= bestScore)
+                {
+                    continue;
+                }
+
+                bestX = x;
+                bestZ = z;
+                bestScore = score;
+            }
+        }
+
+        return bestX >= 0 && bestZ >= 0;
+    }
+
+    /// <summary>
+    /// AI 가짜돌 아이템을 설치할 안전한 빈 좌표를 찾음.
+    /// </summary>
+    /// <param name="move">AI가 적용하려는 정상 착수 후보.</param>
+    /// <param name="bestX">선택된 X 좌표.</param>
+    /// <param name="bestZ">선택된 Z 좌표.</param>
+    /// <returns>대상 좌표 탐색 성공 여부.</returns>
+    private bool TryFindAiFakeStoneTarget(GomokuMove move, out int bestX, out int bestZ)
+    {
+        bestX = -1;
+        bestZ = -1;
+        int bestScore = int.MinValue;
+        int boardSize = GetBoardSize();
+
+        for (int x = 0; x < boardSize; x++)
+        {
+            for (int z = 0; z < boardSize; z++)
+            {
+                if ((x == move.X && z == move.Y) || !CanPlaceStoneSafely(x, z, AiStoneColor))
+                {
+                    continue;
+                }
+
+                int score = EvaluateAiSpecialStoneTargetValue(x, z, move);
+                if (score <= bestScore)
+                {
+                    continue;
+                }
+
+                bestX = x;
+                bestZ = z;
+                bestScore = score;
+            }
+        }
+
+        return bestX >= 0 && bestZ >= 0;
+    }
+
+    /// <summary>
+    /// AI 특수돌 아이템 대상 좌표의 가치를 계산함.
+    /// </summary>
+    /// <param name="x">평가할 X 좌표.</param>
+    /// <param name="z">평가할 Z 좌표.</param>
+    /// <param name="move">AI가 적용하려는 정상 착수 후보.</param>
+    /// <returns>대상 가치 점수.</returns>
+    private int EvaluateAiSpecialStoneTargetValue(int x, int z, GomokuMove move)
+    {
+        int score = CountNearbyRealStones(x, z, AiSpecialStoneSearchRange) * AiDetectNearbyStoneScore;
+        score += GetCenterProximityBonus(x, z);
+
+        int moveDistance = Mathf.Abs(x - move.X) + Mathf.Abs(z - move.Y);
+        score += Mathf.Max(0, (AiSpecialStoneSearchRange * 2 - moveDistance) * AiSpecialStoneMoveProximityScore);
+        return score;
+    }
+
+    /// <summary>
+    /// 지정 좌표가 AI 자신의 일반 돌인지 확인함.
+    /// </summary>
+    /// <param name="x">검사할 X 좌표.</param>
+    /// <param name="z">검사할 Z 좌표.</param>
+    /// <returns>AI 자신의 일반 돌이면 true.</returns>
+    private bool IsAiNormalStone(int x, int z)
+    {
+        if (_logic == null || !_logic.IsInside(x, z))
+        {
+            return false;
+        }
+
+        StoneData stoneData = _logic.Board[x, z];
+        return stoneData.Color == AiStoneColor &&
+               !stoneData.IsFake &&
+               !stoneData.IsTransparent;
     }
 
     /// <summary>
