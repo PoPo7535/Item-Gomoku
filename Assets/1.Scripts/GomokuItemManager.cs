@@ -55,7 +55,7 @@ public class GomokuItemManager : MonoBehaviour
             if (_test != null) _test.text = "아이템 선택 해제";
             return;
         }
-
+        SoundManager.I.PlaySound("notice1");
         CurrentSelectedItem = item;
         if (_test != null) _test.text = $"아이템 선택 : {CurrentSelectedItem.itemName}";
     }

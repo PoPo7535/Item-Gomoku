@@ -67,8 +67,11 @@ public class OmokuLogic
                     Board[x, y].Color = StoneColor.None;
                 }
                 
-                GomokuManager.I.Forbidden_msg();
-                SoundManager.I.PlaySound("error");
+                if (GomokuManager.I.MyColor == color)
+                {
+                    GomokuManager.I.Forbidden_msg();
+                    SoundManager.I.PlaySound("error");
+                }
                 return false; 
             }
 

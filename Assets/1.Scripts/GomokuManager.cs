@@ -5,6 +5,7 @@ using UnityEngine;
 using Utility;
 using Cysharp.Threading.Tasks;
 using UnityEngine.EventSystems;
+using NUnit.Framework;
 
 
 // 얘는 오목 규칙 + 턴 + 네트워크 + 게임 진행 전체 흐름 관리하자
@@ -972,28 +973,21 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         BoardView.SwapAllStonesVisual(false, false, true);
 
         bool isWin = (MyColor == WinColor);
-        if (isWin)
-        {
-            SoundManager.I.PlaySound("victory1");
-        }
-        else
-        {
-            SoundManager.I.PlaySound("defeat2");
-        }
         // UI 게임 종료 패널 띄우기 
         if (App.I.PlayMode == GamePlayMode.Multi)
         {
             WinPanel.OpPanel(WinColor); // 승리패널
+            SoundManager.I.PlaySound(isWin ? "victory1" : "defeat2");
         }
         if (App.I.PlayMode == GamePlayMode.Single)
         {   
             WinPanel.OpPanel(WinColor); // 승리패널
-            Debug.Log("싱글 확인용");
+            SoundManager.I.PlaySound("victory1");
         }
         if (App.I.PlayMode == GamePlayMode.AI)
         {   
             WinPanel.OpPanel(WinColor); // 승리패널
-            Debug.Log("AI 확인용");
+            SoundManager.I.PlaySound(isWin ? "victory1" : "defeat2");
         }
     }
     
