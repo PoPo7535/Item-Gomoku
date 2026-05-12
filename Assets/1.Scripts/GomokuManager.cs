@@ -5,6 +5,7 @@ using UnityEngine;
 using Utility;
 using Cysharp.Threading.Tasks;
 using UnityEngine.EventSystems;
+using NUnit.Framework;
 
 
 // 얘는 오목 규칙 + 턴 + 네트워크 + 게임 진행 전체 흐름 관리하자
@@ -33,8 +34,15 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     {
         foreach (var func in PlayEvents)
             func?.Invoke(IsPlaying);
-        if (IsPlaying)
+       if (IsPlaying)
+        {
+            SoundManager.I.PlayTimerSound(); // 게임 시작 시 켜기
             OnTurnEvent();
+        }
+        else
+        {
+            SoundManager.I.StopTimerSound(); // 게임 종료 혹은 대기 상태일땐 끄기
+        }
     }
 
 
@@ -151,13 +159,14 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
                 {
                    
                     brushPanel?.TransparentStone_Fake();
+                    SoundManager.I.PlaySound("mistake");
                     if (Object.HasStateAuthority) ChangeTurn();
                     return;
                 }
 
                 if (targetData.IsFake)
                 {
-                  
+                    SoundManager.I.PlaySound("mistake");
                     brushPanel?.FakeStone_Fake();
                     if (Object.HasStateAuthority) ChangeTurn();
                     return;
@@ -167,6 +176,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         // 2. 논리 보드에 착수 시도 (isFake 값 전달)
         if (_logic.PlaceStone(x, z, actingPlayerColor, isFake))
         {   
+            SoundManager.I.PlaySound("placement");
             GomokuItemManager.I.ConsumeItemUI(); 
             GomokuItemManager.I.ResetSelection();
 
@@ -505,6 +515,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         SetupPlayerColor();
         ResetGame(); 
         IsPlaying = true;
+        SoundManager.I.PlayTimerSound();
         StartTurnTimer();
         TryScheduleAiTurnIfNeeded();
         GomokuItemManager.I.ResetSelection();
@@ -891,6 +902,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (x == CurrentFakeX && z == CurrentFakeZ)
         {
             brushPanel?.ShowFind_DoubleMarker(GomokuItemManager.I.CurrentDetectUseCount);
+            SoundManager.I.PlaySound("useItem5");
             RPC_DestroyFakeMarker(); 
             GomokuItemManager.I.ConsumeItemUI();
             GomokuItemManager.I.ResetSelection();
@@ -903,6 +915,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             if (data.IsTransparent)
             {
                 brushPanel?.ShowFind_TransparentStone(GomokuItemManager.I.CurrentDetectUseCount);
+                SoundManager.I.PlaySound("useItem5");
                 RPC_RequestRemoveSpecialStone(x, z, "투명");
                 FinishDetect();
                 return;
@@ -910,6 +923,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             else if (data.IsFake)
             {
                 brushPanel?.ShowFind_FakeStone(GomokuItemManager.I.CurrentDetectUseCount);
+                SoundManager.I.PlaySound("useItem5");
                 RPC_RequestRemoveSpecialStone(x, z, "가짜");
                 FinishDetect();
                 return;
@@ -917,8 +931,11 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         }
 
         brushPanel?.ShowFindFail(GomokuItemManager.I.CurrentDetectUseCount);
+        SoundManager.I.PlaySound("useItem6");
         FinishDetect();
     }
+    
+    
     private void FinishDetect()
     {
         GomokuItemManager.I.ConsumeItemUI();
@@ -962,21 +979,21 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         BoardView.SwapAllStonesVisual(false, false, true);
 
         bool isWin = (MyColor == WinColor);
-
         // UI 게임 종료 패널 띄우기 
         if (App.I.PlayMode == GamePlayMode.Multi)
         {
             WinPanel.OpPanel(WinColor); // 승리패널
+            SoundManager.I.PlaySound(isWin ? "victory1" : "defeat2");
         }
         if (App.I.PlayMode == GamePlayMode.Single)
         {   
             WinPanel.OpPanel(WinColor); // 승리패널
-            Debug.Log("싱글 확인용");
+            SoundManager.I.PlaySound("victory1");
         }
         if (App.I.PlayMode == GamePlayMode.AI)
         {   
             WinPanel.OpPanel(WinColor); // 승리패널
-            Debug.Log("AI 확인용");
+            SoundManager.I.PlaySound(isWin ? "victory1" : "defeat2");
         }
     }
     

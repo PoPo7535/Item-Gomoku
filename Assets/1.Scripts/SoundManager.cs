@@ -31,6 +31,8 @@ public class SoundManager : Singleton<SoundManager>
     private const string PARAM_BGM = "BGM";
     private const string PARAM_SFX = "SFX";
 
+    // 타이머 사운드 전용 오디오 소스 변수 추가
+    private AudioSource timerSource;
     private void Awake()
     {
         if (FindObjectsOfType<SoundManager>().Length > 1)
@@ -73,6 +75,13 @@ public class SoundManager : Singleton<SoundManager>
             sfxSource.outputAudioMixerGroup = sfxGroup;
         }
 
+        // 타이머용 오디오 소스 생성 및 셋팅 (SFX 그룹에 연결, 무한 반복 On)
+        if(timerSource == null)
+        {
+            timerSource = gameObject.AddComponent<AudioSource>();
+            timerSource.outputAudioMixerGroup = sfxGroup; 
+            timerSource.loop = true; // 무한 반복
+        }
         _bgmKeys = bgms.Keys.ToList();
 
         SetMasterVolume(DEFAULT_VOLUME);
@@ -178,4 +187,31 @@ public class SoundManager : Singleton<SoundManager>
     }
     // public void PlayClick()     => PlayEffectSound(click);
     // public void PlayPlacement() => PlayEffectSound(placement);
+
+    /// <summary>
+    /// 타이머 소리 무한 반복 재생 시작
+    /// </summary>
+    public void PlayTimerSound()
+    {
+        if (sounds.TryGetValue("timer", out AudioClip clip))
+        {
+            timerSource.clip = clip;
+            // 이미 재생 중이 아닐 때만 재생
+            if (!timerSource.isPlaying) 
+            {
+                timerSource.Play();
+            }
+        }
+    }
+
+    /// <summary>
+    /// 타이머 소리 정지
+    /// </summary>
+    public void StopTimerSound()
+    {
+        if (timerSource != null && timerSource.isPlaying)
+        {
+            timerSource.Stop();
+        }
+    }
 }
