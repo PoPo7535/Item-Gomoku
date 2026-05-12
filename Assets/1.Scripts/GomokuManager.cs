@@ -13,6 +13,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     [Header("참조 설정")]
     public GomokuBoardView BoardView;
     public WinPanel WinPanel;
+    public BrushPanel brushPanel;
 
     [Header("게임 설정")]
     public float TurnTimeLimit = 30f;
@@ -140,15 +141,29 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         // --- [함정 체크 수정] ---
         // 상대방의 투명돌이거나, 상대방 의 가짜돌일 때만 함정 발동!
         // (내 가짜돌을 내가 클릭하는 건 업그레이드 시도로 간주하여 통과시킴)
-        bool isOpponentSpecialStone = (targetData.IsTransparent || targetData.IsFake) && targetData.Color != actingPlayerColor;
-
-        if (targetData.Color != StoneColor.None && isOpponentSpecialStone)
+        bool isTransparentTrap = targetData.IsTransparent && targetData.Color != actingPlayerColor;
+        bool isFakeTrap = targetData.IsFake && targetData.Color != actingPlayerColor;
+        if (targetData.Color != StoneColor.None)
         {
-            Debug.Log($"<color=red>[함정 발동!]</color> 상대방의 함정을 건드렸습니다!");
-            if (Object.HasStateAuthority) ChangeTurn();
-            return; 
-        }
+            if (targetData.Color != actingPlayerColor)
+            {
+                if (targetData.IsTransparent)
+                {
+                   
+                    brushPanel?.TransparentStone_Fake();
+                    if (Object.HasStateAuthority) ChangeTurn();
+                    return;
+                }
 
+                if (targetData.IsFake)
+                {
+                  
+                    brushPanel?.FakeStone_Fake();
+                    if (Object.HasStateAuthority) ChangeTurn();
+                    return;
+                }
+            }
+        }
         // 2. 논리 보드에 착수 시도 (isFake 값 전달)
         if (_logic.PlaceStone(x, z, actingPlayerColor, isFake))
         {   
@@ -589,8 +604,6 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     }
 
 
-
-
     ///--------------------------------------아이템 관련함수------------------------------------------
     /// <summary>
     /// 아이템 매니저에서 쓸 자기턴확인용
@@ -623,16 +636,19 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     public void RPC_UseHideMoveItem()
     {
         _shouldHideNextMarker = true;
-        Debug.Log("<color=yellow>[아이템 발동] 다음 돌은 위치 표시가 숨겨집니다!</color>");
     }
     /// <summary>
     /// 타이머 감소 아이템 사용 RPC
     /// </summary>
     [Rpc(RpcSources.All, RpcTargets.All, HostMode = RpcHostMode.SourceIsHostPlayer)]
-    public void RPC_UseTimerReductionItem()
+    public void RPC_UseTimerReductionItem(StoneColor userColor)
     {
         IsTimerHalfEffect = true;
-        Debug.Log("<color=red>[아이템 발동] 다음 상대의 턴 시간이 절반으로 줄어듭니다!</color>");
+
+        if (MyColor == userColor)
+            brushPanel?.ShowTimerItem_1();
+        else
+            brushPanel?.ShowTimerItem_2();
     }
 
     /// 더블표사에 쓰이는 로직
@@ -645,6 +661,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     {
         IsDoubleMarkerEffect = true;
     }
+    
     /// <summary>
     /// 판 위에 놓인 특정 색상의 돌 중 하나를 랜덤하게 좌표반환
     /// </summary>
@@ -698,7 +715,6 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         BoardView.FakeLastMoveMarker.SetActive(false);
         CurrentFakeX = -1;
         CurrentFakeZ = -1;
-        Debug.Log("<color=cyan>[아이템 발동] 가짜 마커가 간파되어 사라졌습니다!</color>");
     }
 
     /// 돌바꾸기 쓰이는 로직
@@ -723,8 +739,6 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
                 IsBlackSwapActive = true;  // 흑이 판을 뒤집음
             else 
                 IsWhiteSwapActive = true;  // 백이 판을 뒤집음
-                
-            Debug.Log($"<color=magenta>[아이템 발동]</color> {userColor}가 판을 뒤집었습니다!");
         }
 
         // 3. [최종 결과 저장] XOR 연산 결과를 네트워크 동기화 변수에 업데이트
@@ -732,6 +746,12 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         
         // 4. [비주얼 동기화] 모든 클라이언트의 화면을 최종 결정된 반전 상태에 맞춰 다시 그림
         RPC_ApplyStoneSwap(IsStoneSwapped);
+        RPC_ShowStoneSwapUI(userColor);
+    }
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void RPC_ShowStoneSwapUI(StoneColor userColor) 
+    {
+        brushPanel?.StoneSwap(); // 모든 클라이언트에서 실행
     }
     /// <summary>
     /// 실제 보드판에 있는 돌 색상 반전 
@@ -788,14 +808,14 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         // 2. 기본 유효성 검사 (돌이 없거나 내 돌이 아닌 경우)
         if (data.Color == StoneColor.None || data.Color != myColor)
         {
-            Debug.Log("자신의 돌에만 투명화를 사용할 수 있습니다.");
+            brushPanel?.TransparentStone_Fail();
             GomokuItemManager.I.ResetSelection();
             return;
         }
         // 가짜돌(IsFake)인 경우 투명화 아이템 적용을 막음
         if (data.IsFake)
         {
-            Debug.Log("<color=orange>[경고]</color> 가짜돌은 투명하게 만들 수 없습니다.");
+            brushPanel?.TransparentStone_Fail();
             GomokuItemManager.I.ResetSelection(); // 아이템 선택 해제
             return;
         }
@@ -804,11 +824,11 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         // 3. 이미 투명화 상태인지 체크
         if (data.IsTransparent)
         {
-            Debug.Log("이미 투명화된 돌입니다.");
+            brushPanel?.TransparentStone_Fail();
             GomokuItemManager.I.ResetSelection();
             return;
         }
-
+        brushPanel?.TransparentStone_Clear();
         // 4. 모든 조건 통과 시 서버에 요청
         RPC_RequestApplyTransparency(x, z);
         GomokuItemManager.I.ConsumeItemUI();
@@ -843,7 +863,18 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// 가짜돌 아이템 사용 시 호출될 함수
     /// </summary>
     private void UseFakeStone(int x, int z, Vector3 pos)
-    {
+    {   
+       
+        StoneData data = _logic.Board[x, z];
+
+        if (data.Color != StoneColor.None)
+        {
+            brushPanel?.FakeStone_Fail();
+            GomokuItemManager.I.ResetSelection();
+            return;
+        }
+        brushPanel?.FakeStone_Clear();
+
         // 가짜돌 모드일 때 서버에 가짜돌임을 알리며 착수 요청
         Rpc_RequestPlaceStone(pos, x, z, IsBlackTurn, -1, -1, true);
         
@@ -864,7 +895,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         // 돌이 있든 없든, 가짜 마커 좌표를 클릭했다면 마커 제거 시도
         if (x == CurrentFakeX && z == CurrentFakeZ)
         {
-            Debug.Log("<color=cyan>[간파 성공]</color> 가짜 마커를 제거했습니다!");
+            brushPanel?.ShowFind_DoubleMarker(GomokuItemManager.I.CurrentDetectUseCount);
             RPC_DestroyFakeMarker(); 
             GomokuItemManager.I.ConsumeItemUI();
             GomokuItemManager.I.ResetSelection();
@@ -876,22 +907,22 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         {
             if (data.IsTransparent)
             {
-                Debug.Log("<color=cyan>[간파 성공]</color> 상대의 투명 돌을 발견하여 제거했습니다!");
+                brushPanel?.ShowFind_TransparentStone(GomokuItemManager.I.CurrentDetectUseCount);
                 RPC_RequestRemoveSpecialStone(x, z, "투명");
                 FinishDetect();
                 return;
             }
             else if (data.IsFake)
             {
-                Debug.Log("<color=cyan>[간파 성공]</color> 상대의 가짜 돌을 간파하여 제거했습니다!");
+                brushPanel?.ShowFind_FakeStone(GomokuItemManager.I.CurrentDetectUseCount);
                 RPC_RequestRemoveSpecialStone(x, z, "가짜");
                 FinishDetect();
                 return;
             }
         }
 
-        Debug.Log("<color=white>아무것도 찾지 못했습니다.</color>");
-        GomokuItemManager.I.ResetSelection();
+        brushPanel?.ShowFindFail(GomokuItemManager.I.CurrentDetectUseCount);
+        FinishDetect();
     }
     private void FinishDetect()
     {
