@@ -77,6 +77,7 @@ public partial class GomokuManager
         _boardVersion = 0;
         _aiSearchRequestId++;
         ResetAiItemAwarenessMemory();
+        ResetAiItemState();
     }
 
     /// <summary>
@@ -137,7 +138,8 @@ public partial class GomokuManager
         CancelAiSearchRequest();
         _isAiThinking = true;
         BoardView?.UpdateGhostStone(Vector3.zero, false, false,false);
-        TryUseAiDetectOnKnownSpecialStone();
+        BeginAiItemTurn();
+        TryUseAiItemBeforeSearch();
 
         int requestId = ++_aiSearchRequestId;
         CancellationTokenSource searchCancellationTokenSource = new CancellationTokenSource();
@@ -208,7 +210,14 @@ public partial class GomokuManager
             return false;
         }
 
-        return PlaceStoneProcess(move.X, move.Y, request.AiStoneColor);
+        int fakeX = -1;
+        int fakeZ = -1;
+        if (CanPlaceStoneSafely(move.X, move.Y, request.AiStoneColor))
+        {
+            TryUseAiItemBeforePlace(out fakeX, out fakeZ);
+        }
+
+        return PlaceStoneProcess(move.X, move.Y, request.AiStoneColor, fakeX, fakeZ);
     }
 
     /// <summary>
@@ -302,7 +311,7 @@ public partial class GomokuManager
     /// <param name="z">착수 Z 좌표.</param>
     /// <param name="stoneColor">착수 돌 색상.</param>
     /// <returns>착수 요청 성공 여부.</returns>
-    private bool PlaceStoneProcess(int x, int z, StoneColor stoneColor)
+    private bool PlaceStoneProcess(int x, int z, StoneColor stoneColor, int fakeX = -1, int fakeZ = -1)
     {
         if (!CanAiAttemptMove(x, z, stoneColor) ||
             BoardView == null ||
@@ -312,7 +321,7 @@ public partial class GomokuManager
         }
 
         bool wasOpponentSpecialStone = IsAiItemAwarenessEnabled() && IsOpponentSpecialStone(x, z, stoneColor);
-        PlaceStoneProcess(pos, x, z, stoneColor == StoneColor.Black);
+        PlaceStoneProcess(pos, x, z, stoneColor == StoneColor.Black, fakeX, fakeZ);
         if (wasOpponentSpecialStone)
         {
             RememberAiOpponentSpecialStone(x, z, stoneColor);

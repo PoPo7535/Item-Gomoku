@@ -7,9 +7,9 @@ using UnityEngine;
 public partial class GomokuManager
 {
     [Header("AI 아이템 인식")]
-    [SerializeField, Min(0)] private int _initialAiDetectItemCount;     // 간파하기 아이템 초기 개수
     [SerializeField, Min(0)] private int _aiDetectUseThreshold = 80;    // 간파하기 사용 판단을 위한 최소 점수 임계값
 
+    private const int AiInitialDetectItemCount = 3;
     private const int AiTransparentDetectBaseScore = 100;
     private const int AiFakeDetectBaseScore = 60;
     private const int AiDetectNearbyStoneScore = 8;
@@ -40,27 +40,28 @@ public partial class GomokuManager
     private void ResetAiItemAwarenessMemory()
     {
         _knownAiOpponentSpecialStoneKeys.Clear();
-        _remainingAiDetectItemCount = _initialAiDetectItemCount;
+        _remainingAiDetectItemCount = IsAiItemFeatureEnabled() ? AiInitialDetectItemCount : 0;
     }
 
     /// <summary>
     /// AI가 기억 중인 상대 특수돌 중 가치가 충분한 좌표에 간파하기를 사용함.
     /// </summary>
-    private void TryUseAiDetectOnKnownSpecialStone()
+    /// <returns>간파하기 사용 성공 여부.</returns>
+    private bool TryUseAiDetectOnKnownSpecialStone()
     {
         if (!IsAiItemAwarenessEnabled() ||
             _remainingAiDetectItemCount <= 0 ||
             !TryFindBestKnownSpecialStoneToDetect(AiStoneColor, out int x, out int z, out int score))
         {
-            return;
+            return false;
         }
 
         if (score < _aiDetectUseThreshold)
         {
-            return;
+            return false;
         }
 
-        TryRemoveKnownSpecialStoneForAi(x, z, AiStoneColor);
+        return TryRemoveKnownSpecialStoneForAi(x, z, AiStoneColor);
     }
 
     /// <summary>
