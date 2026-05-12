@@ -33,8 +33,15 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     {
         foreach (var func in PlayEvents)
             func?.Invoke(IsPlaying);
-        if (IsPlaying)
+       if (IsPlaying)
+        {
+            SoundManager.I.PlayTimerSound(); // 게임 시작 시 켜기
             OnTurnEvent();
+        }
+        else
+        {
+            SoundManager.I.StopTimerSound(); // 게임 종료 혹은 대기 상태일땐 끄기
+        }
     }
 
 
@@ -151,13 +158,14 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
                 {
                    
                     brushPanel?.TransparentStone_Fake();
+                    SoundManager.I.PlaySound("mistake");
                     if (Object.HasStateAuthority) ChangeTurn();
                     return;
                 }
 
                 if (targetData.IsFake)
                 {
-                  
+                    SoundManager.I.PlaySound("mistake");
                     brushPanel?.FakeStone_Fake();
                     if (Object.HasStateAuthority) ChangeTurn();
                     return;
@@ -167,6 +175,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         // 2. 논리 보드에 착수 시도 (isFake 값 전달)
         if (_logic.PlaceStone(x, z, actingPlayerColor, isFake))
         {   
+            SoundManager.I.PlaySound("placement");
             GomokuItemManager.I.ConsumeItemUI(); 
             GomokuItemManager.I.ResetSelection();
 
@@ -505,6 +514,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         SetupPlayerColor();
         ResetGame(); 
         IsPlaying = true;
+        SoundManager.I.PlayTimerSound();
         StartTurnTimer();
         TryScheduleAiTurnIfNeeded();
         GomokuItemManager.I.ResetSelection();
@@ -962,7 +972,14 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         BoardView.SwapAllStonesVisual(false, false, true);
 
         bool isWin = (MyColor == WinColor);
-
+        if (isWin)
+        {
+            SoundManager.I.PlaySound("victory1");
+        }
+        else
+        {
+            SoundManager.I.PlaySound("defeat2");
+        }
         // UI 게임 종료 패널 띄우기 
         if (App.I.PlayMode == GamePlayMode.Multi)
         {

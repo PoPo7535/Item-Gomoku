@@ -68,6 +68,7 @@ public class OmokuLogic
                 }
                 
                 GomokuManager.I.Forbidden_msg();
+                SoundManager.I.PlaySound("error");
                 return false; 
             }
 
