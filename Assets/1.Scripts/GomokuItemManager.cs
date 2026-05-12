@@ -22,6 +22,7 @@ public class GomokuItemManager : MonoBehaviour
     [Header("간파하기 아이템 설정")]
     public int MaxDetectUseCount = 4; // 인스펙터에서 조정하면댐
     private int _currentDetectUseCount; // 현재 남은 간파하기 횟수
+    public int CurrentDetectUseCount => _currentDetectUseCount;
 
     private void Awake()
     {

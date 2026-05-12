@@ -12,17 +12,29 @@ public class BrushPanel : MonoBehaviour
     /// <summary>
     /// 간파하기에 사용되는 메세지
     /// </summary>
-    public async void ShowFindFail() // 실패했을때
+    public async void ShowFindFail(int remainCount) // 실패했을때
     {
-        await SetText("<color=#7A2E38>간파하기 실패했습니다.</color>");
+        await SetText($"<color=#7A2E38>간파하기 실패했습니다.</color> {GetRemainText(remainCount)}");
     }
-    public async void ShowFind_TransparentStone() // 투명돌 찾았을대
+
+    public async void ShowFind_TransparentStone(int remainCount) // 투명돌 찾았을대
     {
-        await SetText("<color=#22C55E>[간파성공]</color> <color=#7A2E38>투명돌을 제거합니다.</color>");
+        await SetText($"<color=#22C55E>[간파성공]</color> <color=#7A2E38>투명돌을 제거합니다.</color> {GetRemainText(remainCount)}");
     }
-    public async void ShowFind_FakeStone() // 가짜돌 찾았을때
+
+    public async void ShowFind_FakeStone(int remainCount) // 가짜돌 찾았을때
     {
-         await SetText("<color=#22C55E>[간파성공]</color> <color=#7A2E38>가짜돌을 제거합니다.</color>");
+         await SetText($"<color=#22C55E>[간파성공]</color> <color=#7A2E38>가짜돌을 제거합니다.</color> {GetRemainText(remainCount)}");
+    }
+
+    public async void ShowFind_DoubleMarker(int remainCount) // 가짜마커 찾았을때
+    {
+         await SetText($"<color=#22C55E>[간파성공]</color> <color=#7A2E38>가짜마커 제거합니다.</color> {GetRemainText(remainCount)}");
+    }
+    private string GetRemainText(int remainCount)
+    {
+        int nextCount = remainCount - 1;
+        return nextCount > 0 ? $" <color=#DE7935>사용 가능 횟수 {nextCount}회</color>" : "";
     }
     /// <summary>
     /// 투명돌에 사용되는 메세지
@@ -67,6 +79,10 @@ public class BrushPanel : MonoBehaviour
     public async void DoubleMarker() // 더블표시 아이템 사용했을 시
     {
         await SetText("<color=#7A2E38>[더블 표시] 가짜 착수 위치가 생성됩니다.</color>");
+    }
+    public async void DoubleMarker_Fake() // 더블표시 아이템 사용했을 시
+    {
+        await SetText("<color=#E53935>[가짜돌]</color> <color=#7A2E38>가짜돌 함정 발동.</color>");
     }
     /// <summary>
     /// 착수숨김에 사용되는 메세지

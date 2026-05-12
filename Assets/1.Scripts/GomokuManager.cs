@@ -715,7 +715,6 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         BoardView.FakeLastMoveMarker.SetActive(false);
         CurrentFakeX = -1;
         CurrentFakeZ = -1;
-        Debug.Log("<color=cyan>[아이템 발동] 가짜 마커가 간파되어 사라졌습니다!</color>");
     }
 
     /// 돌바꾸기 쓰이는 로직
@@ -750,7 +749,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         RPC_ShowStoneSwapUI(userColor);
     }
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    public void RPC_ShowStoneSwapUI(StoneColor userColor)
+    public void RPC_ShowStoneSwapUI(StoneColor userColor) 
     {
         brushPanel?.StoneSwap(); // 모든 클라이언트에서 실행
     }
@@ -896,7 +895,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         // 돌이 있든 없든, 가짜 마커 좌표를 클릭했다면 마커 제거 시도
         if (x == CurrentFakeX && z == CurrentFakeZ)
         {
-            brushPanel?.ShowFindItem(ItemType.DoubleShow);
+            brushPanel?.ShowFind_DoubleMarker(GomokuItemManager.I.CurrentDetectUseCount);
             RPC_DestroyFakeMarker(); 
             GomokuItemManager.I.ConsumeItemUI();
             GomokuItemManager.I.ResetSelection();
@@ -908,21 +907,21 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         {
             if (data.IsTransparent)
             {
-                brushPanel?.ShowFind_TransparentStone();
+                brushPanel?.ShowFind_TransparentStone(GomokuItemManager.I.CurrentDetectUseCount);
                 RPC_RequestRemoveSpecialStone(x, z, "투명");
                 FinishDetect();
                 return;
             }
             else if (data.IsFake)
             {
-                brushPanel?.ShowFind_FakeStone();
+                brushPanel?.ShowFind_FakeStone(GomokuItemManager.I.CurrentDetectUseCount);
                 RPC_RequestRemoveSpecialStone(x, z, "가짜");
                 FinishDetect();
                 return;
             }
         }
 
-        brushPanel?.ShowFindFail();
+        brushPanel?.ShowFindFail(GomokuItemManager.I.CurrentDetectUseCount);
         FinishDetect();
     }
     private void FinishDetect()
