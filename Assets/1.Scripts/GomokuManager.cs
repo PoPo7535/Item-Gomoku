@@ -902,6 +902,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (x == CurrentFakeX && z == CurrentFakeZ)
         {
             brushPanel?.ShowFind_DoubleMarker(GomokuItemManager.I.CurrentDetectUseCount);
+            SoundManager.I.PlaySound("useItem5");
             RPC_DestroyFakeMarker(); 
             GomokuItemManager.I.ConsumeItemUI();
             GomokuItemManager.I.ResetSelection();
@@ -914,6 +915,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             if (data.IsTransparent)
             {
                 brushPanel?.ShowFind_TransparentStone(GomokuItemManager.I.CurrentDetectUseCount);
+                SoundManager.I.PlaySound("useItem5");
                 RPC_RequestRemoveSpecialStone(x, z, "투명");
                 FinishDetect();
                 return;
@@ -921,6 +923,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             else if (data.IsFake)
             {
                 brushPanel?.ShowFind_FakeStone(GomokuItemManager.I.CurrentDetectUseCount);
+                SoundManager.I.PlaySound("useItem5");
                 RPC_RequestRemoveSpecialStone(x, z, "가짜");
                 FinishDetect();
                 return;
@@ -928,8 +931,11 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         }
 
         brushPanel?.ShowFindFail(GomokuItemManager.I.CurrentDetectUseCount);
+        SoundManager.I.PlaySound("useItem6");
         FinishDetect();
     }
+    
+    
     private void FinishDetect()
     {
         GomokuItemManager.I.ConsumeItemUI();
