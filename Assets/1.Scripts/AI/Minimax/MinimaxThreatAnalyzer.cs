@@ -118,22 +118,21 @@ internal sealed class MinimaxThreatAnalyzer
 
         for (int offset = -4; offset <= 0; offset++)
         {
-            if (!TryAnalyzeFiveCellWindow(x, y, directionX, directionY, offset, color, out int colorCount, out int emptyCount, out int firstColorIndex, out int lastColorIndex, out int gapIndex))
+            if (!ThreatPatternScanner.TryAnalyzeFiveCellWindow(_logic, _logic.Board.GetLength(0), x, y, directionX, directionY, offset, color, true, out ThreatPatternWindowResult window))
             {
                 continue;
             }
 
-            if (colorCount == 4 && emptyCount == 1 && IsInternalGap(gapIndex, firstColorIndex, lastColorIndex))
+            if (window.ColorCount == 4 && window.EmptyCount == 1 && IsInternalGap(window.GapIndex, window.FirstColorIndex, window.LastColorIndex))
             {
                 foundGappedFour = true;
                 continue;
             }
 
-            if (colorCount == 3 &&
-                emptyCount == 2 &&
-                HasGapBetweenStones(firstColorIndex, lastColorIndex, gapIndex) &&
-                (HasWindowEndExtension(x, y, directionX, directionY, offset, color) ||
-                 HasWindowExtension(x, y, directionX, directionY, offset)))
+            if (window.ColorCount == 3 &&
+                window.EmptyCount == 2 &&
+                HasGapBetweenStones(window.FirstColorIndex, window.LastColorIndex, window.GapIndex) &&
+                (window.HasEndExtension || window.HasOuterExtension))
             {
                 foundBrokenThree = true;
             }
@@ -151,109 +150,6 @@ internal sealed class MinimaxThreatAnalyzer
             analysis.BrokenThreeCount++;
             analysis.Score = System.Math.Max(analysis.Score, _brokenThreeThreatScore);
         }
-    }
-
-    /// <summary>
-    /// 5칸 창 하나가 같은 색 돌과 빈칸만으로 구성되는지 분석함.
-    /// </summary>
-    /// <param name="originX">기준 X 좌표.</param>
-    /// <param name="originY">기준 Y 좌표.</param>
-    /// <param name="directionX">검사 방향 X.</param>
-    /// <param name="directionY">검사 방향 Y.</param>
-    /// <param name="offset">기준 좌표에서 창 시작점까지의 offset.</param>
-    /// <param name="color">검사할 돌 색상.</param>
-    /// <param name="colorCount">창 안 같은 색 돌 개수.</param>
-    /// <param name="emptyCount">창 안 빈칸 개수.</param>
-    /// <param name="firstColorIndex">첫 같은 색 돌 위치.</param>
-    /// <param name="lastColorIndex">마지막 같은 색 돌 위치.</param>
-    /// <param name="gapIndex">돌 사이에 있는 빈칸 위치.</param>
-    /// <returns>상대 돌 없이 분석 가능한 창인지 여부.</returns>
-    private bool TryAnalyzeFiveCellWindow(
-        int originX,
-        int originY,
-        int directionX,
-        int directionY,
-        int offset,
-        StoneColor color,
-        out int colorCount,
-        out int emptyCount,
-        out int firstColorIndex,
-        out int lastColorIndex,
-        out int gapIndex)
-    {
-        colorCount = 0;
-        emptyCount = 0;
-        firstColorIndex = -1;
-        lastColorIndex = -1;
-        gapIndex = -1;
-
-        for (int index = 0; index < 5; index++)
-        {
-            int targetX = originX + ((offset + index) * directionX);
-            int targetY = originY + ((offset + index) * directionY);
-            StoneColor targetColor = GetWindowCellColor(originX, originY, targetX, targetY, color);
-
-            if (targetColor == color)
-            {
-                colorCount++;
-                if (firstColorIndex < 0)
-                {
-                    firstColorIndex = index;
-                }
-
-                lastColorIndex = index;
-                continue;
-            }
-
-            if (targetColor == StoneColor.None)
-            {
-                emptyCount++;
-                continue;
-            }
-
-            return false;
-        }
-
-        if (firstColorIndex >= 0 && lastColorIndex >= 0)
-        {
-            for (int index = firstColorIndex + 1; index < lastColorIndex; index++)
-            {
-                int targetX = originX + ((offset + index) * directionX);
-                int targetY = originY + ((offset + index) * directionY);
-                if (GetWindowCellColor(originX, originY, targetX, targetY, color) == StoneColor.None)
-                {
-                    gapIndex = index;
-                    break;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// 창 분석 시 기준 좌표를 검사 색상의 가상 돌로 취급해 색상을 반환함.
-    /// </summary>
-    /// <param name="originX">기준 X 좌표.</param>
-    /// <param name="originY">기준 Y 좌표.</param>
-    /// <param name="targetX">검사할 X 좌표.</param>
-    /// <param name="targetY">검사할 Y 좌표.</param>
-    /// <param name="color">가상 배치 색상.</param>
-    /// <returns>창 분석용 돌 색상.</returns>
-    private StoneColor GetWindowCellColor(int originX, int originY, int targetX, int targetY, StoneColor color)
-    {
-        if (targetX == originX && targetY == originY)
-        {
-            return color;
-        }
-
-        if (!_logic.IsInside(targetX, targetY))
-        {
-            return GetOppositeColor(color);
-        }
-
-        StoneData stoneData = _logic.Board[targetX, targetY];
-        return stoneData.IsFake ? StoneColor.None : stoneData.Color;
     }
 
     /// <summary>
@@ -278,46 +174,6 @@ internal sealed class MinimaxThreatAnalyzer
     private bool HasGapBetweenStones(int firstColorIndex, int lastColorIndex, int gapIndex)
     {
         return gapIndex > firstColorIndex && gapIndex < lastColorIndex;
-    }
-
-    /// <summary>
-    /// 5칸 창 내부 양끝 중 하나가 확장 가능한 빈칸인지 확인함.
-    /// </summary>
-    /// <param name="originX">기준 X 좌표.</param>
-    /// <param name="originY">기준 Y 좌표.</param>
-    /// <param name="directionX">검사 방향 X.</param>
-    /// <param name="directionY">검사 방향 Y.</param>
-    /// <param name="offset">기준 좌표에서 창 시작점까지의 offset.</param>
-    /// <param name="color">검사할 돌 색상.</param>
-    /// <returns>창 내부 확장 빈칸 존재 여부.</returns>
-    private bool HasWindowEndExtension(int originX, int originY, int directionX, int directionY, int offset, StoneColor color)
-    {
-        int firstX = originX + (offset * directionX);
-        int firstY = originY + (offset * directionY);
-        int lastX = originX + ((offset + 4) * directionX);
-        int lastY = originY + ((offset + 4) * directionY);
-
-        return GetWindowCellColor(originX, originY, firstX, firstY, color) == StoneColor.None ||
-               GetWindowCellColor(originX, originY, lastX, lastY, color) == StoneColor.None;
-    }
-
-    /// <summary>
-    /// 끊어진 3이 양끝 모두 막힌 죽은 형태가 아닌지 확인함.
-    /// </summary>
-    /// <param name="originX">기준 X 좌표.</param>
-    /// <param name="originY">기준 Y 좌표.</param>
-    /// <param name="directionX">검사 방향 X.</param>
-    /// <param name="directionY">검사 방향 Y.</param>
-    /// <param name="offset">기준 좌표에서 창 시작점까지의 offset.</param>
-    /// <returns>확장 가능 여부.</returns>
-    private bool HasWindowExtension(int originX, int originY, int directionX, int directionY, int offset)
-    {
-        int beforeX = originX + ((offset - 1) * directionX);
-        int beforeY = originY + ((offset - 1) * directionY);
-        int afterX = originX + ((offset + 5) * directionX);
-        int afterY = originY + ((offset + 5) * directionY);
-
-        return IsEmpty(beforeX, beforeY) || IsEmpty(afterX, afterY);
     }
 
     /// <summary>
