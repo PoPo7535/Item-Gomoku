@@ -3,8 +3,9 @@ using UnityEngine.UI;
 using TMPro;
 using Utility;
 
-public class OfflineUIManager : LocalSingleton<OfflineUIManager>
-{
+public class OfflineUIManager : MonoBehaviour
+{   
+    public static OfflineUIManager I;
     [SerializeField] private Button _AIBtn;
     [SerializeField] private TMP_Dropdown _difficultyDropdown;
     [SerializeField] private TMP_Text _ainame;
@@ -14,6 +15,19 @@ public class OfflineUIManager : LocalSingleton<OfflineUIManager>
     
     private bool _isAIActive = false;
     private GameRoomPanel roomPanel;
+    private void Awake()
+    {   
+        if (I == null)
+        {
+            I = this;
+        }
+        else
+        {
+            Destroy(gameObject);
+            return;
+        }
+        
+    }
     private void Start()
     {   
        
