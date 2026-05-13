@@ -12,8 +12,8 @@ public partial class MinimaxGomokuAI : IGomokuAI
     // AI 디버그/성능 로그 출력 여부임.
     // 현재 true 값은 개발/시연 중 탐색 흐름을 관찰하기 위한 상세 로그 설정임.
     // 로그 on/off 정책 변경은 성능 관찰 결과가 달라질 수 있으므로 별도 작업에서 다룸.
-    private const bool EnableAiDebugLog = true;
-    private const bool EnableAiStatsLog = true;
+    private const bool EnableAiDebugLog = false;
+    private const bool EnableAiStatsLog = false;
 
     // 탐색 제한 시간을 넘겼을 때 내부 흐름만 빠져나오기 위한 예외임.
     private sealed class SearchTimeoutException : System.Exception
