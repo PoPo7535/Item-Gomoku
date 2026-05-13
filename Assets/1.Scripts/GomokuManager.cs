@@ -177,7 +177,13 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (_logic.PlaceStone(x, z, actingPlayerColor, isFake))
         {   
             SoundManager.I.PlaySound("placement");
-            ParticleManager.I.PlayParticle(StoneParticleType.Normal,pos + Vector3.up * 0.2f);
+            if (!_shouldHideNextMarker)
+            {
+                ParticleManager.I.PlayParticle(
+                    StoneParticleType.Normal,
+                    pos + Vector3.up * 0.2f
+                );
+            }
             GomokuItemManager.I.ConsumeItemUI(); 
             GomokuItemManager.I.ResetSelection();
 
@@ -193,6 +199,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
                         StoneParticleType.HiddeMarker,
                         pos + Vector3.up * 0.2f
                     );
+                    SoundManager.I.PlaySound("smoke2");
                 }
                 _shouldHideNextMarker = false;
             }
@@ -767,6 +774,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     {
         brushPanel?.StoneSwap(); // 모든 클라이언트에서 실행
         ParticleManager.I.PlayParticle(StoneParticleType.SwapStone, new Vector3(0f,5f,30f));
+        SoundManager.I.PlaySound("smoke1");
     }
     /// <summary>
     /// 실제 보드판에 있는 돌 색상 반전 
@@ -847,7 +855,8 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             ParticleManager.I.PlayParticle(
             StoneParticleType.HiddeMarker,
             pos + Vector3.up * 0.2f
-        );
+            );
+        SoundManager.I.PlaySound("smoke2");
         // 4. 모든 조건 통과 시 서버에 요청
         RPC_RequestApplyTransparency(x, z);
         GomokuItemManager.I.ConsumeItemUI();
@@ -894,6 +903,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         }
         brushPanel?.FakeStone_Clear();
         ParticleManager.I.PlayParticle(StoneParticleType.HiddeMarker,pos + Vector3.up * 0.2f);
+        SoundManager.I.PlaySound("smoke2");
         // 가짜돌 모드일 때 서버에 가짜돌임을 알리며 착수 요청
         Rpc_RequestPlaceStone(pos, x, z, IsBlackTurn, -1, -1, true);
         
