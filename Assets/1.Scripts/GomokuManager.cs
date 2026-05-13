@@ -787,7 +787,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         switch (GomokuItemManager.I.CurrentMode)
         {
             case InputMode.UseTransparent:
-                UseTransparentStone(result.x, result.z);
+                UseTransparentStone(result.x, result.z, result.pos);
                 return true;
 
             case InputMode.UseFakeStone:
@@ -812,7 +812,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     /// 플레이어의 투명돌 아이템 사용 시도를 처리하는 로직
     /// 로컬 클라이언트에서 조건을 검사한 뒤 호스트에게 승인을 요청
     /// </summary>
-    private void UseTransparentStone(int x, int z)
+    private void UseTransparentStone(int x, int z, Vector3 pos)
     {
         // 1. 해당 좌표의 돌 데이터 가져오기
         StoneData data = _logic.Board[x, z];
@@ -842,6 +842,10 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             return;
         }
         brushPanel?.TransparentStone_Clear();
+            ParticleManager.I.PlayParticle(
+            StoneParticleType.HiddeMarker,
+            pos + Vector3.up * 0.2f
+        );
         // 4. 모든 조건 통과 시 서버에 요청
         RPC_RequestApplyTransparency(x, z);
         GomokuItemManager.I.ConsumeItemUI();
@@ -887,7 +891,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             return;
         }
         brushPanel?.FakeStone_Clear();
-
+        ParticleManager.I.PlayParticle(StoneParticleType.HiddeMarker,pos + Vector3.up * 0.2f);
         // 가짜돌 모드일 때 서버에 가짜돌임을 알리며 착수 요청
         Rpc_RequestPlaceStone(pos, x, z, IsBlackTurn, -1, -1, true);
         
