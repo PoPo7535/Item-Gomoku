@@ -185,7 +185,14 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
             
             // 마지막 마커 표시 로직
             if (_shouldHideNextMarker) 
-            {
+            {   
+                if (actingPlayerColor == _myColor)
+                {
+                    ParticleManager.I.PlayParticle(
+                        StoneParticleType.HiddeMarker,
+                        pos + Vector3.up * 0.2f
+                    );
+                }
                 _shouldHideNextMarker = false;
             }
             else
