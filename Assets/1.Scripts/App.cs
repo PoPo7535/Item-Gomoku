@@ -30,6 +30,7 @@ public class App : SimulationSingleton<App>
             PopUpPanel.I.Open(
                 response.ToString(), 
                 () => { PopUpPanel.I.Close();}, "확인");
+            SoundManager.I.StopTimerSound();
         });
     }
 
