@@ -15474,7 +15474,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ParticleManager
   particleList:
   - particleType: 1
-    particlePrefab: {fileID: 265766274217486953, guid: d3015b7eea383f64d8b81f965cc466e7, type: 3}
+    particlePrefab: {fileID: 265766274217486953, guid: 11412dfe03ae47b41a6f736bec171508, type: 3}
 --- !u!1 &1369340945
 GameObject:
   m_ObjectHideFlags: 0
