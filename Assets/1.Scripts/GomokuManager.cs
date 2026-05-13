@@ -177,7 +177,13 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
         if (_logic.PlaceStone(x, z, actingPlayerColor, isFake))
         {   
             SoundManager.I.PlaySound("placement");
-            ParticleManager.I.PlayParticle(StoneParticleType.Normal,pos + Vector3.up * 0.2f);
+            if (!_shouldHideNextMarker)
+            {
+                ParticleManager.I.PlayParticle(
+                    StoneParticleType.Normal,
+                    pos + Vector3.up * 0.2f
+                );
+            }
             GomokuItemManager.I.ConsumeItemUI(); 
             GomokuItemManager.I.ResetSelection();
 
