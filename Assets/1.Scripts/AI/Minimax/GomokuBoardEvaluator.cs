@@ -6,6 +6,7 @@ using System;
 public class GomokuBoardEvaluator
 {
     // leaf 보드 평가용 점수표임. MinimaxGomokuAI의 전술/pre-check 점수와 직접 비교하지 않음.
+    // 이 값들은 minimax 끝단에서 현재 보드 모양을 비교하기 위한 평가 스케일임.
     private enum ThreatPatternType
     {
         None,
@@ -19,6 +20,7 @@ public class GomokuBoardEvaluator
         Five
     }
 
+    // 아래 상수는 전체 보드 평가용이며 후보 ordering bonus나 아이템 정책 threshold와 별개임.
     private const int FiveScore = 1000000;
     private const int OpenFourScore = 180000;
     private const int BlockedFourScore = 18000;
@@ -100,6 +102,7 @@ public class GomokuBoardEvaluator
             return int.MinValue;
         }
 
+        // leaf 평가 전용 임시 착수라 실제 게임 보드 상태로 남기면 안 됨.
         logic.Board[x, y] = new StoneData { Color = color, IsFake = false };
         try
         {

@@ -10,6 +10,8 @@ using ThreatAnalysis = MinimaxThreatAnalysis;
 public partial class MinimaxGomokuAI : IGomokuAI
 {
     // AI 디버그/성능 로그 출력 여부임.
+    // 현재 true 값은 개발/시연 중 탐색 흐름을 관찰하기 위한 상세 로그 설정임.
+    // 로그 on/off 정책 변경은 성능 관찰 결과가 달라질 수 있으므로 별도 작업에서 다룸.
     private const bool EnableAiDebugLog = true;
     private const bool EnableAiStatsLog = true;
 
@@ -19,6 +21,7 @@ public partial class MinimaxGomokuAI : IGomokuAI
     }
 
     // 전술/pre-check/후보 정렬용 점수표임. leaf evaluator 점수와 직접 비교하는 스케일 아님.
+    // 여기 값은 즉시 전술 판단과 동률 보정용 대표 강도이고, 최종 보드 평가값이 아님.
     private const int WinScore = 10000000;
     private const int OpenFourThreatScore = 900000;
     private const int BlockedFourThreatScore = 300000;
@@ -34,6 +37,7 @@ public partial class MinimaxGomokuAI : IGomokuAI
     private const int ThreatScanCandidateCount = 24;
 
     // 후보 정렬 시 위협 형태를 먼저 보게 만드는 ordering 보너스임.
+    // 정렬 보너스는 alpha-beta 탐색 순서 개선용이며 leaf 평가 점수에 직접 더하는 값이 아님.
     private const int OpenFourOrderingBonus = 800000;
     private const int BlockedFourOrderingBonus = 250000;
     private const int OpenThreeOrderingBonus = 45000;
@@ -171,6 +175,7 @@ public partial class MinimaxGomokuAI : IGomokuAI
 
         _bestMoveSoFar = fullCandidates[0];
 
+        // 사전 검사 흐름은 minimax 전에 확정성이 높은 수를 먼저 처리하는 안전장치임.
         // 오프닝 -> 즉시 승리 -> 즉시 방어 -> AI 열린 4 공격 -> 상대 직접 위협 방어 -> AI 복합 위협 -> 제한 후보 minimax 순서임.
         GomokuMove openingMove = FindOpeningMove();
         if (openingMove.IsValid)

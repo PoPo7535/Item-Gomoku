@@ -3,14 +3,15 @@ using UnityEngine;
 
 /// <summary>
 /// AI 전용 일반 아이템 보유 상태와 사용 정책을 관리함.
+/// 플레이어 UI 선택 상태와 분리된 AI 전용 인벤토리/정책 계층임.
 /// </summary>
 public partial class GomokuManager
 {
     [Header("AI 아이템")]
     [SerializeField, Min(0)] private int _aiRandomItemGrantCount = 3;
     [SerializeField, Min(0)] private int _aiItemMinStoneCount = 4;
-    [SerializeField, Range(0f, 1f)] private float _aiBeforeSearchItemUseChance = 0.125f;
-    [SerializeField, Range(0f, 1f)] private float _aiBeforePlaceItemUseChance = 0.125f;
+    [SerializeField, Range(0f, 1f)] private float _aiBeforeSearchItemUseChance = 0.125f;   // 탐색 전 일반 아이템 사용 확률이며 보드 평가 점수와 무관함.
+    [SerializeField, Range(0f, 1f)] private float _aiBeforePlaceItemUseChance = 0.125f;    // 착수 전 일반 아이템 사용 확률이며 임계값 점수가 아님.
 
     private const int AiSpecialStoneSearchRange = 2;
     private const int AiSpecialStoneMoveProximityScore = 4;
@@ -63,6 +64,7 @@ public partial class GomokuManager
             return false;
         }
 
+        // BeforeSearch는 Detect를 먼저 보고, 조건이 안 맞으면 타이머 감소만 검토함.
         if (TryUseAiDetectOnKnownSpecialStone())
         {
             _hasAiUsedItemThisTurn = true;
@@ -95,6 +97,7 @@ public partial class GomokuManager
             return false;
         }
 
+        // BeforePlace는 정상 탐색 결과에만 적용되고 fallback 착수에는 얹지 않음.
         if (TryUseAiHideStoneItem())
         {
             _hasAiUsedItemThisTurn = true;
@@ -124,6 +127,7 @@ public partial class GomokuManager
 
     /// <summary>
     /// AI 아이템 기능을 사용할 수 있는 설정인지 확인함.
+    /// AI 인벤토리 지급과 아이템 사용 정책을 실행할지 결정하는 스위치임.
     /// </summary>
     /// <returns>AI 아이템 기능 사용 가능 여부.</returns>
     private bool IsAiItemFeatureEnabled()

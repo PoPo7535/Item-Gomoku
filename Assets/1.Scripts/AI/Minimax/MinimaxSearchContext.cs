@@ -90,6 +90,7 @@ public partial class MinimaxGomokuAI
 
     /// <summary>
     /// AI 디버그 로그를 조건부로 출력함.
+    /// 개발/시연 중 탐색 선택 이유를 보는 상세 로그임.
     /// </summary>
     /// <param name="message">출력할 로그 메시지.</param>
     private void LogAiDebug(string message)
@@ -217,6 +218,7 @@ public partial class MinimaxGomokuAI
 
     /// <summary>
     /// 탐색 성능 계측 값을 조건부로 출력함.
+    /// 성능 튜닝용 로그이며 실제 착수 평가 로직에는 관여하지 않음.
     /// </summary>
     /// <param name="status">탐색 종료 상태.</param>
     /// <param name="move">최종 선택된 후보 수.</param>

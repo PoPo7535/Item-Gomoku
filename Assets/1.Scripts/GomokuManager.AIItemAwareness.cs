@@ -3,11 +3,12 @@ using UnityEngine;
 
 /// <summary>
 /// AI 전용 아이템 인식 기억 상태를 관리함.
+/// 상대 특수돌을 밟은 경험을 기억해 다음 스냅샷과 간파하기 판단에 반영함.
 /// </summary>
 public partial class GomokuManager
 {
     [Header("AI 간파하기 사용 임계값")]
-    [SerializeField, Min(0)] private int _aiDetectUseThreshold = 80;    // 간파하기 사용 판단을 위한 최소 점수 임계값
+    [SerializeField, Min(0)] private int _aiDetectUseThreshold = 80;    // 간파하기 사용 판단용 정책 임계값이며 minimax 평가 점수가 아님.
 
     private const int AiInitialDetectItemCount = 3;
     private const int AiTransparentDetectBaseScore = 100;
@@ -30,6 +31,7 @@ public partial class GomokuManager
             return new GomokuBoardSnapshot(_logic.Board, _boardVersion);
         }
 
+        // 알려진 상대 특수돌은 이미 학습한 정보이므로 일반 상대 돌처럼 공개함.
         IReadOnlyCollection<int> knownSpecialStoneKeys = GetKnownAiOpponentSpecialStoneKeys(AiStoneColor);
         return GomokuBoardSnapshot.CreateForViewer(_logic.Board, _boardVersion, AiStoneColor, knownSpecialStoneKeys);
     }
@@ -45,6 +47,7 @@ public partial class GomokuManager
 
     /// <summary>
     /// AI가 기억 중인 상대 특수돌 중 가치가 충분한 좌표에 간파하기를 사용함.
+    /// Detect count와 threshold를 통과한 경우에만 live board를 변경함.
     /// </summary>
     /// <returns>간파하기 사용 성공 여부.</returns>
     private bool TryUseAiDetectOnKnownSpecialStone()
@@ -77,6 +80,7 @@ public partial class GomokuManager
             return;
         }
 
+        // 좌표만 기억하고 실제 보드 데이터는 변경하지 않음.
         _knownAiOpponentSpecialStoneKeys.Add(CreateAiItemAwarenessKey(x, z));
     }
 

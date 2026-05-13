@@ -19,7 +19,7 @@ public partial class GomokuManager
     [SerializeField] private GomokuAIAlgorithmType _aiAlgorithmType = GomokuAIAlgorithmType.Minimax;    // AI 탐색 알고리즘 유형
     [SerializeField] private GomokuAIDifficulty _aiDifficulty = GomokuAIDifficulty.Normal;              // AI 탐색 난이도
     [SerializeField] private float _maxAiSearchTimeSeconds = 7f;                                        // AI 탐색 최대 시간 (초)
-    [SerializeField] private bool _enableAiItemAwareness;                                               // 해당 옵션이 켜지면 AI가 아이템 효과를 인식하여 착수할 수 있게 됨
+    [SerializeField] private bool _enableAiItemAwareness;                                               // AI 아이템 인식과 AI 아이템 사용 정책을 켜는 임시 전용 스위치
 
     private bool _isAiThinking;
     private int _boardVersion;
@@ -117,6 +117,7 @@ public partial class GomokuManager
 
     /// <summary>
     /// AI 전용 아이템전 인식 로직을 사용할 수 있는 상태인지 반환함.
+    /// Snapshot 변환, known special memory, 함정 착수 허용 같은 인식 계층 스위치임.
     /// </summary>
     private bool IsAiItemAwarenessEnabled()
     {
@@ -138,6 +139,7 @@ public partial class GomokuManager
         CancelAiSearchRequest();
         _isAiThinking = true;
         BoardView?.UpdateGhostStone(Vector3.zero, false, false,false);
+        // 아이템 사용은 snapshot 생성 전에 처리해 최신 boardVersion 기준으로 탐색 요청을 만듦.
         BeginAiItemTurn();
         TryUseAiItemBeforeSearch();
 

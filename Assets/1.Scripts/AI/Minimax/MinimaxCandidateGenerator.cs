@@ -95,9 +95,11 @@ public partial class MinimaxGomokuAI
     {
         if (mode == CandidateGenerationMode.RootEvaluation)
         {
+            // RootEvaluation은 루트 보드 기준 전체 평가라 탐색 1회 안에서만 캐싱 가능함.
             return EvaluateRootCandidateScore(x, y, color);
         }
 
+        // SearchNode/ThreatScan은 반복 호출 비용을 줄이기 위해 경량 정렬 점수만 사용함.
         return EvaluateLightweightCandidateScore(x, y, color);
     }
 
@@ -146,6 +148,7 @@ public partial class MinimaxGomokuAI
     private int EvaluateLightweightCandidateScore(int x, int y, StoneColor color)
     {
         _stats.LightweightEvaluationCallCount++;
+        // lightweight score는 좋은 후보를 먼저 보게 하는 정렬 점수이며 leaf 평가값이 아님.
         ThreatAnalysis ownThreat = AnalyzeThreatAt(x, y, color);
         StoneColor opponentColor = GetOppositeColor(color);
         ThreatAnalysis opponentThreat = AnalyzeThreatAt(x, y, opponentColor);
