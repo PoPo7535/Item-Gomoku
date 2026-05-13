@@ -15475,6 +15475,8 @@ MonoBehaviour:
   particleList:
   - particleType: 1
     particlePrefab: {fileID: 265766274217486953, guid: 11412dfe03ae47b41a6f736bec171508, type: 3}
+  - particleType: 5
+    particlePrefab: {fileID: 2058928846710887712, guid: 807371b2ca11f404596c455de1bfa2dc, type: 3}
 --- !u!1 &1369340945
 GameObject:
   m_ObjectHideFlags: 0

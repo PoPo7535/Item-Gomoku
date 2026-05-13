@@ -765,6 +765,7 @@ public partial class GomokuManager : LocalFusionSingleton<GomokuManager>
     public void RPC_ShowStoneSwapUI(StoneColor userColor) 
     {
         brushPanel?.StoneSwap(); // 모든 클라이언트에서 실행
+        ParticleManager.I.PlayParticle(StoneParticleType.SwapStone, new Vector3(0f,5f,30f));
     }
     /// <summary>
     /// 실제 보드판에 있는 돌 색상 반전 
