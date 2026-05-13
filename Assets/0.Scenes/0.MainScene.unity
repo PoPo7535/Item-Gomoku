@@ -5748,8 +5748,6 @@ MonoBehaviour:
       value: {fileID: 8300000, guid: 7207391bc8d6eed4fb224b37230728d4, type: 3}
     - key: smoke2
       value: {fileID: 8300000, guid: 9a71d71fe24cbbb4fb470ddd61b88cac, type: 3}
-    - key: smoke3
-      value: {fileID: 8300000, guid: d27f9cdc6e7f7d843abe34a06f56e386, type: 3}
   sfxGroup: {fileID: -8071323255793865170, guid: 3a1b5c70bf07fb742ab9b59ad3c8b90b, type: 2}
   audioMixer: {fileID: 24100000, guid: 3a1b5c70bf07fb742ab9b59ad3c8b90b, type: 2}
 --- !u!4 &1177159581
